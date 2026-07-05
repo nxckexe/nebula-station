@@ -117,9 +117,26 @@ io.on('connection', (socket) => {
     await admin.from('profiles').update({ acc: me.acc }).eq('id', socket.userId); // dauerhaft speichern
   });
 
-  socket.on('disconnect', () => {
+  // Orb eingesammelt -> Sternenstaub gutschreiben (mit Spam-Bremse)
+  socket.on('collect', async () => {
+    const me = players[socket.id]; if (!me) return;
+    const now = Date.now();
+    if (now - (me.lastCollect || 0) < 150) return; // Rate-Limit
+    me.lastCollect = now;
+    me.stardust += 5;
+    socket.emit('stardust', { value: me.stardust });
+    if (now - (me.lastSave || 0) > 4000) {          // DB-Schreiben drosseln
+      me.lastSave = now;
+      await admin.from('profiles').update({ stardust: me.stardust }).eq('id', socket.userId);
+    }
+  });
+
+  socket.on('disconnect', async () => {
     const me = players[socket.id];
-    if (me) io.emit('system', me.name + ' hat die Station verlassen.');
+    if (me) {
+      io.emit('system', me.name + ' hat die Station verlassen.');
+      await admin.from('profiles').update({ stardust: me.stardust }).eq('id', socket.userId); // beim Verlassen sichern
+    }
     delete players[socket.id];
     io.emit('player-left', socket.id);
   });
@@ -132,7 +149,8 @@ function finalizeSpawn(socket, profile) {
     color: COLORS.includes(profile.color) ? profile.color : COLORS[0],
     species: SPECIES.includes(profile.species) ? profile.species : SPECIES[0],
     acc: ACCS.includes(profile.acc) ? profile.acc : 'none',
-    room: 'deck', x: 520, y: 400, face: 1
+    stardust: profile.stardust || 0,
+    room: 'deck', x: 520, y: 400, face: 1, lastCollect: 0, lastSave: 0
   };
   players[socket.id] = me;
   socket.emit('spawn', { name: me.name, color: me.color, species: me.species, acc: me.acc, stardust: profile.stardust || 0 });
