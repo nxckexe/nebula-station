@@ -35,12 +35,17 @@
   #chatin{flex:1;min-width:0;background:#fff;border:3px solid var(--ink);color:var(--ink);border-radius:16px;padding:11px 14px;font:inherit;font-size:15px;font-weight:500;outline:none}
   #chatin::placeholder{color:#9d8bd0}
   #send{background:var(--sky)}
-  #intro{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;overflow:auto;background:radial-gradient(1000px 560px at 50% 30%,#2a1e6b,var(--bg2) 75%)}
-  #card{width:min(360px,90vw);background:var(--cream);border:4px solid var(--ink);border-radius:26px;padding:22px;text-align:center;box-shadow:0 10px 0 var(--ink);margin:16px}
-  #card h1{font-size:28px;margin:0;color:var(--grape)}#card h1 b{color:var(--bubble)}
-  #card p{color:#8a76c4;font-size:13px;margin:2px 0 16px;font-weight:500}
-  #card label{display:block;text-align:left;font-size:13px;color:#8a76c4;margin:0 0 6px;font-weight:600}
-  #namein{width:100%;background:#fff;border:3px solid var(--ink);color:var(--ink);border-radius:14px;padding:10px 14px;font:inherit;font-size:16px;font-weight:500;outline:none;margin-bottom:14px}
+  .overlay{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;overflow:auto;background:radial-gradient(1000px 560px at 50% 30%,#2a1e6b,var(--bg2) 75%)}
+  .card{width:min(360px,90vw);background:var(--cream);border:4px solid var(--ink);border-radius:26px;padding:22px;text-align:center;box-shadow:0 10px 0 var(--ink);margin:16px}
+  .card h1{font-size:28px;margin:0;color:var(--grape)}.card h1 b{color:var(--bubble)}
+  .card p{color:#8a76c4;font-size:13px;margin:2px 0 16px;font-weight:500}
+  .card label{display:block;text-align:left;font-size:13px;color:#8a76c4;margin:0 0 6px;font-weight:600}
+  .inp{width:100%;background:#fff;border:3px solid var(--ink);color:var(--ink);border-radius:14px;padding:10px 14px;font:inherit;font-size:16px;font-weight:500;outline:none;margin-bottom:12px}
+  .tabs{display:flex;gap:8px;margin-bottom:14px}
+  .tab{flex:1;font-family:inherit;font-weight:600;font-size:14px;cursor:pointer;border:3px solid var(--ink);border-radius:12px;padding:8px;background:#fff;color:#8a76c4}
+  .tab.on{background:var(--grape);color:#fff}
+  .err{color:#e0396b;font-size:13px;font-weight:600;min-height:18px;margin-bottom:8px;text-align:left}
+  .go{width:100%;background:var(--mint);font-size:17px;padding:12px;border-radius:16px}
   .species{display:flex;gap:8px;justify-content:center;margin-bottom:16px;flex-wrap:wrap}
   .spc{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;font-size:11px;color:#8a76c4;font-weight:600;padding:4px;border-radius:12px;border:3px solid transparent}
   .spc.on{border-color:var(--sun);background:#fff}
@@ -52,7 +57,6 @@
   .swatches{display:flex;gap:8px;justify-content:center;margin-bottom:18px}
   .sw{width:32px;height:32px;border-radius:50%;cursor:pointer;border:3px solid var(--ink);box-shadow:0 3px 0 var(--ink)}
   .sw.on{outline:3px solid var(--sun);outline-offset:2px}
-  #enter{width:100%;background:var(--mint);font-size:17px;padding:12px;border-radius:16px}
 </style>
 </head>
 <body>
@@ -63,6 +67,7 @@
     <div class="pill"><span class="orb-ico"></span><span id="orbs">0</span></div>
     <div class="pill"><span id="dot"></span><span id="online">0</span></div>
     <button class="btn acc" id="accBtn" title="Accessoire">🎩</button>
+    <button class="btn" id="outBtn" title="Abmelden">⎋</button>
   </div>
   <div id="stage">
     <canvas id="cv"></canvas>
@@ -75,27 +80,45 @@
     <button class="btn" id="send">Senden</button>
   </div>
 </div>
-<div id="intro">
-  <div id="card">
+
+<!-- Login / Registrieren -->
+<div id="auth" class="overlay" style="display:none">
+  <div class="card">
     <h1>Nebula<b>·</b>Station</h1>
-    <p>Wähl dein Alien und dock an!</p>
-    <label>Dein Name</label>
-    <input id="namein" maxlength="14" placeholder="z.B. Zylo" autocomplete="off">
+    <p id="authsub">Melde dich an, um anzudocken</p>
+    <div class="tabs">
+      <button id="tabLogin" class="tab on">Einloggen</button>
+      <button id="tabReg" class="tab">Registrieren</button>
+    </div>
+    <input id="email" class="inp" type="email" placeholder="E-Mail" autocomplete="email">
+    <input id="pass" class="inp" type="password" placeholder="Passwort (min. 6 Zeichen)" autocomplete="current-password">
+    <input id="uname" class="inp" placeholder="Spielername" maxlength="14" style="display:none">
+    <div id="autherr" class="err"></div>
+    <button id="authBtn" class="btn go">Einloggen</button>
+  </div>
+</div>
+
+<!-- Alien-Auswahl (nur beim ersten Login) -->
+<div id="intro" class="overlay" style="display:none">
+  <div class="card">
+    <h1>Willkommen!</h1>
+    <p id="introsub">Wähl dein Alien</p>
     <label>Spezies</label>
     <div class="species" id="spc"></div>
     <label>Farbe</label>
     <div class="swatches" id="sw"></div>
-    <button class="btn" id="enter">Los geht's!</button>
+    <button class="btn go" id="enter">Andocken</button>
   </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script>
+<script type="module">
 "use strict";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
 /* ============================================================
-   NEBULA STATION — vernetzter Cartoon-Client
+   NEBULA STATION — Client mit Login (Supabase) + Multiplayer
    ============================================================ */
-const socket=io();
 const cv=document.getElementById('cv'),ctx=cv.getContext('2d'),chatlog=document.getElementById('chatlog');
 const W=1040,H=620; let scale=1,offX=0,offY=0;
 function resize(){const r=cv.parentElement.getBoundingClientRect();const dpr=Math.min(devicePixelRatio||1,2);
@@ -108,7 +131,6 @@ const INK='#2b1b52';
 const SPECIES=['blobbi','knuffo','slink','zacki','nebli'];
 const SP_LABEL={blobbi:'Blobbi',knuffo:'Knuffo',slink:'Slink',zacki:'Zacki',nebli:'Nebli'};
 const ACCS=['none','party','crown','phones','shades'];
-const ACC_LABEL={none:'—',party:'Partyhut',crown:'Krone',phones:'Kopfhörer',shades:'Sonnenbrille'};
 const EMOTES=[{icon:'😄',expr:'happy'},{icon:'😂',expr:'laugh'},{icon:'❤️',expr:'love'},{icon:'😮',expr:'wow'},{icon:'😎',expr:'cool'},{icon:'😴',expr:'sleep'}];
 const ROOMS={
   deck:{name:'Hauptdeck',accent:'#4dd0ff',wall1:'#4a3aa0',wall2:'#382a80',floor1:'#efe4ff',floor2:'#ddceff',
@@ -119,50 +141,102 @@ const ROOMS={
     deco:[{t:'telescope',x:210,y:262},{t:'bench',x:470,y:300},{t:'bench',x:640,y:300},{t:'plant',x:900,y:284},{t:'holo',x:820,y:246}]}
 };
 
-// ---- vernetzter Zustand ----
-const players={}; let myId=null, me=null;
-const pref={name:'',color:COLORS[0],species:'blobbi',acc:'none'};
+const players={}; let myId=null, me=null, spawned=false;
+const pref={color:COLORS[0],species:'blobbi'};
 
-function addPlayer(p){
-  if(players[p.id]) {Object.assign(players[p.id],p); return;}
-  players[p.id]={...p,tx:p.x,ty:p.y,step:0,moving:false,bubble:null,bubbleT:0,expr:'happy',exprT:0,emo:null,emoT:0};
-}
+function addPlayer(p){if(players[p.id]){Object.assign(players[p.id],p);return;}
+  players[p.id]={...p,tx:p.x,ty:p.y,step:0,moving:false,bubble:null,bubbleT:0,expr:'happy',exprT:0,emo:null,emoT:0};}
 function myRoom(){return me?me.room:'deck';}
 function updateOnline(){document.getElementById('online').textContent=Object.values(players).filter(p=>p.room===myRoom()).length;}
 
-// ---- Socket-Events ----
-socket.on('connect',()=>{myId=socket.id;});
-socket.on('world',all=>{for(const id in all)addPlayer(all[id]); me=players[myId]||me; updateOnline();});
-socket.on('player-joined',p=>{addPlayer(p);updateOnline();});
-socket.on('player-left',id=>{delete players[id];updateOnline();});
-socket.on('player-moved',d=>{const p=players[d.id];if(p){p.tx=d.x;p.ty=d.y;p.face=d.face;}});
-socket.on('player-room',d=>{const p=players[d.id];if(p){p.room=d.room;p.x=p.tx=d.x;p.y=p.ty=d.y;}updateOnline();});
-socket.on('player-acc',d=>{const p=players[d.id];if(p)p.acc=d.acc;});
-socket.on('player-emote',d=>{const p=players[d.id];if(p){p.emo=d.icon;p.emoT=2.4;p.expr=d.expr;p.exprT=2.4;}});
-socket.on('chat',m=>{addMsg(m.name,m.color,m.text,m.id===myId?'me':'');const p=players[m.id];if(p){p.bubble=m.text;p.bubbleT=4;}});
-socket.on('system',t=>addMsg('','',t,'sys'));
+/* ---------------- LOGIN / SUPABASE ---------------- */
+let supabase=null, socket=null;
+const $=id=>document.getElementById(id);
+let mode='login';
+function showAuth(msg){$('auth').style.display='flex';$('intro').style.display='none';if(msg)$('autherr').textContent=msg;}
+function setMode(m){mode=m;$('tabLogin').classList.toggle('on',m==='login');$('tabReg').classList.toggle('on',m==='reg');
+  $('uname').style.display=m==='reg'?'block':'none';$('authBtn').textContent=m==='reg'?'Konto erstellen':'Einloggen';$('autherr').textContent='';}
+$('tabLogin').onclick=()=>setMode('login');
+$('tabReg').onclick=()=>setMode('reg');
+$('authBtn').onclick=doAuth;
+$('pass').addEventListener('keydown',e=>{if(e.key==='Enter')doAuth();});
+$('outBtn').onclick=async()=>{if(supabase)await supabase.auth.signOut();location.reload();};
 
-// ---- Chat / Emote / Acc ----
+async function initAuth(){
+  try{
+    const cfg=await fetch('/config').then(r=>r.json());
+    if(!cfg.url||!cfg.anonKey){showAuth('Server ist noch nicht mit Supabase verbunden (Umgebungsvariablen fehlen).');return;}
+    supabase=createClient(cfg.url,cfg.anonKey);
+    const {data:{session}}=await supabase.auth.getSession();
+    if(session){connectGame(session.access_token);} else {showAuth();}
+  }catch(e){showAuth('Verbindung zum Server fehlgeschlagen.');}
+}
+async function doAuth(){
+  $('autherr').textContent='';
+  const email=$('email').value.trim(),pass=$('pass').value;
+  if(!email||!pass){$('autherr').textContent='Bitte E-Mail und Passwort eingeben.';return;}
+  $('authBtn').disabled=true;
+  try{
+    if(mode==='reg'){
+      const username=($('uname').value.trim())||'Alien';
+      const {data,error}=await supabase.auth.signUp({email,password:pass,options:{data:{username}}});
+      if(error)throw error;
+      if(data.session){connectGame(data.session.access_token);}
+      else{$('autherr').style.color='#7be0b0';$('autherr').textContent='Fast fertig! Bestätige die E-Mail und logg dich dann ein.';setMode('login');}
+    }else{
+      const {data,error}=await supabase.auth.signInWithPassword({email,password:pass});
+      if(error)throw error;
+      connectGame(data.session.access_token);
+    }
+  }catch(err){$('autherr').style.color='#e0396b';$('autherr').textContent=(err&&err.message)||'Anmeldung fehlgeschlagen.';}
+  $('authBtn').disabled=false;
+}
+function connectGame(token){
+  $('auth').style.display='none';
+  socket=window.io({auth:{token}});
+  wireSocket();
+}
+
+/* ---------------- SOCKET ---------------- */
+function wireSocket(){
+  socket.on('connect',()=>{myId=socket.id;});
+  socket.on('connect_error',err=>{showAuth('Sitzung abgelaufen, bitte neu einloggen.');});
+  socket.on('needs-setup',({username})=>{$('intro').style.display='flex';$('introsub').textContent='Hallo '+username+'! Wähl dein Alien';});
+  socket.on('spawn',prof=>{$('auth').style.display='none';$('intro').style.display='none';spawned=true;
+    document.getElementById('orbs').textContent=prof.stardust||0;
+    addMsg('','','Willkommen an Bord, '+prof.name+'!  (Emotes = Tasten 1-6 · Hut = Accessoire)','sys');});
+  socket.on('world',all=>{for(const id in all)addPlayer(all[id]);me=players[myId]||me;updateOnline();});
+  socket.on('player-joined',p=>{addPlayer(p);updateOnline();});
+  socket.on('player-left',id=>{delete players[id];updateOnline();});
+  socket.on('player-moved',d=>{const p=players[d.id];if(p){p.tx=d.x;p.ty=d.y;p.face=d.face;}});
+  socket.on('player-room',d=>{const p=players[d.id];if(p){p.room=d.room;p.x=p.tx=d.x;p.y=p.ty=d.y;}updateOnline();});
+  socket.on('player-acc',d=>{const p=players[d.id];if(p)p.acc=d.acc;});
+  socket.on('player-emote',d=>{const p=players[d.id];if(p){p.emo=d.icon;p.emoT=2.4;p.expr=d.expr;p.exprT=2.4;}});
+  socket.on('chat',m=>{addMsg(m.name,m.color,m.text,m.id===myId?'me':'');const p=players[m.id];if(p){p.bubble=m.text;p.bubbleT=4;}});
+  socket.on('system',t=>addMsg('','',t,'sys'));
+}
+
+/* ---------------- CHAT / EMOTE / ACC ---------------- */
 function addMsg(name,color,text,cls=''){const d=document.createElement('div');d.className='msg '+cls;
   if(cls==='sys')d.textContent=text;else d.innerHTML=`<b style="color:${color}">${esc(name)}</b> ${esc(text)}`;
   chatlog.appendChild(d);while(chatlog.children.length>30)chatlog.removeChild(chatlog.firstChild);}
 function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 const chatin=document.getElementById('chatin');
-function sendChat(){const t=chatin.value.trim();if(!t)return;socket.emit('chat',t);chatin.value='';}
+function sendChat(){const t=chatin.value.trim();if(!t||!socket)return;socket.emit('chat',t);chatin.value='';}
 document.getElementById('send').onclick=sendChat;
 chatin.addEventListener('keydown',e=>{if(e.key==='Enter')sendChat();});
 const emoBar=document.getElementById('emotes');
 EMOTES.forEach((em,i)=>{const b=document.createElement('div');b.className='emo';b.textContent=em.icon;b.title='Taste '+(i+1);
-  b.onclick=()=>socket.emit('emote',em);emoBar.appendChild(b);});
-addEventListener('keydown',e=>{if(document.activeElement===chatin)return;const n=parseInt(e.key);if(n>=1&&n<=EMOTES.length)socket.emit('emote',EMOTES[n-1]);});
-document.getElementById('accBtn').onclick=()=>{if(!me)return;const i=ACCS.indexOf(me.acc);const acc=ACCS[(i+1)%ACCS.length];socket.emit('acc',{acc});};
+  b.onclick=()=>socket&&socket.emit('emote',em);emoBar.appendChild(b);});
+addEventListener('keydown',e=>{if(document.activeElement===chatin)return;const n=parseInt(e.key);if(n>=1&&n<=EMOTES.length&&socket)socket.emit('emote',EMOTES[n-1]);});
+document.getElementById('accBtn').onclick=()=>{if(!me||!socket)return;const i=ACCS.indexOf(me.acc);socket.emit('acc',{acc:ACCS[(i+1)%ACCS.length]});};
 
-// ---- Orbs (lokal/kosmetisch bis Accounts da sind) ----
+/* ---------------- ORBS (kosmetisch) ---------------- */
 let orbs=[],score=0;
 function seedOrbs(){orbs=[];for(let i=0;i<5;i++)orbs.push(randOrb());}
 function randOrb(){return{x:200+Math.random()*640,y:280+Math.random()*250,t:Math.random()*6.28};}
 
-// ---- Bewegung ----
+/* ---------------- BEWEGUNG ---------------- */
 function toWorld(cx,cy){const r=cv.getBoundingClientRect();return{x:(cx-r.left-offX)/scale,y:(cy-r.top-offY)/scale};}
 cv.addEventListener('pointerdown',e=>{if(!me)return;if(document.activeElement===chatin)chatin.blur();
   const p=toWorld(e.clientX,e.clientY);me.tx=clamp(p.x,80,W-80);me.ty=clamp(p.y,250,H-40);});
@@ -170,17 +244,16 @@ function clamp(v,a,b){return v<a?a:v>b?b:v;}
 function checkDoor(){if(!me)return;const d=ROOMS[me.room].door;
   if(Math.hypot(me.x-d.x,me.y-d.y)<52){me.room=d.to;const nd=ROOMS[me.room].door;
     me.x=me.tx=nd.x>W/2?nd.x-140:nd.x+140;me.y=me.ty=nd.y;
-    socket.emit('room',{room:me.room,x:me.x,y:me.y});
+    socket&&socket.emit('room',{room:me.room,x:me.x,y:me.y});
     document.getElementById('room-name').textContent=ROOMS[me.room].name;
     addMsg('','','Du bist im '+ROOMS[me.room].name+'.','sys');updateOnline();}}
 
-// ============ UPDATE ============
 let last=performance.now(),lastSent=0;
 function update(dt,now){
   for(const id in players)moveEnt(players[id],dt);
-  if(me){checkDoor();
+  if(me&&spawned){checkDoor();
     for(const o of orbs){o.t+=dt*3;if(me.room==='deck'&&Math.hypot(me.x-o.x,me.y-o.y)<38){score++;document.getElementById('orbs').textContent=score;Object.assign(o,randOrb());}}
-    if(now-lastSent>66){socket.emit('move',{x:me.x,y:me.y,face:me.face});lastSent=now;}}
+    if(now-lastSent>66){socket&&socket.emit('move',{x:me.x,y:me.y,face:me.face});lastSent=now;}}
   for(const id in players){const e=players[id];
     if(e.bubbleT>0){e.bubbleT-=dt;if(e.bubbleT<=0)e.bubble=null;}
     if(e.emoT>0){e.emoT-=dt;if(e.emoT<=0)e.emo=null;}if(e.exprT>0){e.exprT-=dt;if(e.exprT<=0)e.expr='happy';}}
@@ -188,7 +261,7 @@ function update(dt,now){
 function moveEnt(e,dt){const dx=e.tx-e.x,dy=e.ty-e.y,d=Math.hypot(dx,dy);
   if(d>2){const m=Math.min(205*dt,d);e.x+=dx/d*m;e.y+=dy/d*m;if(Math.abs(dx)>.5)e.face=dx<0?-1:1;e.step+=dt*11;e.moving=true;}else{e.step*=.85;e.moving=false;}}
 
-// ============ RENDER ============
+/* ---------------- RENDER (unverändert) ---------------- */
 function render(){const r=cv.parentElement.getBoundingClientRect();ctx.clearRect(0,0,r.width,r.height);
   ctx.save();ctx.translate(offX,offY);ctx.scale(scale,scale);
   const room=ROOMS[myRoom()];
@@ -197,20 +270,16 @@ function render(){const r=cv.parentElement.getBoundingClientRect();ctx.clearRect
   const here=Object.values(players).filter(p=>p.room===myRoom()).sort((a,b)=>a.y-b.y);
   for(const e of here)drawAvatar(e);
   ctx.restore();}
-
 let stars=null,neb=null;
-function drawWall(room){
-  const g=ctx.createLinearGradient(0,0,0,200);g.addColorStop(0,room.wall1);g.addColorStop(1,room.wall2);ctx.fillStyle=g;ctx.fillRect(0,0,W,220);
+function drawWall(room){const g=ctx.createLinearGradient(0,0,0,200);g.addColorStop(0,room.wall1);g.addColorStop(1,room.wall2);ctx.fillStyle=g;ctx.fillRect(0,0,W,220);
   ctx.strokeStyle='rgba(0,0,0,.18)';ctx.lineWidth=10;ctx.beginPath();ctx.moveTo(0,16);ctx.lineTo(W,16);ctx.stroke();
   ctx.strokeStyle=shade(room.wall1,25);ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(0,14);ctx.lineTo(W,14);ctx.stroke();
   for(let x=60;x<W;x+=120){ctx.fillStyle=shade(room.wall1,-20);roundRect(x-6,8,12,14,3);ctx.fill();}
   ctx.strokeStyle='rgba(255,255,255,.06)';ctx.lineWidth=3;for(let x=0;x<W;x+=90){ctx.beginPath();ctx.moveTo(x,30);ctx.lineTo(x,200);ctx.stroke();}
   if(room===ROOMS.deck)drawViewport(W/2-210,44,420,150,room.accent);else drawViewport(80,44,W-160,150,room.accent);
-  drawWallScreen(80,66,room.accent);drawWallScreen(W-180,66,room.accent);
-  drawLamp(300,0);drawLamp(760,0);
+  drawWallScreen(80,66,room.accent);drawWallScreen(W-180,66,room.accent);drawLamp(300,0);drawLamp(760,0);
   ctx.font='700 15px Fredoka';ctx.textAlign='center';const t=room.name.toUpperCase(),tw=ctx.measureText(t).width;
-  ctx.fillStyle=room.accent;ctx.strokeStyle=INK;ctx.lineWidth=3;roundRect(W/2-tw/2-14,198,tw+28,22,11);ctx.fill();ctx.stroke();ctx.fillStyle=INK;ctx.fillText(t,W/2,213);
-}
+  ctx.fillStyle=room.accent;ctx.strokeStyle=INK;ctx.lineWidth=3;roundRect(W/2-tw/2-14,198,tw+28,22,11);ctx.fill();ctx.stroke();ctx.fillStyle=INK;ctx.fillText(t,W/2,213);}
 function drawViewport(x,y,w,h,accent){ctx.save();roundRect(x,y,w,h,18);ctx.clip();
   const g=ctx.createLinearGradient(0,y,0,y+h);g.addColorStop(0,'#241a5c');g.addColorStop(1,'#0e0930');ctx.fillStyle=g;ctx.fillRect(x,y,w,h);
   if(!neb)neb=[{dx:.2,dy:.4,r:.5,c:'#ff5ea8'},{dx:.75,dy:.3,r:.55,c:'#4dd0ff'},{dx:.5,dy:.6,r:.4,c:'#b18cff'}];
@@ -236,7 +305,6 @@ function drawWallScreen(x,y,accent){ctx.fillStyle='#1c1442';ctx.strokeStyle=INK;
 function drawLamp(x,y){ctx.fillStyle=INK;roundRect(x-14,y,28,10,4);ctx.fill();
   ctx.fillStyle='#fff6c8';ctx.beginPath();ctx.moveTo(x-14,y+10);ctx.lineTo(x+14,y+10);ctx.lineTo(x+30,y+60);ctx.lineTo(x-30,y+60);ctx.closePath();ctx.globalAlpha=.18;ctx.fill();ctx.globalAlpha=1;
   ctx.fillStyle='#ffe15e';ctx.beginPath();ctx.ellipse(x,y+10,10,4,0,0,7);ctx.fill();}
-
 function drawFloor(room){const top=196;ctx.fillStyle=room.floor1;ctx.strokeStyle=INK;ctx.lineWidth=6;roundRect(20,top,W-40,H-top-16,36);ctx.fill();ctx.stroke();
   ctx.fillStyle=room.floor2;for(let x=70;x<W-40;x+=66)for(let y=top+50;y<H-26;y+=66){ctx.beginPath();ctx.arc(x,y,5,0,7);ctx.fill();}
   ctx.strokeStyle=room.accent;ctx.lineWidth=6;ctx.setLineDash([16,13]);ctx.beginPath();ctx.ellipse(W/2,H/2+90,170,60,0,0,7);ctx.stroke();ctx.setLineDash([]);
@@ -274,8 +342,6 @@ function drawDoor(d,accent){ctx.fillStyle='#fff';ctx.strokeStyle=INK;ctx.lineWid
 function drawOrb(o){const y=o.y+Math.sin(o.t)*5;ctx.strokeStyle=INK;ctx.lineWidth=4;ctx.fillStyle='#ffe15e';ctx.beginPath();
   for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?5:13;const px=o.x+Math.cos(a)*rr,py=y+Math.sin(a)*rr;i?ctx.lineTo(px,py):ctx.moveTo(px,py);}
   ctx.closePath();ctx.fill();ctx.stroke();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(o.x-3,y-3,2.5,0,7);ctx.fill();}
-
-// ============ AVATAR ============
 function drawAvatar(e){const isFloat=e.species==='nebli',moving=e.moving;
   const bob=isFloat?Math.sin(performance.now()/450+e.x)*6-4:(moving?Math.abs(Math.sin(e.step))*4:Math.sin(performance.now()/500+e.x)*2);
   const squash=(moving&&!isFloat)?1+Math.sin(e.step*2)*.05:1;const x=e.x,y=e.y-bob;
@@ -339,10 +405,9 @@ function roundRect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,
 function shade(hex,amt){const n=parseInt(hex.slice(1),16);let r=clamp((n>>16)+amt,0,255),g=clamp(((n>>8)&255)+amt,0,255),b=clamp((n&255)+amt,0,255);return`rgb(${r},${g},${b})`;}
 function hexA(hex,a){const n=parseInt(hex.slice(1),16);return`rgba(${n>>16},${(n>>8)&255},${n&255},${a})`;}
 
-// ============ LOOP ============
 function loop(now){const dt=Math.min((now-last)/1000,.05);last=now;update(dt,now);render();requestAnimationFrame(loop);}
 
-// ---- Intro ----
+/* ---------------- ALIEN-AUSWAHL ---------------- */
 const shapeEls=[],spc=document.getElementById('spc');
 SPECIES.forEach((s,i)=>{const w=document.createElement('div');w.className='spc'+(i===0?' on':'');
   const sh=document.createElement('div');sh.className='shape sh-'+s;shapeEls.push(sh);
@@ -353,14 +418,11 @@ function tintShapes(){shapeEls.forEach(sh=>sh.style.background=pref.color);}
 COLORS.forEach((c,i)=>{const d=document.createElement('div');d.className='sw'+(i===0?' on':'');d.style.background=c;
   d.onclick=()=>{document.querySelectorAll('.sw').forEach(s=>s.classList.remove('on'));d.classList.add('on');pref.color=c;tintShapes();};sw.appendChild(d);});
 tintShapes();
-document.getElementById('namein').addEventListener('keydown',e=>{if(e.key==='Enter')start();});
-document.getElementById('enter').onclick=start;
-function start(){pref.name=document.getElementById('namein').value.trim()||'Reisender';
-  document.getElementById('intro').style.display='none';chatin.focus();
-  socket.emit('join',{name:pref.name,color:pref.color,species:pref.species,acc:pref.acc});
-  addMsg('','','Willkommen an Bord, '+pref.name+'!  (Emotes = Tasten 1-6 · Hut-Button oben)','sys');}
+document.getElementById('enter').onclick=()=>{if(socket)socket.emit('setup',{species:pref.species,color:pref.color});};
 
+/* ---------------- START ---------------- */
 resize();seedOrbs();requestAnimationFrame(loop);
+initAuth();
 </script>
 </body>
 </html>
