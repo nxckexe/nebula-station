@@ -57,20 +57,20 @@
   .swatches{display:flex;gap:8px;justify-content:center;margin-bottom:18px}
   .sw{width:32px;height:32px;border-radius:50%;cursor:pointer;border:3px solid var(--ink);box-shadow:0 3px 0 var(--ink)}
   .sw.on{outline:3px solid var(--sun);outline-offset:2px}
-  .pclose{position:absolute;top:12px;right:14px;width:30px;height:30px;border-radius:50%;border:3px solid var(--ink);background:#fff;color:var(--ink);font-weight:700;cursor:pointer;box-shadow:0 3px 0 var(--ink)}
-  .pcard{width:min(460px,94vw);text-align:left;position:relative;padding:22px}
-  .prow{display:flex;gap:16px;align-items:flex-start}
-  .pleft{display:flex;flex-direction:column;align-items:center;gap:8px;flex:0 0 auto}
-  #pcanvas{background:#efe4ff;border:3px solid var(--ink);border-radius:16px}
-  .pbadge{font-size:11px;font-weight:700;color:#fff;background:var(--grape);border:2px solid var(--ink);border-radius:10px;padding:1px 8px}
-  .pname{font-weight:700;font-size:17px;color:var(--ink)}
-  .pcoins{display:flex;align-items:center;gap:6px;font-weight:600;background:#fff;border:3px solid var(--ink);border-radius:16px;padding:4px 12px;box-shadow:0 3px 0 var(--ink)}
-  .pinvwrap{flex:1;min-width:0}
-  .pinvtitle{font-size:12px;font-weight:600;color:#8a76c4;margin:2px 0 8px}
-  .pinv{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-height:210px;overflow:auto;padding:2px}
-  .invcell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:26px;background:#fff;border:3px solid var(--ink);border-radius:14px;cursor:pointer;box-shadow:0 3px 0 var(--ink)}
+  .pmodal{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:transparent}
+  .pcard{position:relative;width:280px;max-width:92vw;background:var(--cream);border:4px solid var(--ink);border-radius:22px;padding:16px;box-shadow:0 10px 0 var(--ink);text-align:left}
+  .pclose{position:absolute;top:-12px;right:-12px;width:30px;height:30px;border-radius:50%;border:3px solid var(--ink);background:#fff;color:var(--ink);font-weight:700;cursor:pointer;box-shadow:0 3px 0 var(--ink)}
+  .phead{display:flex;gap:14px;align-items:center;margin-bottom:14px}
+  #pcanvas{background:#e7dcff;border:3px solid var(--ink);border-radius:14px;flex:0 0 auto}
+  .pmeta{display:flex;flex-direction:column;gap:6px;min-width:0}
+  .pbadge{align-self:flex-start;font-size:10px;font-weight:700;color:#fff;background:var(--grape);border:2px solid var(--ink);border-radius:9px;padding:1px 8px}
+  .pname{font-weight:700;font-size:17px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pcoins{align-self:flex-start;display:flex;align-items:center;gap:6px;font-weight:600;font-size:14px;background:#fff;border:3px solid var(--ink);border-radius:14px;padding:3px 10px;box-shadow:0 3px 0 var(--ink)}
+  .pinvtitle{font-size:12px;font-weight:600;color:#8a76c4;margin:0 0 8px}
+  .pinv{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .invcell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:22px;background:#fff;border:3px solid var(--ink);border-radius:12px;cursor:pointer;box-shadow:0 3px 0 var(--ink)}
   .invcell.on{background:var(--sun)}
-  .invcell.lock{opacity:.45;cursor:default}
+  .invcell:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
   .mcard{width:min(400px,90vw);text-align:center;position:relative}
   .rooms{display:flex;flex-direction:column;gap:12px;margin-top:6px}
   .roombtn{display:flex;align-items:center;gap:12px;padding:14px;border:3px solid var(--ink);border-radius:16px;background:#fff;cursor:pointer;box-shadow:0 4px 0 var(--ink);font-weight:600;font-size:16px;color:var(--ink)}
@@ -132,22 +132,20 @@
   </div>
 </div>
 
-<!-- Profilkarte -->
-<div id="profile" class="overlay" style="display:none">
-  <div class="card pcard">
+<!-- Profilkarte (klein, schwebend, transparenter Hintergrund) -->
+<div id="profile" class="pmodal" style="display:none">
+  <div class="pcard">
     <button class="pclose" id="pclose">✕</button>
-    <div class="prow">
-      <div class="pleft">
+    <div class="phead">
+      <canvas id="pcanvas" width="96" height="104"></canvas>
+      <div class="pmeta">
         <span class="pbadge">PILOT</span>
-        <canvas id="pcanvas" width="150" height="170"></canvas>
         <div class="pname" id="pname">Name</div>
         <div class="pcoins"><span class="orb-ico"></span> <span id="pcoins">0</span></div>
       </div>
-      <div class="pinvwrap">
-        <div class="pinvtitle">Inventar</div>
-        <div class="pinv" id="pinv"></div>
-      </div>
     </div>
+    <div class="pinvtitle">Inventar</div>
+    <div class="pinv" id="pinv"></div>
   </div>
 </div>
 
@@ -472,7 +470,7 @@ function closeProfile(){$('profile').style.display='none';}
 function renderPreview(pl){
   const pc=$('pcanvas'),g=pc.getContext('2d');const main=ctx;ctx=g;
   g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,pc.width,pc.height);
-  const fake=Object.assign({},pl,{x:pc.width/2,y:pc.height/2+22,step:0,moving:false,bubble:null,emo:null,expr:'happy',face:1});
+  const fake=Object.assign({},pl,{x:pc.width/2,y:pc.height/2+14,step:0,moving:false,bubble:null,emo:null,expr:'happy',face:1});
   const m=drawBody(fake,fake.x,fake.y,1,false);
   g.fillStyle='rgba(255,94,168,.5)';g.beginPath();g.arc(fake.x-m.spread-4,m.eyeY+7,4,0,7);g.fill();g.beginPath();g.arc(fake.x+m.spread+4,m.eyeY+7,4,0,7);g.fill();
   drawFace(fake,fake.x,m);drawAcc(fake.acc,fake.x,m,1);
