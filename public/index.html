@@ -57,6 +57,25 @@
   .swatches{display:flex;gap:8px;justify-content:center;margin-bottom:18px}
   .sw{width:32px;height:32px;border-radius:50%;cursor:pointer;border:3px solid var(--ink);box-shadow:0 3px 0 var(--ink)}
   .sw.on{outline:3px solid var(--sun);outline-offset:2px}
+  .pclose{position:absolute;top:12px;right:14px;width:30px;height:30px;border-radius:50%;border:3px solid var(--ink);background:#fff;color:var(--ink);font-weight:700;cursor:pointer;box-shadow:0 3px 0 var(--ink)}
+  .pcard{width:min(460px,94vw);text-align:left;position:relative;padding:22px}
+  .prow{display:flex;gap:16px;align-items:flex-start}
+  .pleft{display:flex;flex-direction:column;align-items:center;gap:8px;flex:0 0 auto}
+  #pcanvas{background:#efe4ff;border:3px solid var(--ink);border-radius:16px}
+  .pbadge{font-size:11px;font-weight:700;color:#fff;background:var(--grape);border:2px solid var(--ink);border-radius:10px;padding:1px 8px}
+  .pname{font-weight:700;font-size:17px;color:var(--ink)}
+  .pcoins{display:flex;align-items:center;gap:6px;font-weight:600;background:#fff;border:3px solid var(--ink);border-radius:16px;padding:4px 12px;box-shadow:0 3px 0 var(--ink)}
+  .pinvwrap{flex:1;min-width:0}
+  .pinvtitle{font-size:12px;font-weight:600;color:#8a76c4;margin:2px 0 8px}
+  .pinv{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-height:210px;overflow:auto;padding:2px}
+  .invcell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:26px;background:#fff;border:3px solid var(--ink);border-radius:14px;cursor:pointer;box-shadow:0 3px 0 var(--ink)}
+  .invcell.on{background:var(--sun)}
+  .invcell.lock{opacity:.45;cursor:default}
+  .mcard{width:min(400px,90vw);text-align:center;position:relative}
+  .rooms{display:flex;flex-direction:column;gap:12px;margin-top:6px}
+  .roombtn{display:flex;align-items:center;gap:12px;padding:14px;border:3px solid var(--ink);border-radius:16px;background:#fff;cursor:pointer;box-shadow:0 4px 0 var(--ink);font-weight:600;font-size:16px;color:var(--ink)}
+  .roombtn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+  .roomdot{width:26px;height:26px;border-radius:8px;border:3px solid var(--ink);flex:0 0 auto}
 </style>
 </head>
 <body>
@@ -66,6 +85,8 @@
     <div class="spacer"></div>
     <div class="pill"><span class="orb-ico"></span><span id="orbs">0</span></div>
     <div class="pill"><span id="dot"></span><span id="online">0</span></div>
+    <button class="btn" id="mapBtn" title="Karte">🗺️</button>
+    <button class="btn" id="meBtn" title="Mein Profil">🙂</button>
     <button class="btn acc" id="accBtn" title="Accessoire">🎩</button>
     <button class="btn" id="outBtn" title="Abmelden">⎋</button>
   </div>
@@ -111,6 +132,35 @@
   </div>
 </div>
 
+<!-- Profilkarte -->
+<div id="profile" class="overlay" style="display:none">
+  <div class="card pcard">
+    <button class="pclose" id="pclose">✕</button>
+    <div class="prow">
+      <div class="pleft">
+        <span class="pbadge">PILOT</span>
+        <canvas id="pcanvas" width="150" height="170"></canvas>
+        <div class="pname" id="pname">Name</div>
+        <div class="pcoins"><span class="orb-ico"></span> <span id="pcoins">0</span></div>
+      </div>
+      <div class="pinvwrap">
+        <div class="pinvtitle">Inventar</div>
+        <div class="pinv" id="pinv"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Karte -->
+<div id="map" class="overlay" style="display:none">
+  <div class="card mcard">
+    <button class="pclose" id="mclose">✕</button>
+    <h1>Karte</h1>
+    <p>Wohin möchtest du?</p>
+    <div class="rooms" id="rooms"></div>
+  </div>
+</div>
+
 <script src="/socket.io/socket.io.js"></script>
 <script type="module">
 "use strict";
@@ -119,7 +169,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 /* ============================================================
    NEBULA STATION — Client mit Login (Supabase) + Multiplayer
    ============================================================ */
-const cv=document.getElementById('cv'),ctx=cv.getContext('2d'),chatlog=document.getElementById('chatlog');
+const cv=document.getElementById('cv');let ctx=cv.getContext('2d');const chatlog=document.getElementById('chatlog');
 const W=1040,H=620; let scale=1,offX=0,offY=0;
 function resize(){const r=cv.parentElement.getBoundingClientRect();const dpr=Math.min(devicePixelRatio||1,2);
   cv.width=r.width*dpr;cv.height=r.height*dpr;scale=Math.min(r.width/W,r.height/H);
@@ -205,6 +255,7 @@ function wireSocket(){
   socket.on('spawn',prof=>{$('auth').style.display='none';$('intro').style.display='none';spawned=true;
     document.getElementById('orbs').textContent=prof.stardust||0;
     addMsg('','','Willkommen an Bord, '+prof.name+'!  (Emotes = Tasten 1-6 · Hut = Accessoire)','sys');});
+  socket.on('stardust',d=>{document.getElementById('orbs').textContent=d.value;if(me)me.stardust=d.value;});
   socket.on('world',all=>{for(const id in all)addPlayer(all[id]);me=players[myId]||me;updateOnline();});
   socket.on('player-joined',p=>{addPlayer(p);updateOnline();});
   socket.on('player-left',id=>{delete players[id];updateOnline();});
@@ -239,20 +290,23 @@ function randOrb(){return{x:200+Math.random()*640,y:280+Math.random()*250,t:Math
 /* ---------------- BEWEGUNG ---------------- */
 function toWorld(cx,cy){const r=cv.getBoundingClientRect();return{x:(cx-r.left-offX)/scale,y:(cy-r.top-offY)/scale};}
 cv.addEventListener('pointerdown',e=>{if(!me)return;if(document.activeElement===chatin)chatin.blur();
-  const p=toWorld(e.clientX,e.clientY);me.tx=clamp(p.x,80,W-80);me.ty=clamp(p.y,250,H-40);});
+  const p=toWorld(e.clientX,e.clientY);
+  const hit=Object.values(players).filter(q=>q.room===myRoom()).find(q=>Math.hypot(q.x-p.x,q.y-p.y)<26);
+  if(hit){openProfile(hit);return;}
+  me.tx=clamp(p.x,80,W-80);me.ty=clamp(p.y,250,H-40);});
 function clamp(v,a,b){return v<a?a:v>b?b:v;}
-function checkDoor(){if(!me)return;const d=ROOMS[me.room].door;
-  if(Math.hypot(me.x-d.x,me.y-d.y)<52){me.room=d.to;const nd=ROOMS[me.room].door;
-    me.x=me.tx=nd.x>W/2?nd.x-140:nd.x+140;me.y=me.ty=nd.y;
-    socket&&socket.emit('room',{room:me.room,x:me.x,y:me.y});
-    document.getElementById('room-name').textContent=ROOMS[me.room].name;
-    addMsg('','','Du bist im '+ROOMS[me.room].name+'.','sys');updateOnline();}}
+function checkDoor(){if(!me)return;const d=ROOMS[me.room].door;if(Math.hypot(me.x-d.x,me.y-d.y)<52)goToRoom(d.to);}
+function goToRoom(room){if(!me||room===me.room)return;me.room=room;const nd=ROOMS[room].door;
+  me.x=me.tx=nd.x>W/2?nd.x-140:nd.x+140;me.y=me.ty=nd.y;
+  socket&&socket.emit('room',{room:me.room,x:me.x,y:me.y});
+  document.getElementById('room-name').textContent=ROOMS[room].name;
+  addMsg('','','Du bist im '+ROOMS[room].name+'.','sys');updateOnline();}
 
 let last=performance.now(),lastSent=0;
 function update(dt,now){
   for(const id in players)moveEnt(players[id],dt);
   if(me&&spawned){checkDoor();
-    for(const o of orbs){o.t+=dt*3;if(me.room==='deck'&&Math.hypot(me.x-o.x,me.y-o.y)<38){score++;document.getElementById('orbs').textContent=score;Object.assign(o,randOrb());}}
+    for(const o of orbs){o.t+=dt*3;if(me.room==='deck'&&Math.hypot(me.x-o.x,me.y-o.y)<38){socket&&socket.emit('collect');Object.assign(o,randOrb());}}
     if(now-lastSent>66){socket&&socket.emit('move',{x:me.x,y:me.y,face:me.face});lastSent=now;}}
   for(const id in players){const e=players[id];
     if(e.bubbleT>0){e.bubbleT-=dt;if(e.bubbleT<=0)e.bubble=null;}
@@ -404,6 +458,48 @@ function drawBubble(x,y,text){ctx.font='500 12px Fredoka';const maxw=170,words=t
 function roundRect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
 function shade(hex,amt){const n=parseInt(hex.slice(1),16);let r=clamp((n>>16)+amt,0,255),g=clamp(((n>>8)&255)+amt,0,255),b=clamp((n&255)+amt,0,255);return`rgb(${r},${g},${b})`;}
 function hexA(hex,a){const n=parseInt(hex.slice(1),16);return`rgba(${n>>16},${(n>>8)&255},${n&255},${a})`;}
+
+/* ---------------- PROFILKARTE ---------------- */
+const ITEM_ICON={none:'🚫',party:'🎉',crown:'👑',phones:'🎧',shades:'🕶️'};
+const INV_ITEMS=[{id:'none',label:'Nichts'},{id:'party',label:'Partyhut'},{id:'crown',label:'Krone'},{id:'phones',label:'Kopfhörer'},{id:'shades',label:'Sonnenbrille'}];
+function openProfile(pl){
+  $('pname').textContent=pl.name;
+  $('pcoins').textContent=(pl.id===myId?(me&&me.stardust)||0:(pl.stardust||0));
+  renderPreview(pl);buildInventory(pl);
+  $('profile').style.display='flex';
+}
+function closeProfile(){$('profile').style.display='none';}
+function renderPreview(pl){
+  const pc=$('pcanvas'),g=pc.getContext('2d');const main=ctx;ctx=g;
+  g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,pc.width,pc.height);
+  const fake=Object.assign({},pl,{x:pc.width/2,y:pc.height/2+22,step:0,moving:false,bubble:null,emo:null,expr:'happy',face:1});
+  const m=drawBody(fake,fake.x,fake.y,1,false);
+  g.fillStyle='rgba(255,94,168,.5)';g.beginPath();g.arc(fake.x-m.spread-4,m.eyeY+7,4,0,7);g.fill();g.beginPath();g.arc(fake.x+m.spread+4,m.eyeY+7,4,0,7);g.fill();
+  drawFace(fake,fake.x,m);drawAcc(fake.acc,fake.x,m,1);
+  ctx=main;
+}
+function buildInventory(pl){
+  const inv=$('pinv');inv.innerHTML='';const own=pl.id===myId;
+  for(const it of INV_ITEMS){const cell=document.createElement('div');
+    cell.className='invcell'+(pl.acc===it.id?' on':'');cell.textContent=ITEM_ICON[it.id];cell.title=it.label;
+    if(own){cell.onclick=()=>{socket&&socket.emit('acc',{acc:it.id});pl.acc=it.id;buildInventory(pl);renderPreview(pl);};}
+    inv.appendChild(cell);}
+}
+$('pclose').onclick=closeProfile;
+$('profile').onclick=e=>{if(e.target.id==='profile')closeProfile();};
+$('meBtn').onclick=()=>{if(me)openProfile(me);};
+
+/* ---------------- KARTE ---------------- */
+const ROOM_LIST=[{id:'deck',name:'Hauptdeck'},{id:'obs',name:'Aussichtsdeck'}];
+function buildMap(){const r=$('rooms');r.innerHTML='';
+  ROOM_LIST.forEach(rm=>{const b=document.createElement('div');b.className='roombtn';
+    const dot=document.createElement('div');dot.className='roomdot';dot.style.background=ROOMS[rm.id].accent;
+    const lab=document.createElement('span');lab.textContent=rm.name+(me&&me.room===rm.id?'  •  (du bist hier)':'');
+    b.appendChild(dot);b.appendChild(lab);
+    b.onclick=()=>{goToRoom(rm.id);$('map').style.display='none';};r.appendChild(b);});}
+$('mapBtn').onclick=()=>{buildMap();$('map').style.display='flex';};
+$('mclose').onclick=()=>$('map').style.display='none';
+$('map').onclick=e=>{if(e.target.id==='map')$('map').style.display='none';};
 
 function loop(now){const dt=Math.min((now-last)/1000,.05);last=now;update(dt,now);render();requestAnimationFrame(loop);}
 
