@@ -43,6 +43,7 @@ const ACCS    = ['none','party','crown','phones','shades'];
 const clamp = (v,a,b) => v<a?a:v>b?b:v;
 
 const players = {}; // socket.id -> Spielerzustand (nur fuer aktive Sitzung)
+const online = {};  // userId -> socket.id (fuer Freunde/DMs)
 
 // --- Login-Pruefung: laeuft VOR jeder Verbindung ---
 io.use(async (socket, next) => {
@@ -177,9 +178,61 @@ io.on('connection', (socket) => {
     socket.emit('leaderboard-data', { rows: data || [] });
   });
 
+  // ---- Freunde ----
+  socket.on('friend-add', async (d) => {
+    const uname = String(d.username || '').trim(); if (!uname) return;
+    const { data: target } = await admin.from('profiles').select('id,username').ilike('username', uname).limit(1).maybeSingle();
+    if (!target || target.id === socket.userId) { socket.emit('friend-msg', { ok:false, text:'Spieler nicht gefunden.' }); return; }
+    const { data: rows } = await admin.from('friendships').select('*').or(`requester.eq.${socket.userId},addressee.eq.${socket.userId}`);
+    if ((rows || []).some(r => r.requester === target.id || r.addressee === target.id)) {
+      socket.emit('friend-msg', { ok:false, text:'Ihr seid schon verbunden oder eine Anfrage läuft.' }); return;
+    }
+    await admin.from('friendships').insert({ requester: socket.userId, addressee: target.id, status:'pending' });
+    socket.emit('friend-msg', { ok:true, text:'Anfrage an ' + target.username + ' gesendet!' });
+    const ts = online[target.id]; if (ts) io.to(ts).emit('friend-refresh');
+  });
+  socket.on('friend-accept', async (d) => {
+    await admin.from('friendships').update({ status:'accepted' }).eq('requester', d.fromId).eq('addressee', socket.userId);
+    socket.emit('friend-refresh');
+    const s = online[d.fromId]; if (s) io.to(s).emit('friend-refresh');
+  });
+  socket.on('friend-decline', async (d) => {
+    await admin.from('friendships').delete().eq('requester', d.fromId).eq('addressee', socket.userId);
+    socket.emit('friend-refresh');
+  });
+  socket.on('friends-list', async () => {
+    const { data: rows } = await admin.from('friendships').select('*').or(`requester.eq.${socket.userId},addressee.eq.${socket.userId}`);
+    const ids = new Set(); (rows || []).forEach(r => { ids.add(r.requester); ids.add(r.addressee); }); ids.delete(socket.userId);
+    const { data: profs } = ids.size ? await admin.from('profiles').select('id,username').in('id', Array.from(ids)) : { data: [] };
+    const nameOf = {}; (profs || []).forEach(p => nameOf[p.id] = p.username);
+    const friends = [], incoming = [];
+    (rows || []).forEach(r => {
+      const otherId = r.requester === socket.userId ? r.addressee : r.requester;
+      const entry = { id: otherId, username: nameOf[otherId] || 'Alien', online: !!online[otherId] };
+      if (r.status === 'accepted') friends.push(entry);
+      else if (r.addressee === socket.userId) incoming.push(entry);
+    });
+    socket.emit('friends-data', { friends, incoming });
+  });
+
+  // ---- Direktnachrichten ----
+  socket.on('dm', async (d) => {
+    const text = String(d.text || '').slice(0, 300), toId = d.toId; if (!text || !toId) return;
+    await admin.from('messages').insert({ sender: socket.userId, receiver: toId, text });
+    const s = online[toId]; if (s) io.to(s).emit('dm-in', { fromId: socket.userId, text });
+  });
+  socket.on('dm-history', async (d) => {
+    const withId = d.withId; if (!withId) return;
+    const { data } = await admin.from('messages').select('sender,receiver,text,created_at')
+      .or(`and(sender.eq.${socket.userId},receiver.eq.${withId}),and(sender.eq.${withId},receiver.eq.${socket.userId})`)
+      .order('created_at', { ascending: true }).limit(50);
+    socket.emit('dm-history-data', { withId, messages: (data || []).map(m => ({ mine: m.sender === socket.userId, text: m.text })) });
+  });
+
   socket.on('disconnect', async () => {
     const me = players[socket.id];
     c4LeaveHandler(socket.id);
+    if (online[socket.userId] === socket.id) delete online[socket.userId];
     if (me) {
       io.emit('system', me.name + ' hat die Station verlassen.');
       await admin.from('profiles').update({ stardust: me.stardust }).eq('id', socket.userId); // beim Verlassen sichern
@@ -204,6 +257,7 @@ function finalizeSpawn(socket, profile) {
     room: 'deck', x: 520, y: 400, face: 1, lastCollect: 0, lastSave: 0
   };
   players[socket.id] = me;
+  online[socket.userId] = socket.id;
   socket.emit('spawn', { name: me.name, color: me.color, species: me.species, acc: me.acc, stardust: profile.stardust || 0 });
   socket.emit('world', players);
   socket.broadcast.emit('player-joined', me);
