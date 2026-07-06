@@ -131,33 +131,51 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('c4-sit', () => {
+  socket.on('c4-sit', (d) => {
     const p2 = players[socket.id]; if (!p2 || p2.room !== 'obs') return;
-    if (!c4) { c4 = { a:{id:socket.id,name:p2.name,color:p2.color}, b:null, board:c4NewBoard(), turn:0, started:false };
-      io.to(socket.id).emit('c4-waiting'); return; }
-    if (c4.a.id === socket.id || (c4.b && c4.b.id === socket.id)) return;
-    if (c4.b) { io.to(socket.id).emit('c4-busy'); return; }
-    c4.b = {id:socket.id,name:p2.name,color:p2.color}; c4.started = true; c4.turn = 0;
-    const common = { board:c4.board, turn:c4.turn, a:{name:c4.a.name,color:c4.a.color}, b:{name:c4.b.name,color:c4.b.color} };
-    io.to(c4.a.id).emit('c4-start', Object.assign({seat:0}, common));
-    io.to(c4.b.id).emit('c4-start', Object.assign({seat:1}, common));
+    if (p2.table >= 0) return;                       // schon an einem Tisch
+    const ti = +d.table; if (!(ti >= 0 && ti < TABLES)) return;
+    let g = games[ti];
+    if (!g) {
+      g = { table: ti, a:{id:socket.id,name:p2.name,color:p2.color}, b:null, colA:p2.color, colB:null, board:c4NewBoard(), turn:0, started:false };
+      games[ti] = g; p2.table = ti; c4SetSitting(socket.id, true);
+      io.to(socket.id).emit('c4-waiting', { table: ti }); return;
+    }
+    if (g.a.id === socket.id) return;
+    if (g.b) { io.to(socket.id).emit('c4-busy'); return; }
+    g.b = { id:socket.id, name:p2.name, color:p2.color };
+    g.colA = g.a.color;
+    g.colB = (p2.color !== g.a.color) ? p2.color : (COLORS.find(c => c !== g.a.color) || '#ff5ea8'); // gleiche Farbe -> Gegner bekommt eine andere
+    g.started = true; g.turn = 0; p2.table = ti; c4SetSitting(socket.id, true);
+    const common = { table:ti, board:g.board, turn:g.turn, a:{name:g.a.name,color:g.colA}, b:{name:g.b.name,color:g.colB} };
+    io.to(g.a.id).emit('c4-start', Object.assign({seat:0}, common));
+    io.to(g.b.id).emit('c4-start', Object.assign({seat:1}, common));
   });
 
   socket.on('c4-drop', (d) => {
-    if (!c4 || !c4.started) return;
-    const seat = c4.a.id === socket.id ? 0 : (c4.b && c4.b.id === socket.id ? 1 : -1);
-    if (seat < 0 || seat !== c4.turn) return;
+    const p2 = players[socket.id]; if (!p2) return;
+    const g = games[p2.table]; if (!g || !g.started) return;
+    const seat = g.a.id === socket.id ? 0 : (g.b && g.b.id === socket.id ? 1 : -1);
+    if (seat < 0 || seat !== g.turn) return;
     const col = +d.col; if (!(col >= 0 && col < C4_COLS)) return;
-    let row = -1; for (let r = C4_ROWS-1; r >= 0; r--) { if (c4.board[r][col] === 0) { row = r; break; } }
+    let row = -1; for (let r = C4_ROWS-1; r >= 0; r--) { if (g.board[r][col] === 0) { row = r; break; } }
     if (row < 0) return;
-    c4.board[row][col] = seat + 1;
-    if (c4Win(c4.board, seat+1)) { c4Both('c4-update', {board:c4.board, turn:-1, lastCol:col}); return c4Over(seat, 'win'); }
-    if (c4.board[0].every(v => v !== 0)) { c4Both('c4-update', {board:c4.board, turn:-1, lastCol:col}); return c4Over(-1, 'draw'); }
-    c4.turn = 1 - c4.turn;
-    c4Both('c4-update', {board:c4.board, turn:c4.turn, lastCol:col});
+    g.board[row][col] = seat + 1;
+    if (c4Win(g.board, seat+1)) { c4Both(g, 'c4-update', {board:g.board, turn:-1, lastCol:col}); return c4End(g, seat, 'win'); }
+    if (g.board[0].every(v => v !== 0)) { c4Both(g, 'c4-update', {board:g.board, turn:-1, lastCol:col}); return c4End(g, -1, 'draw'); }
+    g.turn = 1 - g.turn;
+    c4Both(g, 'c4-update', {board:g.board, turn:g.turn, lastCol:col});
   });
 
   socket.on('c4-leave', () => c4LeaveHandler(socket.id));
+
+  socket.on('leaderboard', async () => {
+    const { data } = await admin.from('profiles')
+      .select('username,wins,game_stardust')
+      .order('wins', { ascending: false }).order('game_stardust', { ascending: false })
+      .limit(10);
+    socket.emit('leaderboard-data', { rows: data || [] });
+  });
 
   socket.on('disconnect', async () => {
     const me = players[socket.id];
@@ -180,6 +198,9 @@ function finalizeSpawn(socket, profile) {
     species: SPECIES.includes(profile.species) ? profile.species : SPECIES[0],
     acc: ACCS.includes(profile.acc) ? profile.acc : 'none',
     stardust: profile.stardust || 0,
+    wins: profile.wins || 0,
+    game_stardust: profile.game_stardust || 0,
+    sitting: false, table: -1,
     room: 'deck', x: 520, y: 400, face: 1, lastCollect: 0, lastSave: 0
   };
   players[socket.id] = me;
@@ -189,12 +210,12 @@ function finalizeSpawn(socket, profile) {
   io.emit('system', me.name + ' ist angedockt.');
 }
 
-// ---------------- 4 GEWINNT ----------------
-const C4_COLS = 7, C4_ROWS = 6, C4_REWARD = 25;
-let c4 = null; // { a:{id,name,color}, b:{id,name,color}|null, board, turn, started }
+// ---------------- 4 GEWINNT (mehrere Tische) ----------------
+const C4_COLS = 7, C4_ROWS = 6, C4_REWARD = 25, TABLES = 3;
+const games = new Array(TABLES).fill(null); // je Tisch ein Spiel
 
 function c4NewBoard() { return Array.from({length:C4_ROWS}, () => Array(C4_COLS).fill(0)); }
-function c4Both(ev, payload) { if (c4.a) io.to(c4.a.id).emit(ev, payload); if (c4.b) io.to(c4.b.id).emit(ev, payload); }
+function c4Both(g, ev, payload) { if (g.a) io.to(g.a.id).emit(ev, payload); if (g.b) io.to(g.b.id).emit(ev, payload); }
 function c4Win(b, val) {
   for (let r = 0; r < C4_ROWS; r++) for (let c = 0; c < C4_COLS; c++) {
     if (b[r][c] !== val) continue;
@@ -207,26 +228,41 @@ function c4Win(b, val) {
   }
   return false;
 }
-function c4Over(seat, reason) {
-  const payload = { winnerSeat: seat, reason, board: c4.board };
+function c4SetSitting(id, val) { const p = players[id]; if (p) { p.sitting = val; io.emit('player-sit', { id, sitting: val }); } }
+function c4End(g, seat, reason) {
+  const payload = { winnerSeat: seat, reason, board: g.board };
   if (seat >= 0) {
-    const win = seat === 0 ? c4.a : c4.b;
+    const win = seat === 0 ? g.a : g.b;
     const wp = players[win.id];
     if (wp) {
       wp.stardust += C4_REWARD;
+      wp.wins = (wp.wins || 0) + 1;
+      wp.game_stardust = (wp.game_stardust || 0) + C4_REWARD;
       io.to(win.id).emit('stardust', { value: wp.stardust });
-      admin.from('profiles').update({ stardust: wp.stardust }).eq('id', wp.userId).then(() => {}, () => {});
+      admin.from('profiles').update({ stardust: wp.stardust, wins: wp.wins, game_stardust: wp.game_stardust })
+        .eq('id', wp.userId).then(() => {}, () => {});
     }
   }
-  c4Both('c4-over', payload);
-  c4 = null;
+  c4Both(g, 'c4-over', payload);
+  if (g.a && players[g.a.id]) players[g.a.id].table = -1;
+  if (g.b && players[g.b.id]) players[g.b.id].table = -1;
+  c4SetSitting(g.a.id, false);
+  if (g.b) c4SetSitting(g.b.id, false);
+  games[g.table] = null;
 }
 function c4LeaveHandler(id) {
-  if (!c4) return;
-  const inGame = c4.a.id === id || (c4.b && c4.b.id === id);
+  const p = players[id]; if (!p) return;
+  const ti = p.table; if (ti < 0 || !games[ti]) return;
+  const g = games[ti];
+  const inGame = g.a.id === id || (g.b && g.b.id === id);
   if (!inGame) return;
-  if (!c4.started) { io.to(c4.a.id).emit('c4-cancel'); c4 = null; return; }
-  c4Over(c4.a.id === id ? 1 : 0, 'forfeit'); // Gegner gewinnt durch Aufgabe
+  if (!g.started) { // nur Warteschlange -> abbrechen
+    io.to(g.a.id).emit('c4-cancel');
+    if (players[g.a.id]) players[g.a.id].table = -1;
+    c4SetSitting(g.a.id, false);
+    games[ti] = null; return;
+  }
+  c4End(g, g.a.id === id ? 1 : 0, 'forfeit'); // Gegner gewinnt durch Aufgabe
 }
 
 const PORT = process.env.PORT || 3000;
