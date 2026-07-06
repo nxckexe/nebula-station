@@ -61,7 +61,7 @@
   .pcard{position:relative;width:290px;max-width:92vw;background:var(--cream);border:4px solid var(--ink);border-radius:22px;padding:16px;box-shadow:0 10px 0 var(--ink);text-align:left}
   .pclose{position:absolute;top:-12px;right:-12px;width:30px;height:30px;border-radius:50%;border:3px solid var(--ink);background:#fff;color:var(--ink);font-weight:700;cursor:pointer;box-shadow:0 3px 0 var(--ink);z-index:1}
   .phead{display:flex;gap:14px;align-items:center}
-  #pcanvas{background:#e7dcff;border:3px solid var(--ink);border-radius:14px;flex:0 0 auto;width:96px;height:104px}
+  #pcanvas{position:static;inset:auto;background:#e7dcff;border:3px solid var(--ink);border-radius:14px;flex:0 0 auto;width:96px;height:104px}
   .pmeta{display:flex;flex-direction:column;gap:7px;min-width:0;flex:1}
   .pbadge{align-self:flex-start;font-size:10px;font-weight:700;letter-spacing:.5px;color:#fff;background:var(--grape);border:2px solid var(--ink);border-radius:9px;padding:2px 9px}
   .pname{font-weight:700;font-size:18px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -106,6 +106,26 @@
   .lbwins{font-size:13px}
   .lbstar{font-size:12px;color:#8a76c4}
   .lbempty{color:#8a76c4;text-align:center;padding:14px;font-weight:600}
+  .freqbadge{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 4px;background:#ff5ea8;color:#fff;border:2px solid var(--ink);border-radius:9px;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .fcard{width:300px;max-width:92vw;text-align:left}
+  .fh{margin:0 0 12px;color:var(--grape);font-size:20px;text-align:center}
+  .faddrow{display:flex;gap:8px;margin-bottom:6px}
+  .finp{flex:1;min-width:0;background:#fff;border:3px solid var(--ink);color:var(--ink);border-radius:12px;padding:8px 12px;font:inherit;font-size:14px;font-weight:500;outline:none}
+  .fmsg{font-size:12px;font-weight:600;color:#8a76c4;min-height:16px;margin-bottom:4px}
+  .fsec{font-size:12px;font-weight:700;color:#8a76c4;margin:10px 0 4px}
+  .frow{display:flex;align-items:center;gap:8px;padding:6px 2px;border-bottom:2px solid #e7dcff}
+  .fname{flex:1;font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fon{width:9px;height:9px;border-radius:50%;border:2px solid var(--ink);flex:0 0 auto}
+  .fbtn{font-family:inherit;font-weight:600;font-size:12px;border:2px solid var(--ink);border-radius:10px;padding:4px 9px;cursor:pointer;background:#fff;color:var(--ink);box-shadow:0 2px 0 var(--ink)}
+  .fbtn.ok{background:var(--mint)}.fbtn.no{background:#ff5ea8;color:#fff}.fbtn.chat{background:var(--sky)}
+  .fempty{color:#8a76c4;font-size:13px;padding:6px 2px}
+  .dmcard{width:320px;max-width:92vw;display:flex;flex-direction:column;height:min(70vh,460px)}
+  .dmhead{font-weight:700;color:var(--grape);font-size:17px;margin-bottom:8px;text-align:center}
+  .dmlog{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:4px}
+  .dmmsg{max-width:78%;padding:7px 11px;border:3px solid var(--ink);border-radius:14px;font-size:14px;font-weight:500;word-break:break-word}
+  .dmmsg.me{align-self:flex-end;background:var(--sky)}
+  .dmmsg.them{align-self:flex-start;background:#fff}
+  .dmbar{display:flex;gap:8px;margin-top:8px}
 </style>
 </head>
 <body>
@@ -116,6 +136,7 @@
     <div class="pill"><span class="orb-ico"></span><span id="orbs">0</span></div>
     <div class="pill"><span id="dot"></span><span id="online">0</span></div>
     <button class="btn" id="mapBtn" title="Karte">🗺️</button>
+    <button class="btn" id="friendsBtn" title="Freunde" style="position:relative">👥<span id="freqbadge" class="freqbadge" style="display:none">0</span></button>
     <button class="btn" id="meBtn" title="Mein Profil">🙂</button>
     <button class="btn acc" id="accBtn" title="Accessoire">🎩</button>
     <button class="btn" id="outBtn" title="Abmelden">⎋</button>
@@ -175,6 +196,7 @@
       </div>
     </div>
     <button class="invtoggle" id="invtoggle"><span>Inventar öffnen</span><span class="invarrow" id="invarrow">▸</span></button>
+    <button class="invtoggle" id="pfriend" style="display:none;justify-content:center">➕ Freund hinzufügen</button>
     <div class="pinv" id="pinv" style="display:none"></div>
   </div>
 </div>
@@ -186,6 +208,35 @@
     <h1>Karte</h1>
     <p>Wohin möchtest du?</p>
     <div class="rooms" id="rooms"></div>
+  </div>
+</div>
+
+<!-- Freunde -->
+<div id="friends" class="pmodal" style="display:none">
+  <div class="pcard fcard">
+    <button class="pclose" id="fclose">✕</button>
+    <h2 class="fh">👥 Freunde</h2>
+    <div class="faddrow">
+      <input id="faddinput" class="finp" placeholder="Spielername…" maxlength="14" autocomplete="off">
+      <button class="btn" id="faddbtn">Anfrage</button>
+    </div>
+    <div id="fmsg" class="fmsg"></div>
+    <div id="freqwrap" style="display:none"><div class="fsec">Anfragen</div><div id="freqs"></div></div>
+    <div class="fsec">Deine Freunde</div>
+    <div id="flist"></div>
+  </div>
+</div>
+
+<!-- Privater Chat -->
+<div id="dm" class="pmodal" style="display:none">
+  <div class="pcard dmcard">
+    <button class="pclose" id="dmclose">✕</button>
+    <div class="dmhead" id="dmhead">Chat</div>
+    <div class="dmlog" id="dmlog"></div>
+    <div class="dmbar">
+      <input id="dminput" class="finp" placeholder="Nachricht…" maxlength="300" autocomplete="off">
+      <button class="btn" id="dmsend">➤</button>
+    </div>
   </div>
 </div>
 
@@ -324,6 +375,7 @@ function wireSocket(){
     document.getElementById('orbs').textContent=prof.stardust||0;
     addMsg('','','Willkommen an Bord, '+prof.name+'!  (Emotes = Tasten 1-6 · Hut = Accessoire)','sys');});
   socket.on('stardust',d=>{document.getElementById('orbs').textContent=d.value;if(me)me.stardust=d.value;});
+  socket.emit('friends-list');
   socket.on('world',all=>{for(const id in all)addPlayer(all[id]);me=players[myId]||me;updateOnline();});
   socket.on('player-joined',p=>{addPlayer(p);updateOnline();});
   socket.on('player-left',id=>{delete players[id];updateOnline();});
@@ -345,6 +397,11 @@ function wireSocket(){
   socket.on('c4-over',d=>{if(!cg)return;cg.board=d.board;cg.over=true;cg.turn=-1;updateC4();showC4Result(d);locked=false;sitTable=-1;});
   socket.on('player-sit',d=>{const p=players[d.id];if(p){if(d.sitting&&!p.sitting)p.sitAnim=1;p.sitting=d.sitting;}});
   socket.on('leaderboard-data',d=>{renderLeaderboard(d.rows||[]);});
+  socket.on('friend-msg',d=>{$('fmsg').style.color=d.ok?'#3aa06a':'#e0396b';$('fmsg').textContent=d.text;if(d.ok)socket.emit('friends-list');});
+  socket.on('friend-refresh',()=>{socket.emit('friends-list');});
+  socket.on('friends-data',d=>renderFriends(d));
+  socket.on('dm-in',d=>{if(dmWith&&dmWith.id===d.fromId)appendDM('them',d.text);else addMsg('','','📩 Neue private Nachricht – öffne 👥 Freunde','sys');});
+  socket.on('dm-history-data',d=>{if(dmWith&&dmWith.id===d.withId)renderDMHistory(d.messages);});
 }
 
 /* ---------------- CHAT / EMOTE / ACC ---------------- */
@@ -551,13 +608,17 @@ function hexA(hex,a){const n=parseInt(hex.slice(1),16);return`rgba(${n>>16},${(n
 /* ---------------- PROFILKARTE ---------------- */
 const ITEM_ICON={none:'🚫',party:'🎉',crown:'👑',phones:'🎧',shades:'🕶️'};
 const INV_ITEMS=[{id:'none',label:'Nichts'},{id:'party',label:'Partyhut'},{id:'crown',label:'Krone'},{id:'phones',label:'Kopfhörer'},{id:'shades',label:'Sonnenbrille'}];
+let profileName=null;
 function openProfile(pl){
+  const own=pl.id===myId;profileName=pl.name;
   $('pname').textContent=pl.name||'Alien';
-  $('pcoins').textContent=(pl.id===myId?(me&&me.stardust)||0:(pl.stardust||0));
+  $('pcoins').textContent=(own?(me&&me.stardust)||0:(pl.stardust||0));
   $('pinv').style.display='none';
   $('invarrow').classList.remove('open');
   $('invtoggle').firstElementChild.textContent='Inventar öffnen';
-  renderPreview(pl);buildInventory(pl);
+  $('invtoggle').style.display=own?'flex':'none';
+  $('pfriend').style.display=own?'none':'flex';
+  renderPreview(pl);if(own)buildInventory(pl);
   $('profile').style.display='flex';
 }
 function closeProfile(){$('profile').style.display='none';}
@@ -656,6 +717,45 @@ function drawC4Table(x,y,i){
   ctx.fillStyle='#ffe15e';ctx.beginPath();ctx.arc(x,y-8,4,0,7);ctx.fill();
   ctx.fillStyle='#ff5ea8';ctx.beginPath();ctx.arc(x-11,y-23,4,0,7);ctx.fill();
 }
+
+/* ---------------- FREUNDE & DM ---------------- */
+let dmWith=null;
+function elc(c){const d=document.createElement('div');d.className=c;return d;}
+function mkbtn(c,t,fn){const b=document.createElement('button');b.className=c;b.textContent=t;b.onclick=fn;return b;}
+function openFriends(){$('fmsg').textContent='';$('friends').style.display='flex';socket&&socket.emit('friends-list');}
+function updateFreqBadge(n){const b=$('freqbadge');if(n>0){b.textContent=n;b.style.display='flex';}else b.style.display='none';}
+function renderFriends(d){
+  const rq=$('freqs');rq.innerHTML='';
+  if(d.incoming&&d.incoming.length){d.incoming.forEach(f=>{const row=elc('frow');
+    const nm=elc('fname');nm.textContent=f.username;row.appendChild(nm);
+    row.appendChild(mkbtn('fbtn ok','Ja',()=>socket.emit('friend-accept',{fromId:f.id})));
+    row.appendChild(mkbtn('fbtn no','Nein',()=>socket.emit('friend-decline',{fromId:f.id})));
+    rq.appendChild(row);});$('freqwrap').style.display='block';}
+  else $('freqwrap').style.display='none';
+  const fl=$('flist');fl.innerHTML='';
+  if(!d.friends||!d.friends.length)fl.innerHTML='<div class="fempty">Noch keine Freunde – füg jemanden hinzu!</div>';
+  else d.friends.forEach(f=>{const row=elc('frow');
+    const dot=document.createElement('span');dot.className='fon';dot.style.background=f.online?'#3ef08a':'#c9bce8';
+    const nm=elc('fname');nm.textContent=f.username;
+    row.appendChild(dot);row.appendChild(nm);
+    row.appendChild(mkbtn('fbtn chat','Chat',()=>openDM(f)));
+    fl.appendChild(row);});
+  updateFreqBadge(d.incoming?d.incoming.length:0);
+}
+function openDM(f){dmWith=f;$('friends').style.display='none';$('dmhead').textContent='💬 '+f.username;$('dmlog').innerHTML='';$('dm').style.display='flex';socket&&socket.emit('dm-history',{withId:f.id});setTimeout(()=>$('dminput').focus(),50);}
+function renderDMHistory(msgs){const log=$('dmlog');log.innerHTML='';(msgs||[]).forEach(m=>appendDM(m.mine?'me':'them',m.text));}
+function appendDM(side,text){const d=elc('dmmsg '+side);d.textContent=text;$('dmlog').appendChild(d);$('dmlog').scrollTop=$('dmlog').scrollHeight;}
+function sendDM(){const t=$('dminput').value.trim();if(!t||!dmWith||!socket)return;socket.emit('dm',{toId:dmWith.id,text:t});appendDM('me',t);$('dminput').value='';}
+$('friendsBtn').onclick=openFriends;
+$('fclose').onclick=()=>$('friends').style.display='none';
+$('friends').onclick=e=>{if(e.target.id==='friends')$('friends').style.display='none';};
+$('faddbtn').onclick=()=>{const u=$('faddinput').value.trim();if(u&&socket){socket.emit('friend-add',{username:u});$('faddinput').value='';}};
+$('faddinput').addEventListener('keydown',e=>{if(e.key==='Enter')$('faddbtn').click();});
+$('dmclose').onclick=()=>{$('dm').style.display='none';dmWith=null;};
+$('dm').onclick=e=>{if(e.target.id==='dm'){$('dm').style.display='none';dmWith=null;}};
+$('dmsend').onclick=sendDM;
+$('dminput').addEventListener('keydown',e=>{if(e.key==='Enter')sendDM();});
+$('pfriend').onclick=()=>{if(!profileName||!socket)return;socket.emit('friend-add',{username:profileName});addMsg('','','Freundschaftsanfrage an '+profileName+' gesendet.','sys');$('profile').style.display='none';};
 
 function loop(now){const dt=Math.min((now-last)/1000,.05);last=now;update(dt,now);render();requestAnimationFrame(loop);}
 
