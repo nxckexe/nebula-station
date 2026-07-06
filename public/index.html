@@ -80,6 +80,20 @@
   .roombtn{display:flex;align-items:center;gap:12px;padding:14px;border:3px solid var(--ink);border-radius:16px;background:#fff;cursor:pointer;box-shadow:0 4px 0 var(--ink);font-weight:600;font-size:16px;color:var(--ink)}
   .roombtn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
   .roomdot{width:26px;height:26px;border-radius:8px;border:3px solid var(--ink);flex:0 0 auto}
+  .c4modal{position:absolute;inset:0;z-index:21;display:flex;align-items:center;justify-content:center;background:transparent}
+  .c4card{position:relative;background:var(--cream);border:4px solid var(--ink);border-radius:22px;padding:16px;box-shadow:0 12px 0 var(--ink);max-width:96vw}
+  .c4close{position:absolute;top:-12px;right:-12px;width:30px;height:30px;border-radius:50%;border:3px solid var(--ink);background:#fff;color:var(--ink);font-weight:700;cursor:pointer;box-shadow:0 3px 0 var(--ink)}
+  .c4head{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px}
+  .c4p{display:flex;align-items:center;gap:6px;padding:4px 10px;border:3px solid var(--ink);border-radius:14px;background:#fff;font-size:14px;font-weight:600;color:var(--ink)}
+  .c4p.turn{background:var(--sun)}
+  .c4vs{font-weight:700;color:#8a76c4}
+  .c4dot{width:15px;height:15px;border-radius:50%;border:2px solid var(--ink)}
+  .c4board{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;background:#4a3aa0;border:4px solid var(--ink);border-radius:16px;padding:8px}
+  .c4cell{width:40px;height:40px;border-radius:50%;background:#1c1442;border:3px solid var(--ink);cursor:pointer}
+  .c4board.locked .c4cell{cursor:default}
+  .c4status{text-align:center;font-weight:600;margin-top:10px;color:var(--ink);min-height:22px}
+  .c4wait{position:absolute;left:50%;bottom:84px;transform:translateX(-50%);z-index:19;background:var(--cream);border:3px solid var(--ink);border-radius:16px;padding:10px 14px;box-shadow:0 4px 0 var(--ink);font-weight:600;color:var(--ink);display:flex;gap:12px;align-items:center}
+  .c4wait button{font-family:inherit;font-weight:600;border:3px solid var(--ink);border-radius:12px;background:#ff5ea8;color:#fff;padding:5px 10px;cursor:pointer;box-shadow:0 3px 0 var(--ink)}
 </style>
 </head>
 <body>
@@ -160,6 +174,26 @@
     <h1>Karte</h1>
     <p>Wohin möchtest du?</p>
     <div class="rooms" id="rooms"></div>
+  </div>
+</div>
+
+<!-- 4 Gewinnt: Warte-Banner -->
+<div id="c4wait" class="c4wait" style="display:none">
+  <span>Warte auf Gegenspieler…</span>
+  <button id="c4cancel">Abbrechen</button>
+</div>
+
+<!-- 4 Gewinnt: Spielansicht -->
+<div id="c4modal" class="c4modal" style="display:none">
+  <div class="c4card">
+    <button class="c4close" id="c4close">✕</button>
+    <div class="c4head">
+      <div class="c4p" id="c4pa"><span class="c4dot" id="c4da"></span><span id="c4na">A</span></div>
+      <span class="c4vs">4 GEWINNT</span>
+      <div class="c4p" id="c4pb"><span class="c4dot" id="c4db"></span><span id="c4nb">B</span></div>
+    </div>
+    <div class="c4board" id="c4board"></div>
+    <div class="c4status" id="c4status"></div>
   </div>
 </div>
 
@@ -267,6 +301,16 @@ function wireSocket(){
   socket.on('player-emote',d=>{const p=players[d.id];if(p){p.emo=d.icon;p.emoT=2.4;p.expr=d.expr;p.exprT=2.4;}});
   socket.on('chat',m=>{addMsg(m.name,m.color,m.text,m.id===myId?'me':'');const p=players[m.id];if(p){p.bubble=m.text;p.bubbleT=4;}});
   socket.on('system',t=>addMsg('','',t,'sys'));
+  socket.on('c4-waiting',()=>{$('c4wait').style.display='flex';});
+  socket.on('c4-busy',()=>{addMsg('','','Der 4-Gewinnt-Tisch ist gerade besetzt.','sys');});
+  socket.on('c4-cancel',()=>{$('c4wait').style.display='none';cg=null;addMsg('','','4-Gewinnt abgebrochen.','sys');});
+  socket.on('c4-start',d=>{$('c4wait').style.display='none';
+    cg={board:d.board,turn:d.turn,seat:d.seat,a:d.a,b:d.b,over:false};
+    $('c4na').textContent=d.a.name;$('c4nb').textContent=d.b.name;
+    $('c4da').style.background=d.a.color;$('c4db').style.background=d.b.color;
+    buildC4();updateC4();$('c4modal').style.display='flex';});
+  socket.on('c4-update',d=>{if(!cg)return;cg.board=d.board;cg.turn=d.turn;updateC4();});
+  socket.on('c4-over',d=>{if(!cg)return;cg.board=d.board;cg.over=true;cg.turn=-1;updateC4();showC4Result(d);});
 }
 
 /* ---------------- CHAT / EMOTE / ACC ---------------- */
@@ -293,6 +337,7 @@ function randOrb(){return{x:200+Math.random()*640,y:280+Math.random()*250,t:Math
 function toWorld(cx,cy){const r=cv.getBoundingClientRect();return{x:(cx-r.left-offX)/scale,y:(cy-r.top-offY)/scale};}
 cv.addEventListener('pointerdown',e=>{if(!me)return;if(document.activeElement===chatin)chatin.blur();
   const p=toWorld(e.clientX,e.clientY);
+  if(myRoom()==='obs'&&Math.hypot(C4_TABLE.x-p.x,C4_TABLE.y-p.y)<C4_TABLE.r){requestSit();return;}
   const hit=Object.values(players).filter(q=>q.room===myRoom()).find(q=>Math.hypot(q.x-p.x,q.y-p.y)<26);
   if(hit){openProfile(hit);return;}
   me.tx=clamp(p.x,80,W-80);me.ty=clamp(p.y,250,H-40);});
@@ -308,6 +353,7 @@ let last=performance.now(),lastSent=0;
 function update(dt,now){
   for(const id in players)moveEnt(players[id],dt);
   if(me&&spawned){checkDoor();
+    if(pendingSit&&Math.hypot(me.x-me.tx,me.y-me.ty)<10){pendingSit=false;socket&&socket.emit('c4-sit');}
     for(const o of orbs){o.t+=dt*3;if(me.room==='deck'&&Math.hypot(me.x-o.x,me.y-o.y)<38){socket&&socket.emit('collect');Object.assign(o,randOrb());}}
     if(now-lastSent>66){socket&&socket.emit('move',{x:me.x,y:me.y,face:me.face});lastSent=now;}}
   for(const id in players){const e=players[id];
@@ -322,6 +368,7 @@ function render(){const r=cv.parentElement.getBoundingClientRect();ctx.clearRect
   ctx.save();ctx.translate(offX,offY);ctx.scale(scale,scale);
   const room=ROOMS[myRoom()];
   drawWall(room);drawFloor(room);drawDoor(room.door,room.accent);
+  if(myRoom()==='obs')drawC4Table(C4_TABLE.x,C4_TABLE.y);
   if(myRoom()==='deck')for(const o of orbs)drawOrb(o);
   const here=Object.values(players).filter(p=>p.room===myRoom()).sort((a,b)=>a.y-b.y);
   for(const e of here)drawAvatar(e);
@@ -511,6 +558,51 @@ function buildMap(){const r=$('rooms');r.innerHTML='';
 $('mapBtn').onclick=()=>{buildMap();$('map').style.display='flex';};
 $('mclose').onclick=()=>$('map').style.display='none';
 $('map').onclick=e=>{if(e.target.id==='map')$('map').style.display='none';};
+
+/* ---------------- 4 GEWINNT ---------------- */
+const C4_TABLE={x:500,y:450,r:64};
+let cg=null,pendingSit=false;
+function requestSit(){if(!me)return;me.tx=clamp(C4_TABLE.x,80,W-80);me.ty=clamp(C4_TABLE.y+72,250,H-40);pendingSit=true;
+  addMsg('','','Du gehst zum 4-Gewinnt-Tisch…','sys');}
+function buildC4(){const bd=$('c4board');bd.innerHTML='';
+  for(let i=0;i<42;i++){const c=document.createElement('div');c.className='c4cell';c.dataset.col=i%7;
+    c.onclick=()=>{if(!cg||cg.over||cg.turn!==cg.seat)return;socket&&socket.emit('c4-drop',{col:+c.dataset.col});};
+    bd.appendChild(c);}}
+function updateC4(){if(!cg)return;const cells=$('c4board').children;
+  for(let r=0;r<6;r++)for(let col=0;col<7;col++){const v=cg.board[r][col];const cell=cells[r*7+col];
+    cell.style.background = v===0?'#1c1442' : (v===1?cg.a.color:cg.b.color);}
+  $('c4pa').classList.toggle('turn',cg.turn===0);
+  $('c4pb').classList.toggle('turn',cg.turn===1);
+  $('c4board').classList.toggle('locked',cg.over||cg.turn!==cg.seat);
+  if(!cg.over)$('c4status').textContent = cg.turn===cg.seat?'Du bist dran – wähl eine Spalte!':'Gegner ist am Zug…';}
+function showC4Result(d){
+  let msg;
+  if(d.winnerSeat===-1)msg='Unentschieden!';
+  else if(d.winnerSeat===cg.seat)msg=(d.reason==='forfeit'?'Gegner hat aufgegeben – ':'')+'Gewonnen! +25 ✦';
+  else msg='Verloren – nächstes Mal! 🙃';
+  $('c4status').textContent=msg;}
+function c4CloseView(){if(cg&&!cg.over)socket&&socket.emit('c4-leave');$('c4modal').style.display='none';cg=null;}
+$('c4close').onclick=c4CloseView;
+$('c4cancel').onclick=()=>{socket&&socket.emit('c4-leave');$('c4wait').style.display='none';cg=null;};
+
+function drawC4Table(x,y){
+  // Schild
+  ctx.font='700 13px Fredoka';ctx.textAlign='center';const t='4 GEWINNT',tw=ctx.measureText(t).width;
+  ctx.fillStyle='#ffd166';ctx.strokeStyle=INK;ctx.lineWidth=3;roundRect(x-tw/2-10,y-72,tw+20,22,11);ctx.fill();ctx.stroke();
+  ctx.fillStyle=INK;ctx.fillText(t,x,y-57);
+  // Beine
+  ctx.strokeStyle=INK;ctx.lineWidth=5;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(x-30,y-6);ctx.lineTo(x-38,y+28);ctx.moveTo(x+30,y-6);ctx.lineTo(x+38,y+28);ctx.stroke();
+  // Rahmen
+  ctx.fillStyle='#4dd0ff';ctx.strokeStyle=INK;ctx.lineWidth=4;roundRect(x-40,y-46,80,52,10);ctx.fill();ctx.stroke();
+  // Löcher (7x3 angedeutet)
+  for(let r=0;r<3;r++)for(let c=0;c<7;c++){const hx=x-33+c*11,hy=y-38+r*15;
+    ctx.fillStyle='#1c1442';ctx.beginPath();ctx.arc(hx,hy,4,0,7);ctx.fill();}
+  // ein paar Spielsteine zur Deko
+  ctx.fillStyle='#ff5ea8';ctx.beginPath();ctx.arc(x-11,y-8,4,0,7);ctx.fill();
+  ctx.fillStyle='#ffe15e';ctx.beginPath();ctx.arc(x,y-8,4,0,7);ctx.fill();
+  ctx.fillStyle='#ff5ea8';ctx.beginPath();ctx.arc(x-11,y-23,4,0,7);ctx.fill();
+}
 
 function loop(now){const dt=Math.min((now-last)/1000,.05);last=now;update(dt,now);render();requestAnimationFrame(loop);}
 
