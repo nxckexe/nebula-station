@@ -67,6 +67,32 @@
   .pname{font-weight:700;font-size:20px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;text-align:center}
   .pcoins{align-self:center;display:flex;align-items:center;gap:7px;font-weight:600;font-size:15px;color:var(--ink);background:#fff;border:3px solid var(--ink);border-radius:14px;padding:3px 11px;box-shadow:0 3px 0 var(--ink)}
   .coinico{display:inline-block;width:15px;height:15px;border-radius:50%;background:var(--sun);border:2px solid var(--ink)}
+  .plevel{font-size:12px;font-weight:700;color:#8a76c4}
+  .pxpwrap{width:150px;height:12px;background:#fff;border:3px solid var(--ink);border-radius:8px;overflow:hidden}
+  .pxpfill{height:100%;width:0;background:linear-gradient(90deg,var(--sky),var(--mint))}
+  .shopcard{width:340px;max-width:94vw}
+  .shopcard h2{margin:0 0 4px;color:var(--grape);font-size:20px;text-align:center}
+  .shopsub{text-align:center;color:#8a76c4;font-weight:600;font-size:13px;margin-bottom:12px}
+  .shoptabs{display:flex;gap:8px;margin-bottom:10px}
+  .shoptab{flex:1;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer;border:3px solid var(--ink);border-radius:12px;padding:7px;background:#fff;color:#8a76c4}
+  .shoptab.on{background:var(--grape);color:#fff}
+  .shoplist{display:flex;flex-direction:column;gap:8px;max-height:44vh;overflow-y:auto}
+  .shopitem{display:flex;align-items:center;gap:10px;padding:8px;border:3px solid var(--ink);border-radius:14px;background:#fff}
+  .shopico{width:38px;height:38px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:22px;border:3px solid var(--ink);border-radius:10px;background:#efe4ff}
+  .shopinfo{flex:1;min-width:0}
+  .shopname{font-weight:700;color:var(--ink);font-size:14px}
+  .shopprice{font-size:12px;color:#8a76c4;font-weight:600}
+  .shopbtn{font-family:inherit;font-weight:700;font-size:12px;border:3px solid var(--ink);border-radius:12px;padding:6px 11px;cursor:pointer;box-shadow:0 3px 0 var(--ink);background:var(--mint);color:var(--ink)}
+  .shopbtn.buy{background:var(--sun)}.shopbtn.eq{background:var(--sky)}.shopbtn.lock{background:#d9cdf2;cursor:default;box-shadow:none}.shopbtn.on{background:var(--mint)}
+  .holocard{width:340px;max-width:94vw;background:linear-gradient(180deg,#0d1a3a,#0a1230);border:4px solid var(--sky);border-radius:22px;box-shadow:0 0 30px rgba(77,208,255,.4),0 10px 0 #06204a;color:#dff4ff}
+  .holocard h2{margin:0 0 2px;color:var(--sky);font-size:20px;text-align:center;text-shadow:0 0 10px rgba(77,208,255,.7)}
+  .holosub{text-align:center;color:#7fb6d6;font-weight:600;font-size:12px;margin-bottom:14px}
+  .holoitem{display:flex;align-items:center;gap:12px;padding:10px;margin-bottom:10px;border:2px solid rgba(77,208,255,.5);border-radius:16px;background:rgba(77,208,255,.06);cursor:pointer}
+  .holoitem.locked{opacity:.55;cursor:default}
+  .holoplanet{width:44px;height:44px;border-radius:50%;flex:0 0 auto;border:2px solid rgba(255,255,255,.5);box-shadow:0 0 14px rgba(77,208,255,.5)}
+  .holoname{flex:1;font-weight:700;font-size:15px}
+  .holostat{font-size:12px;font-weight:600;color:#8fd6ff}
+  .holostat.lock{color:#ff9db5}
   .invtoggle{width:100%;margin-top:14px;display:flex;align-items:center;justify-content:space-between;font-family:inherit;font-weight:600;font-size:14px;color:var(--ink);background:#fff;border:3px solid var(--ink);border-radius:14px;padding:9px 13px;cursor:pointer;box-shadow:0 4px 0 var(--ink)}
   .invtoggle:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
   .invarrow{transition:transform .15s}
@@ -74,6 +100,7 @@
   .pinv{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
   .invcell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:22px;background:#fff;border:3px solid var(--ink);border-radius:12px;cursor:pointer;box-shadow:0 3px 0 var(--ink)}
   .invcell.on{background:var(--sun)}
+  .invcell.lock{opacity:.5;cursor:default}
   .invcell:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
   .mcard{width:min(400px,90vw);text-align:center;position:relative}
   .rooms{display:flex;flex-direction:column;gap:12px;margin-top:6px}
@@ -143,7 +170,9 @@
     <div class="logo">Nebula<b>·</b>Station</div>
     <div class="spacer"></div>
     <div class="pill"><span class="orb-ico"></span><span id="orbs">0</span></div>
+    <div class="pill" title="Level"><span id="lvl">Lv 1</span></div>
     <div class="pill"><span id="dot"></span><span id="online">0</span></div>
+    <button class="btn" id="shopBtn" title="Shop">🛒</button>
     <button class="btn" id="mapBtn" title="Karte">🗺️</button>
     <button class="btn" id="friendsBtn" title="Freunde" style="position:relative">👥<span id="freqbadge" class="freqbadge" style="display:none">0</span></button>
     <button class="btn" id="meBtn" title="Mein Profil">🙂</button>
@@ -199,8 +228,10 @@
     <div class="phead">
       <canvas id="pcanvas" width="96" height="104"></canvas>
       <div class="pmeta">
-        <span class="pbadge">PILOT</span>
+        <span class="pbadge" id="pbadge">KADETT</span>
         <div class="pname" id="pname">Name</div>
+        <div class="plevel" id="plevel">Level 1</div>
+        <div class="pxpwrap" id="pxpwrap"><div class="pxpfill" id="pxpfill"></div></div>
         <div class="pcoins"><span class="coinico"></span><span id="pcoins">0</span></div>
       </div>
     </div>
@@ -266,6 +297,30 @@
     <div class="teletitle">🔭 Teleskop</div>
     <canvas id="teleCanvas" width="320" height="220"></canvas>
     <div class="teletext">Zieh mit der Maus, um den Himmel abzusuchen…</div>
+  </div>
+</div>
+
+<!-- Shop -->
+<div id="shop" class="pmodal" style="display:none">
+  <div class="pcard shopcard">
+    <button class="pclose" id="shopclose">✕</button>
+    <h2>🛒 Shop</h2>
+    <div class="shopsub"><span class="coinico"></span> <span id="shopcoins">0</span> Sternenstaub</div>
+    <div class="shoptabs">
+      <button class="shoptab on" id="shoptabacc">Accessoires</button>
+      <button class="shoptab" id="shoptabbg">Hintergründe</button>
+    </div>
+    <div class="shoplist" id="shoplist"></div>
+  </div>
+</div>
+
+<!-- Holo-Sternkarte -->
+<div id="holo" class="pmodal" style="display:none">
+  <div class="pcard holocard">
+    <button class="pclose" id="holoclose" style="border-color:var(--sky);color:var(--sky)">✕</button>
+    <h2>🌌 Sternkarte</h2>
+    <div class="holosub">Wähl einen Planeten zum Erkunden</div>
+    <div id="hololist"></div>
   </div>
 </div>
 
@@ -340,6 +395,25 @@ const ROOMS={
 };
 
 const players={}; let myId=null, me=null, spawned=false;
+let myLevel=1,myXp=0,myRank='Kadett',myCurXp=0,myNextXp=50,myOwned=new Set(),myBg='space';
+let cam={x:0,y:0},planetScene=null;
+function xpLevel(xp){return 1+Math.floor(Math.sqrt((xp||0)/50));}
+function xpForLevel(l){return 50*(l-1)*(l-1);}
+const PLANETS={
+  verdiania:{name:'Verdiania',minLevel:1,w:2200,h:1300,sky:['#0c3322','#08201a'],ground:'#1f7a4d',ground2:'#166b41',flora:'#7be0b0',dot:'radial-gradient(circle at 35% 30%,#7be0b0,#1f7a4d)'},
+  cryonis:{name:'Cryonis',minLevel:5,w:2200,h:1300,sky:['#0a2033','#08131f'],ground:'#4d7fb0','ground2':'#3c6a97',flora:'#bfeaff',dot:'radial-gradient(circle at 35% 30%,#bfeaff,#4d7fb0)'},
+  magmara:{name:'Magmara',minLevel:12,w:2200,h:1300,sky:['#2e0d0a','#1a0707'],ground:'#7a3320',ground2:'#631f12',flora:'#ffb14d',dot:'radial-gradient(circle at 35% 30%,#ffcaa0,#7a3320)'}
+};
+const PLANET_ORDER=['verdiania','cryonis','magmara'];
+const SHOP=[
+  {id:'party',type:'acc',name:'Partyhut',price:150,minLevel:1,ico:'🎉'},
+  {id:'shades',type:'acc',name:'Sonnenbrille',price:200,minLevel:1,ico:'🕶️'},
+  {id:'phones',type:'acc',name:'Kopfhörer',price:250,minLevel:2,ico:'🎧'},
+  {id:'crown',type:'acc',name:'Krone',price:500,minLevel:4,ico:'👑'},
+  {id:'bg_grid',type:'bg',name:'Neon-Grid',price:250,minLevel:1,ico:'🟦'},
+  {id:'bg_aurora',type:'bg',name:'Aurora',price:350,minLevel:2,ico:'🌌'},
+  {id:'bg_sunset',type:'bg',name:'Sonnenuntergang',price:350,minLevel:3,ico:'🌅'}
+];
 const pref={color:COLORS[0],species:'blobbi'};
 
 function addPlayer(p){if(players[p.id]){Object.assign(players[p.id],p);return;}
@@ -402,8 +476,19 @@ function wireSocket(){
   socket.on('needs-setup',({username})=>{$('intro').style.display='flex';$('introsub').textContent='Hallo '+username+'! Wähl dein Alien';});
   socket.on('spawn',prof=>{$('auth').style.display='none';$('intro').style.display='none';spawned=true;
     document.getElementById('orbs').textContent=prof.stardust||0;
-    addMsg('','','Willkommen an Bord, '+prof.name+'!  (Emotes = Tasten 1-6 · Hut = Accessoire)','sys');});
-  socket.on('stardust',d=>{document.getElementById('orbs').textContent=d.value;if(me)me.stardust=d.value;});
+    myXp=prof.xp||0;myLevel=prof.level||1;myRank=prof.rank||'Kadett';myBg=prof.bg||'space';
+    myOwned=new Set((prof.owned||'').split(',').filter(Boolean));
+    myCurXp=xpForLevel(myLevel);myNextXp=xpForLevel(myLevel+1);updateLvlChip();
+    addMsg('','','Willkommen an Bord, '+prof.name+'!  (Emotes = Tasten 1-6 · 🛒 Shop · Holo-Tisch = Planeten)','sys');});
+  socket.on('progress',d=>{myXp=d.xp;myLevel=d.level;myRank=d.rank;myCurXp=d.curXp;myNextXp=d.nextXp;updateLvlChip();
+    if(me){me.level=d.level;me.rank=d.rank;}
+    if(d.leveled)addMsg('','','⭐ Level '+d.level+' erreicht – Rang: '+d.rank+'!','sys');
+    if($('holo').style.display!=='none')renderHolo();if($('shop').style.display!=='none')renderShop();});
+  socket.on('player-bg',d=>{const p=players[d.id];if(p)p.bg=d.bg;if(d.id===myId)myBg=d.bg;});
+  socket.on('planet-locked',d=>{addMsg('','','🔒 Dieser Planet ist erst ab Level '+d.minLevel+' erreichbar.','sys');if(me)goToRoom('deck');});
+  socket.on('shop-result',d=>{$('shopmsg')&&($('shopmsg').textContent=d.text);addMsg('','',d.text,'sys');
+    if(d.ok){myOwned=new Set((d.owned||'').split(',').filter(Boolean));renderShop();}});
+  socket.on('stardust',d=>{document.getElementById('orbs').textContent=d.value;if(me)me.stardust=d.value;if($('shop').style.display!=='none')$('shopcoins').textContent=d.value;});
   socket.emit('friends-list');
   socket.on('world',all=>{for(const id in all)addPlayer(all[id]);me=players[myId]||me;updateOnline();});
   socket.on('player-joined',p=>{addPlayer(p);updateOnline();});
@@ -455,24 +540,24 @@ function seedOrbs(){orbs=[];for(let i=0;i<5;i++)orbs.push(randOrb());}
 function randOrb(){return{x:200+Math.random()*640,y:280+Math.random()*250,t:Math.random()*6.28};}
 
 /* ---------------- BEWEGUNG ---------------- */
-function toWorld(cx,cy){const r=cv.getBoundingClientRect();return{x:(cx-r.left-offX)/scale,y:(cy-r.top-offY)/scale};}
+function toWorld(cx,cy){const r=cv.getBoundingClientRect();return{x:(cx-r.left-offX)/scale+cam.x,y:(cy-r.top-offY)/scale+cam.y};}
+function roomBounds(){const pl=PLANETS[myRoom()];if(pl)return{x0:40,x1:pl.w-40,y0:40,y1:pl.h-40};return{x0:80,x1:W-80,y0:250,y1:H-40};}
 cv.addEventListener('pointerdown',e=>{if(!me)return;if(document.activeElement===chatin)chatin.blur();
   if(locked)return;
-  const p=toWorld(e.clientX,e.clientY);
-  if(myRoom()==='obs'){const ti=C4_TABLES.findIndex(t=>Math.hypot(t.x-p.x,t.y-p.y)<t.r);
-    if(ti>=0){openC4Menu(ti);return;}}
-  const dhit=ROOMS[myRoom()].deco.find(dd=>Math.hypot(dd.x-p.x,dd.y-p.y)<36);
-  if(dhit){if(dhit.t==='telescope')openTelescope();else openDecoDetail(dhit.t);return;}
-  const hit=Object.values(players).filter(q=>q.room===myRoom()).find(q=>Math.hypot(q.x-p.x,q.y-p.y)<26);
+  const p=toWorld(e.clientX,e.clientY);const rid=myRoom();
+  if(rid==='obs'){const ti=C4_TABLES.findIndex(t=>Math.hypot(t.x-p.x,t.y-p.y)<t.r);if(ti>=0){openC4Menu(ti);return;}}
+  if(ROOMS[rid]){const dhit=ROOMS[rid].deco.find(dd=>Math.hypot(dd.x-p.x,dd.y-p.y)<36);
+    if(dhit){if(dhit.t==='telescope')openTelescope();else if(dhit.t==='holo')openHolo();else if(dhit.t==='vending')openShop();else openDecoDetail(dhit.t);return;}}
+  const hit=Object.values(players).filter(q=>q.room===rid).find(q=>Math.hypot(q.x-p.x,q.y-p.y)<26);
   if(hit){openProfile(hit);return;}
-  me.tx=clamp(p.x,80,W-80);me.ty=clamp(p.y,250,H-40);});
+  const b=roomBounds();me.tx=clamp(p.x,b.x0,b.x1);me.ty=clamp(p.y,b.y0,b.y1);});
 function clamp(v,a,b){return v<a?a:v>b?b:v;}
-function checkDoor(){if(!me)return;const d=ROOMS[me.room].door;if(Math.hypot(me.x-d.x,me.y-d.y)<52)goToRoom(d.to);}
-function goToRoom(room){if(!me||locked||room===me.room)return;me.room=room;const nd=ROOMS[room].door;
-  me.x=me.tx=nd.x>W/2?nd.x-140:nd.x+140;me.y=me.ty=nd.y;
+function checkDoor(){if(!me||!ROOMS[me.room])return;const d=ROOMS[me.room].door;if(Math.hypot(me.x-d.x,me.y-d.y)<52)goToRoom(d.to);}
+function goToRoom(room){if(!me||locked||room===me.room)return;me.room=room;
+  if(PLANETS[room]){const pl=PLANETS[room];me.x=me.tx=pl.w/2;me.y=me.ty=pl.h-130;genPlanet(room);document.getElementById('room-name').textContent=pl.name;}
+  else{const nd=ROOMS[room].door;me.x=me.tx=nd.x>W/2?nd.x-140:nd.x+140;me.y=me.ty=nd.y;document.getElementById('room-name').textContent=ROOMS[room].name;}
   socket&&socket.emit('room',{room:me.room,x:me.x,y:me.y});
-  document.getElementById('room-name').textContent=ROOMS[room].name;
-  addMsg('','','Du bist im '+ROOMS[room].name+'.','sys');updateOnline();}
+  addMsg('','','Du bist bei '+((PLANETS[room]&&PLANETS[room].name)||ROOMS[room].name)+'.','sys');updateOnline();}
 
 let last=performance.now(),lastSent=0;
 function update(dt,now){
@@ -480,6 +565,9 @@ function update(dt,now){
   if(me&&spawned){checkDoor();
     if(pendingSit&&Math.hypot(me.x-me.tx,me.y-me.ty)<10){pendingSit=false;socket&&socket.emit('c4-sit',{table:sitTable});}
     for(const o of orbs){o.t+=dt*3;if(me.room==='deck'&&Math.hypot(me.x-o.x,me.y-o.y)<38){socket&&socket.emit('collect');Object.assign(o,randOrb());}}
+    if(PLANETS[me.room]&&planetScene){
+      for(const c of planetScene.crystals){c.t+=dt*3;if(!c.got&&Math.hypot(me.x-c.x,me.y-c.y)<34){c.got=true;socket&&socket.emit('crystal');}}
+      const pt=planetScene.portal;if(Math.hypot(me.x-pt.x,me.y-pt.y)<42)goToRoom('deck');}
     if(now-lastSent>66){socket&&socket.emit('move',{x:me.x,y:me.y,face:me.face});lastSent=now;}}
   for(const id in players){const e=players[id];
     if(e.bubbleT>0){e.bubbleT-=dt;if(e.bubbleT<=0)e.bubble=null;}
@@ -489,16 +577,58 @@ function update(dt,now){
 function moveEnt(e,dt){const dx=e.tx-e.x,dy=e.ty-e.y,d=Math.hypot(dx,dy);
   if(d>2){const m=Math.min(205*dt,d);e.x+=dx/d*m;e.y+=dy/d*m;if(Math.abs(dx)>.5)e.face=dx<0?-1:1;e.step+=dt*11;e.moving=true;}else{e.step*=.85;e.moving=false;}}
 
-/* ---------------- RENDER (unverändert) ---------------- */
+/* ---------------- RENDER ---------------- */
 function render(){const r=cv.parentElement.getBoundingClientRect();ctx.clearRect(0,0,r.width,r.height);
-  ctx.save();ctx.translate(offX,offY);ctx.scale(scale,scale);
-  const room=ROOMS[myRoom()];
-  drawWall(room);drawFloor(room);drawDoor(room.door,room.accent);
-  if(myRoom()==='obs')C4_TABLES.forEach((t,i)=>drawC4Table(t.x,t.y,i));
-  if(myRoom()==='deck')for(const o of orbs)drawOrb(o);
-  const here=Object.values(players).filter(p=>p.room===myRoom()).sort((a,b)=>a.y-b.y);
+  const rid=myRoom();const pl=PLANETS[rid];
+  cam.x=pl&&me?clamp(me.x-W/2,0,pl.w-W):0;
+  cam.y=pl&&me?clamp(me.y-H/2,0,pl.h-H):0;
+  ctx.save();ctx.translate(offX,offY);ctx.scale(scale,scale);ctx.translate(-cam.x,-cam.y);
+  if(pl){renderPlanet(rid);}
+  else{const room=ROOMS[rid];drawWall(room);drawFloor(room);drawDoor(room.door,room.accent);
+    if(rid==='obs')C4_TABLES.forEach((t,i)=>drawC4Table(t.x,t.y,i));
+    if(rid==='deck')for(const o of orbs)drawOrb(o);}
+  const here=Object.values(players).filter(p=>p.room===rid).sort((a,b)=>a.y-b.y);
   for(const e of here)drawAvatar(e);
   ctx.restore();}
+
+/* ---------------- PLANETEN ---------------- */
+let planetStars=null;
+function genPlanet(id){const pl=PLANETS[id];planetScene={scenery:[],crystals:[],portal:{x:pl.w/2,y:pl.h-80}};
+  const gy=pl.h*0.5;
+  for(let i=0;i<44;i++)planetScene.scenery.push({x:50+Math.random()*(pl.w-100),y:gy+20+Math.random()*(pl.h-gy-60),t:Math.random()<0.5?'rock':'flora',s:0.7+Math.random()*0.9});
+  planetScene.scenery.sort((a,b)=>a.y-b.y);
+  for(let i=0;i<14;i++)planetScene.crystals.push({x:90+Math.random()*(pl.w-180),y:gy+30+Math.random()*(pl.h-gy-70),t:Math.random()*6,got:false});
+  planetStars=[];for(let i=0;i<80;i++)planetStars.push({x:Math.random()*pl.w,y:Math.random()*gy,r:Math.random()*1.6+.4,t:Math.random()*6});
+}
+function renderPlanet(id){const pl=PLANETS[id],gy=pl.h*0.5;
+  const g=ctx.createLinearGradient(0,0,0,pl.h);g.addColorStop(0,pl.sky[0]);g.addColorStop(1,pl.sky[1]);ctx.fillStyle=g;ctx.fillRect(0,0,pl.w,pl.h);
+  const now=performance.now()/1000;
+  if(planetStars)for(const s of planetStars){const a=.4+.5*Math.abs(Math.sin(now+s.t));ctx.fillStyle='rgba(232,236,255,'+a+')';ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,7);ctx.fill();}
+  // ferner Planet am Himmel
+  const pg=ctx.createRadialGradient(pl.w*0.2,gy*0.4,6,pl.w*0.2,gy*0.4,70);pg.addColorStop(0,pl.flora);pg.addColorStop(1,'transparent');ctx.fillStyle=pg;ctx.beginPath();ctx.arc(pl.w*0.2,gy*0.4,70,0,7);ctx.fill();
+  // Boden
+  ctx.fillStyle=pl.ground;ctx.beginPath();ctx.moveTo(0,gy+30);
+  for(let x=0;x<=pl.w;x+=120)ctx.lineTo(x,gy+30+Math.sin(x/260)*22);
+  ctx.lineTo(pl.w,pl.h);ctx.lineTo(0,pl.h);ctx.closePath();ctx.fill();
+  ctx.fillStyle=pl.ground2;for(let x=40;x<pl.w;x+=90)for(let y=gy+80;y<pl.h-20;y+=80){ctx.beginPath();ctx.arc(x,y,4,0,7);ctx.fill();}
+  if(planetScene){for(const s of planetScene.scenery)drawPlanetProp(s,pl);
+    for(const c of planetScene.crystals)if(!c.got)drawCrystal(c);
+    drawPortal(planetScene.portal);}
+}
+function drawPlanetProp(s,pl){const x=s.x,y=s.y,sc=s.s;ctx.strokeStyle=INK;ctx.lineWidth=3;
+  if(s.t==='rock'){ctx.fillStyle='#5b5570';ctx.beginPath();ctx.ellipse(x,y,16*sc,11*sc,0,0,7);ctx.fill();ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,.15)';ctx.beginPath();ctx.ellipse(x-4*sc,y-3*sc,6*sc,4*sc,0,0,7);ctx.fill();}
+  else{ctx.strokeStyle=INK;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y-22*sc);ctx.stroke();
+    ctx.fillStyle=pl.flora;[[-1,-14],[1,-20],[0,-26]].forEach(([a,b])=>{ctx.beginPath();ctx.ellipse(x+a*7*sc,y+b*sc,6*sc,10*sc,a*.4,0,7);ctx.fill();ctx.stroke();});}}
+function drawCrystal(c){const y=c.y+Math.sin(c.t)*4;ctx.save();ctx.translate(c.x,y);
+  const gl=ctx.createRadialGradient(0,0,1,0,0,20);gl.addColorStop(0,'rgba(122,224,255,.7)');gl.addColorStop(1,'transparent');ctx.fillStyle=gl;ctx.beginPath();ctx.arc(0,0,20,0,7);ctx.fill();
+  ctx.fillStyle='#8affea';ctx.strokeStyle=INK;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,-14);ctx.lineTo(9,-2);ctx.lineTo(5,14);ctx.lineTo(-5,14);ctx.lineTo(-9,-2);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(0,-14);ctx.lineTo(0,14);ctx.moveTo(-9,-2);ctx.lineTo(9,-2);ctx.stroke();ctx.restore();}
+function drawPortal(p){const now=performance.now()/400;ctx.save();ctx.translate(p.x,p.y);
+  for(let i=3;i>=1;i--){ctx.strokeStyle='rgba(122,224,176,'+(0.25*i)+')';ctx.lineWidth=4;ctx.beginPath();ctx.ellipse(0,0,26+i*4+Math.sin(now)*2,34+i*5,0,0,7);ctx.stroke();}
+  ctx.fillStyle='rgba(122,224,176,.15)';ctx.beginPath();ctx.ellipse(0,0,24,32,0,0,7);ctx.fill();
+  ctx.fillStyle='#eafff5';ctx.strokeStyle=INK;ctx.lineWidth=3;ctx.font='700 12px Fredoka';ctx.textAlign='center';
+  roundRect(-40,-58,80,20,10);ctx.fill();ctx.stroke();ctx.fillStyle=INK;ctx.fillText('→ Station',0,-44);ctx.restore();}
 let stars=null,neb=null;
 function drawWall(room){const g=ctx.createLinearGradient(0,0,0,200);g.addColorStop(0,room.wall1);g.addColorStop(1,room.wall2);ctx.fillStyle=g;ctx.fillRect(0,0,W,220);
   ctx.strokeStyle='rgba(0,0,0,.18)';ctx.lineWidth=10;ctx.beginPath();ctx.moveTo(0,16);ctx.lineTo(W,16);ctx.stroke();
@@ -646,6 +776,10 @@ function openProfile(pl){
   const own=pl.id===myId;profileName=pl.name;
   $('pname').textContent=pl.name||'Alien';
   $('pcoins').textContent=(own?(me&&me.stardust)||0:(pl.stardust||0));
+  $('pbadge').textContent=(own?myRank:(pl.rank||'Kadett')).toUpperCase();
+  $('plevel').textContent='Level '+(own?myLevel:(pl.level||1));
+  if(own){const span=Math.max(1,myNextXp-myCurXp);$('pxpfill').style.width=Math.max(0,Math.min(100,(myXp-myCurXp)/span*100))+'%';$('pxpwrap').style.display='block';}
+  else $('pxpwrap').style.display='none';
   $('pinv').style.display='none';
   $('invarrow').classList.remove('open');
   $('invtoggle').firstElementChild.textContent='Inventar öffnen';
@@ -661,12 +795,20 @@ function openProfile(pl){
   renderPreview(pl);if(own)buildInventory(pl);
   $('profile').style.display='flex';
 }
+function updateLvlChip(){const l=$('lvl');if(l)l.textContent='Lv '+myLevel;}
 function closeProfile(){$('profile').style.display='none';}
+function drawProfileBg(g,bg,w,h){
+  if(bg==='bg_grid'){g.fillStyle='#0d1230';g.fillRect(0,0,w,h);g.strokeStyle='rgba(77,208,255,.5)';g.lineWidth=1;for(let x=0;x<=w;x+=13){g.beginPath();g.moveTo(x,0);g.lineTo(x,h);g.stroke();}for(let y=0;y<=h;y+=13){g.beginPath();g.moveTo(0,y);g.lineTo(w,y);g.stroke();}}
+  else if(bg==='bg_aurora'){const gr=g.createLinearGradient(0,0,w,h);gr.addColorStop(0,'#123f2a');gr.addColorStop(.5,'#1f7a6b');gr.addColorStop(1,'#3a2f7a');g.fillStyle=gr;g.fillRect(0,0,w,h);}
+  else if(bg==='bg_sunset'){const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'#ff9e64');gr.addColorStop(.6,'#ff5ea8');gr.addColorStop(1,'#6a3bd6');g.fillStyle=gr;g.fillRect(0,0,w,h);}
+  else{g.fillStyle='#e7dcff';g.fillRect(0,0,w,h);}
+}
 function renderPreview(pl){
   const pc=$('pcanvas'),CSSW=150,CSSH=170,SC=1.7,dpr=Math.min(devicePixelRatio||1,3);
-  pc.width=CSSW*dpr;pc.height=CSSH*dpr;                 // hochauflösendes Backing
+  pc.width=CSSW*dpr;pc.height=CSSH*dpr;
   const g=pc.getContext('2d');const main=ctx;ctx=g;
   g.setTransform(dpr*SC,0,0,dpr*SC,0,0);g.clearRect(0,0,CSSW/SC,CSSH/SC);
+  drawProfileBg(g,(pl.id===myId?myBg:(pl.bg||'space')),CSSW/SC,CSSH/SC);
   const cx=(CSSW/SC)/2,cy=(CSSH/SC)/2+12;
   const fake=Object.assign({},pl,{x:cx,y:cy,step:0,moving:false,bubble:null,emo:null,expr:'happy',face:1});
   const m=drawBody(fake,cx,cy,1,false);
@@ -677,8 +819,9 @@ function renderPreview(pl){
 function buildInventory(pl){
   const inv=$('pinv');inv.innerHTML='';const own=pl.id===myId;
   for(const it of INV_ITEMS){const cell=document.createElement('div');
-    cell.className='invcell'+(pl.acc===it.id?' on':'');cell.textContent=ITEM_ICON[it.id];cell.title=it.label;
-    if(own){cell.onclick=()=>{socket&&socket.emit('acc',{acc:it.id});pl.acc=it.id;buildInventory(pl);renderPreview(pl);};}
+    const has=it.id==='none'||myOwned.has(it.id);
+    cell.className='invcell'+(pl.acc===it.id?' on':'')+(has?'':' lock');cell.textContent=has?ITEM_ICON[it.id]:'🔒';cell.title=it.label;
+    if(own&&has){cell.onclick=()=>{socket&&socket.emit('acc',{acc:it.id});pl.acc=it.id;buildInventory(pl);renderPreview(pl);};}
     inv.appendChild(cell);}
 }
 $('pclose').onclick=closeProfile;
@@ -851,6 +994,47 @@ function teleLoop(){
     teleDrag=null;});})();
 $('teleclose').onclick=teleClose;
 $('tele').onclick=e=>{if(e.target.id==='tele')teleClose();};
+
+/* ---------------- SHOP ---------------- */
+let shopTab='acc';
+function openShop(){$('shopcoins').textContent=(me&&me.stardust)||0;renderShop();$('shop').style.display='flex';}
+function renderShop(){$('shopcoins').textContent=(me&&me.stardust)||0;const list=$('shoplist');list.innerHTML='';
+  let items=SHOP.filter(s=>s.type===shopTab);
+  if(shopTab==='bg')items=[{id:'space',type:'bg',name:'Standard',price:0,minLevel:1,ico:'🪐',free:true}].concat(items);
+  items.forEach(it=>{const row=document.createElement('div');row.className='shopitem';
+    const owned=it.free||myOwned.has(it.id);
+    const equipped=(it.type==='acc'?(me&&me.acc===it.id):myBg===it.id);
+    const locked=!owned&&myLevel<it.minLevel;
+    let btn;
+    if(equipped)btn='<button class="shopbtn on" disabled>angelegt</button>';
+    else if(owned)btn='<button class="shopbtn eq" data-eq="'+it.id+'" data-t="'+it.type+'">anlegen</button>';
+    else if(locked)btn='<button class="shopbtn lock" disabled>🔒 Lv '+it.minLevel+'</button>';
+    else btn='<button class="shopbtn buy" data-buy="'+it.id+'">'+it.price+' ✦</button>';
+    const sub=owned?'im Inventar':(it.price+' Sternenstaub'+(locked?' · ab Lv '+it.minLevel:''));
+    row.innerHTML='<div class="shopico">'+it.ico+'</div><div class="shopinfo"><div class="shopname">'+it.name+'</div><div class="shopprice">'+sub+'</div></div>'+btn;
+    list.appendChild(row);});
+  list.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>socket&&socket.emit('shop-buy',{id:b.dataset.buy}));
+  list.querySelectorAll('[data-eq]').forEach(b=>b.onclick=()=>{const id=b.dataset.eq,t=b.dataset.t;
+    if(t==='acc'){socket&&socket.emit('acc',{acc:id});if(me)me.acc=id;}else{socket&&socket.emit('equip-bg',{bg:id});myBg=id;}renderShop();});}
+$('shopBtn').onclick=openShop;
+$('shopclose').onclick=()=>$('shop').style.display='none';
+$('shop').onclick=e=>{if(e.target.id==='shop')$('shop').style.display='none';};
+$('shoptabacc').onclick=()=>{shopTab='acc';$('shoptabacc').classList.add('on');$('shoptabbg').classList.remove('on');renderShop();};
+$('shoptabbg').onclick=()=>{shopTab='bg';$('shoptabbg').classList.add('on');$('shoptabacc').classList.remove('on');renderShop();};
+
+/* ---------------- HOLO-STERNKARTE ---------------- */
+function openHolo(){renderHolo();$('holo').style.display='flex';}
+function renderHolo(){const list=$('hololist');list.innerHTML='';
+  PLANET_ORDER.forEach(id=>{const pl=PLANETS[id];const unlocked=myLevel>=pl.minLevel;
+    const row=document.createElement('div');row.className='holoitem'+(unlocked?'':' locked');
+    const dot=document.createElement('div');dot.className='holoplanet';dot.style.background=pl.dot;
+    const nm=document.createElement('div');nm.className='holoname';nm.textContent=pl.name;
+    const st=document.createElement('div');st.className='holostat'+(unlocked?'':' lock');st.textContent=unlocked?'erkunden →':'🔒 ab Level '+pl.minLevel;
+    row.appendChild(dot);row.appendChild(nm);row.appendChild(st);
+    if(unlocked)row.onclick=()=>{$('holo').style.display='none';goToRoom(id);};
+    list.appendChild(row);});}
+$('holoclose').onclick=()=>$('holo').style.display='none';
+$('holo').onclick=e=>{if(e.target.id==='holo')$('holo').style.display='none';};
 
 function loop(now){const dt=Math.min((now-last)/1000,.05);last=now;update(dt,now);render();requestAnimationFrame(loop);}
 
