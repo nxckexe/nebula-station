@@ -405,7 +405,7 @@ const ROOMS={
 
 const players={}; let myId=null, me=null, spawned=false;
 let myLevel=1,myXp=0,myRank='Kadett',myCurXp=0,myNextXp=50,myOwned=new Set(),myBg='space';
-let cam={x:0,y:0},planetScene=null;
+let cam={x:0,y:0},planetScene=null,hover=null;
 function xpLevel(xp){return 1+Math.floor(Math.sqrt((xp||0)/70));}
 function xpForLevel(l){return 70*(l-1)*(l-1);}
 const PLANETS={
@@ -585,6 +585,21 @@ cv.addEventListener('pointerdown',e=>{if(!me)return;if(document.activeElement===
   if(hit){openProfile(hit);return;}
   const b=roomBounds();me.tx=clamp(p.x,b.x0,b.x1);me.ty=clamp(p.y,b.y0,b.y1);});
 function clamp(v,a,b){return v<a?a:v>b?b:v;}
+cv.addEventListener('pointermove',e=>{
+  if(!me||locked){if(hover){hover=null;cv.style.cursor='default';}return;}
+  const p=toWorld(e.clientX,e.clientY),rid=myRoom();let h=null;
+  if(rid==='obs'){const ti=C4_TABLES.findIndex(t=>Math.hypot(t.x-p.x,t.y-p.y)<t.r);if(ti>=0)h={kind:'table',obj:ti};}
+  if(!h&&ROOMS[rid]){const dd=ROOMS[rid].deco.find(d=>Math.hypot(d.x-p.x,d.y-p.y)<36);if(dd)h={kind:'deco',obj:dd};}
+  if(!h&&PLANETS[rid]&&planetScene){if(Math.hypot(planetScene.portal.x-p.x,planetScene.portal.y-p.y)<42)h={kind:'portal'};
+    else{const c=planetScene.crystals.find(c=>!c.got&&Math.hypot(c.x-p.x,c.y-p.y)<28);if(c)h={kind:'crystal',obj:c};}}
+  if(!h){const q=Object.values(players).filter(q=>q.room===rid&&q.id!==myId).find(q=>Math.hypot(q.x-p.x,q.y-p.y)<26);if(q)h={kind:'player',obj:q};}
+  hover=h;cv.style.cursor=h?'pointer':'default';
+});
+cv.addEventListener('pointerleave',()=>{hover=null;cv.style.cursor='default';});
+function hoveredIs(kind,obj){return hover&&hover.kind===kind&&(obj===undefined||hover.obj===obj);}
+function drawHovered(cx,cy,fn){const t=performance.now()/300,s=1.06+Math.sin(t)*.03;
+  ctx.save();ctx.translate(cx,cy);ctx.scale(s,s);ctx.translate(-cx,-cy);
+  ctx.shadowColor='#fff';ctx.shadowBlur=11;fn();ctx.shadowBlur=0;fn();ctx.restore();}
 function checkDoor(){if(!me||!ROOMS[me.room])return;const d=ROOMS[me.room].door;if(Math.hypot(me.x-d.x,me.y-d.y)<52)goToRoom(d.to);}
 function goToRoom(room){if(!me||locked||room===me.room)return;me.room=room;
   if(PLANETS[room]){const pl=PLANETS[room];me.x=me.tx=pl.w/2;me.y=me.ty=pl.h-130;genPlanet(room);document.getElementById('room-name').textContent=pl.name;}
@@ -618,10 +633,11 @@ function render(){const r=cv.parentElement.getBoundingClientRect();ctx.clearRect
   ctx.save();ctx.translate(offX,offY);ctx.scale(scale,scale);ctx.translate(-cam.x,-cam.y);
   if(pl){renderPlanet(rid);}
   else{const room=ROOMS[rid];drawWall(room);drawFloor(room);drawDoor(room.door,room.accent);
-    if(rid==='obs')C4_TABLES.forEach((t,i)=>drawC4Table(t.x,t.y,i));
-    if(rid==='deck')for(const o of orbs)drawOrb(o);}
+    if(rid==='deck'){for(const o of orbs)drawOrb(o);drawDeckExtras();}
+    if(rid==='obs')C4_TABLES.forEach((t,i)=>{if(hoveredIs('table',i))drawHovered(t.x,t.y,()=>drawC4Table(t.x,t.y,i));else drawC4Table(t.x,t.y,i);});}
   const here=Object.values(players).filter(p=>p.room===rid).sort((a,b)=>a.y-b.y);
-  for(const e of here)drawAvatar(e);
+  for(const e of here){if(e.id!==myId&&hoveredIs('player',e))drawHovered(e.x,e.y,()=>drawAvatar(e));else drawAvatar(e);}
+  if(rid==='deck')drawDrone();
   ctx.restore();}
 
 /* ---------------- PLANETEN ---------------- */
@@ -645,8 +661,8 @@ function renderPlanet(id){const pl=PLANETS[id],gy=pl.h*0.5;
   ctx.lineTo(pl.w,pl.h);ctx.lineTo(0,pl.h);ctx.closePath();ctx.fill();
   ctx.fillStyle=pl.ground2;for(let x=40;x<pl.w;x+=90)for(let y=gy+80;y<pl.h-20;y+=80){ctx.beginPath();ctx.arc(x,y,4,0,7);ctx.fill();}
   if(planetScene){for(const s of planetScene.scenery)drawPlanetProp(s,pl);
-    for(const c of planetScene.crystals)if(!c.got)drawCrystal(c);
-    drawPortal(planetScene.portal);}
+    for(const c of planetScene.crystals)if(!c.got){if(hoveredIs('crystal',c))drawHovered(c.x,c.y,()=>drawCrystal(c));else drawCrystal(c);}
+    if(hoveredIs('portal'))drawHovered(planetScene.portal.x,planetScene.portal.y,()=>drawPortal(planetScene.portal));else drawPortal(planetScene.portal);}
 }
 function drawPlanetProp(s,pl){const x=s.x,y=s.y,sc=s.s;ctx.strokeStyle=INK;ctx.lineWidth=3;
   if(s.t==='rock'){ctx.fillStyle='#5b5570';ctx.beginPath();ctx.ellipse(x,y,16*sc,11*sc,0,0,7);ctx.fill();ctx.stroke();
@@ -670,8 +686,53 @@ function drawWall(room){const g=ctx.createLinearGradient(0,0,0,200);g.addColorSt
   ctx.strokeStyle='rgba(255,255,255,.06)';ctx.lineWidth=3;for(let x=0;x<W;x+=90){ctx.beginPath();ctx.moveTo(x,30);ctx.lineTo(x,200);ctx.stroke();}
   if(room===ROOMS.deck)drawViewport(W/2-210,44,420,150,room.accent);else drawViewport(80,44,W-160,150,room.accent);
   drawWallScreen(80,66,room.accent);drawWallScreen(W-180,66,room.accent);drawLamp(300,0);drawLamp(760,0);
+  drawWallExtras(room);
   ctx.font='700 15px Fredoka';ctx.textAlign='center';const t=room.name.toUpperCase(),tw=ctx.measureText(t).width;
   ctx.fillStyle=room.accent;ctx.strokeStyle=INK;ctx.lineWidth=3;roundRect(W/2-tw/2-14,198,tw+28,22,11);ctx.fill();ctx.stroke();ctx.fillStyle=INK;ctx.fillText(t,W/2,213);}
+
+function drawWallExtras(room){const now=performance.now();
+  // Ventile auf dem oberen Rohr
+  for(let x=120;x<W;x+=240){ctx.fillStyle=shade(room.wall1,-30);ctx.strokeStyle=INK;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,15,6,0,7);ctx.fill();ctx.stroke();
+    ctx.strokeStyle=room.accent;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x-4,15);ctx.lineTo(x+4,15);ctx.moveTo(x,11);ctx.lineTo(x,19);ctx.stroke();}
+  // Lüftungsgitter
+  [200,W-260].forEach(vx=>{ctx.fillStyle=shade(room.wall1,-25);ctx.strokeStyle=INK;ctx.lineWidth=3;roundRect(vx,150,54,34,6);ctx.fill();ctx.stroke();
+    ctx.strokeStyle=shade(room.wall1,-45);ctx.lineWidth=3;for(let i=1;i<4;i++){ctx.beginPath();ctx.moveTo(vx+6,150+i*8.5);ctx.lineTo(vx+48,150+i*8.5);ctx.stroke();}});
+  // blinkende Statuslichter
+  for(let i=0;i<6;i++){const on=Math.sin(now/400+i)>0;ctx.fillStyle=on?'#7be0b0':'#2b6b52';ctx.strokeStyle=INK;ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(W-150+i*12,165,3,0,7);ctx.fill();ctx.stroke();}
+  // Emblem
+  ctx.save();ctx.translate(150,158);ctx.fillStyle=shade(room.wall1,-15);ctx.strokeStyle=room.accent;ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,22,0,7);ctx.fill();ctx.stroke();
+  ctx.fillStyle=room.accent;ctx.font='700 10px Fredoka';ctx.textAlign='center';ctx.fillText('NE',0,-2);ctx.fillText('BULA',0,9);
+  ctx.strokeStyle=room.accent;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(0,0,17,0,7);ctx.stroke();ctx.restore();
+}
+function drawDeckExtras(){const now=performance.now();
+  // Warnstreifen vor der Tür
+  ctx.save();roundRect(902,300,58,120,10);ctx.clip();
+  for(let i=-6;i<12;i++){ctx.fillStyle=i%2?'#ffd166':'#2b1b52';ctx.beginPath();ctx.moveTo(902+i*14,300);ctx.lineTo(902+i*14+14,300);ctx.lineTo(902+i*14+28,420);ctx.lineTo(902+i*14+14,420);ctx.closePath();ctx.fill();}
+  ctx.restore();ctx.strokeStyle=INK;ctx.lineWidth=3;roundRect(902,300,58,120,10);ctx.stroke();
+  // Bodenpfeile Richtung Tür
+  ctx.fillStyle='rgba(77,208,255,.5)';for(let i=0;i<3;i++){const ax=560+i*70,ay=470,p=(Math.sin(now/500+i)*0.5+0.5);ctx.globalAlpha=.3+p*.5;
+    ctx.beginPath();ctx.moveTo(ax,ay-9);ctx.lineTo(ax+16,ay);ctx.lineTo(ax,ay+9);ctx.lineTo(ax+6,ay);ctx.closePath();ctx.fill();}ctx.globalAlpha=1;
+  // Werkzeugkiste in der Ecke
+  const bx=110,by=430;ctx.fillStyle='#ff9e64';ctx.strokeStyle=INK;ctx.lineWidth=4;roundRect(bx-20,by-12,40,24,5);ctx.fill();ctx.stroke();
+  ctx.fillStyle=shade('#ff9e64',-40);ctx.fillRect(bx-20,by-4,40,4);ctx.fillStyle='#2b1b52';roundRect(bx-6,by-18,12,7,3);ctx.fill();ctx.strokeStyle=INK;ctx.lineWidth=2;ctx.strokeRect(bx-6,by-18,12,7);
+  // Dampf aus Bodenluke
+  const lx=400,ly=520;ctx.fillStyle='#3a2f7a';ctx.strokeStyle=INK;ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(lx,ly,20,7,0,0,7);ctx.fill();ctx.stroke();
+  for(let i=0;i<3;i++){const t=(now/900+i/3)%1;ctx.globalAlpha=(1-t)*0.35;ctx.fillStyle='#cfe6ff';ctx.beginPath();ctx.arc(lx+Math.sin(t*6+i)*6,ly-t*40,6+t*8,0,7);ctx.fill();}ctx.globalAlpha=1;
+}
+function drawDrone(){const t=performance.now()/1000;const dx=520+Math.sin(t*0.4)*300,dy=300+Math.sin(t*0.9)*26;
+  // Lichtkegel
+  ctx.fillStyle='rgba(255,246,200,.10)';ctx.beginPath();ctx.moveTo(dx-6,dy+8);ctx.lineTo(dx+6,dy+8);ctx.lineTo(dx+26,dy+90);ctx.lineTo(dx-26,dy+90);ctx.closePath();ctx.fill();
+  // Rotor
+  ctx.save();ctx.translate(dx,dy-12);ctx.rotate(t*20);ctx.strokeStyle=INK;ctx.lineWidth=2;ctx.fillStyle='rgba(200,220,255,.6)';
+  ctx.beginPath();ctx.ellipse(0,0,16,3,0,0,7);ctx.fill();ctx.stroke();ctx.restore();
+  // Körper
+  ctx.fillStyle='#b7c4e8';ctx.strokeStyle=INK;ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(dx,dy,13,11,0,0,7);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(dx,dy-11);ctx.lineTo(dx,dy-14);ctx.stroke();
+  // Auge/Linse
+  const on=Math.sin(t*4)>0;ctx.fillStyle=on?'#4dd0ff':'#2b6b7a';ctx.beginPath();ctx.arc(dx+3,dy+1,5,0,7);ctx.fill();ctx.strokeStyle=INK;ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(dx+1.5,dy-0.5,1.6,0,7);ctx.fill();
+}
 function drawViewport(x,y,w,h,accent){ctx.save();roundRect(x,y,w,h,18);ctx.clip();
   const g=ctx.createLinearGradient(0,y,0,y+h);g.addColorStop(0,'#241a5c');g.addColorStop(1,'#0e0930');ctx.fillStyle=g;ctx.fillRect(x,y,w,h);
   if(!neb)neb=[{dx:.2,dy:.4,r:.5,c:'#ff5ea8'},{dx:.75,dy:.3,r:.55,c:'#4dd0ff'},{dx:.5,dy:.6,r:.4,c:'#b18cff'}];
@@ -700,7 +761,8 @@ function drawLamp(x,y){ctx.fillStyle=INK;roundRect(x-14,y,28,10,4);ctx.fill();
 function drawFloor(room){const top=196;ctx.fillStyle=room.floor1;ctx.strokeStyle=INK;ctx.lineWidth=6;roundRect(20,top,W-40,H-top-16,36);ctx.fill();ctx.stroke();
   ctx.fillStyle=room.floor2;for(let x=70;x<W-40;x+=66)for(let y=top+50;y<H-26;y+=66){ctx.beginPath();ctx.arc(x,y,5,0,7);ctx.fill();}
   ctx.strokeStyle=room.accent;ctx.lineWidth=6;ctx.setLineDash([16,13]);ctx.beginPath();ctx.ellipse(W/2,H/2+90,170,60,0,0,7);ctx.stroke();ctx.setLineDash([]);
-  for(const d of [...room.deco].sort((a,b)=>a.y-b.y))DECO[d.t]&&DECO[d.t](d.x,d.y,room.accent);}
+  for(const d of [...room.deco].sort((a,b)=>a.y-b.y)){if(!DECO[d.t])continue;
+    if(hoveredIs('deco',d))drawHovered(d.x,d.y,()=>DECO[d.t](d.x,d.y,room.accent));else DECO[d.t](d.x,d.y,room.accent);}}
 const DECO={
   crate(x,y){ctx.fillStyle='#c99a5b';ctx.strokeStyle=INK;ctx.lineWidth=4;roundRect(x-22,y-22,44,44,8);ctx.fill();ctx.stroke();
     ctx.strokeStyle=shade('#c99a5b',-40);ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(x-22,y-8);ctx.lineTo(x+22,y-8);ctx.moveTo(x-22,y+8);ctx.lineTo(x+22,y+8);ctx.stroke();
