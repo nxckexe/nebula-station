@@ -205,14 +205,15 @@ io.on('connection', (socket) => {
     const ids = new Set(); (rows || []).forEach(r => { ids.add(r.requester); ids.add(r.addressee); }); ids.delete(socket.userId);
     const { data: profs } = ids.size ? await admin.from('profiles').select('id,username').in('id', Array.from(ids)) : { data: [] };
     const nameOf = {}; (profs || []).forEach(p => nameOf[p.id] = p.username);
-    const friends = [], incoming = [];
+    const friends = [], incoming = [], outgoing = [];
     (rows || []).forEach(r => {
       const otherId = r.requester === socket.userId ? r.addressee : r.requester;
       const entry = { id: otherId, username: nameOf[otherId] || 'Alien', online: !!online[otherId] };
       if (r.status === 'accepted') friends.push(entry);
       else if (r.addressee === socket.userId) incoming.push(entry);
+      else outgoing.push(entry);
     });
-    socket.emit('friends-data', { friends, incoming });
+    socket.emit('friends-data', { friends, incoming, outgoing });
   });
 
   // ---- Direktnachrichten ----
@@ -227,6 +228,17 @@ io.on('connection', (socket) => {
       .or(`and(sender.eq.${socket.userId},receiver.eq.${withId}),and(sender.eq.${withId},receiver.eq.${socket.userId})`)
       .order('created_at', { ascending: true }).limit(50);
     socket.emit('dm-history-data', { withId, messages: (data || []).map(m => ({ mine: m.sender === socket.userId, text: m.text })) });
+  });
+
+  // ---- Teleskop-Geheimnis ----
+  socket.on('secret-found', async () => {
+    const me = players[socket.id]; if (!me) return;
+    const now = Date.now();
+    if (now - (me.lastSecret || 0) < 120000) { socket.emit('secret-result', { ok:false }); return; } // 2 Min Cooldown
+    me.lastSecret = now; me.stardust += 50;
+    socket.emit('stardust', { value: me.stardust });
+    socket.emit('secret-result', { ok:true, amount:50 });
+    admin.from('profiles').update({ stardust: me.stardust }).eq('id', me.userId).then(() => {}, () => {});
   });
 
   socket.on('disconnect', async () => {
