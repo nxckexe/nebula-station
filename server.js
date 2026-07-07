@@ -40,6 +40,38 @@ app.get('/config', (req, res) => {
 const COLORS  = ['#4dd0ff','#ff5ea8','#ffb14d','#7be0b0','#b18cff','#ffe15e'];
 const SPECIES = ['blobbi','knuffo','slink','zacki','nebli'];
 const ACCS    = ['none','party','crown','phones','shades'];
+
+// ---- Fortschritt: XP -> Level -> Rang ----
+function xpLevel(xp) { return 1 + Math.floor(Math.sqrt((xp || 0) / 50)); }
+function xpForLevel(l) { return 50 * (l - 1) * (l - 1); }
+function rankName(lvl) {
+  if (lvl >= 25) return 'Sternenadmiral';
+  if (lvl >= 15) return 'Captain';
+  if (lvl >= 10) return 'Kommandant';
+  if (lvl >= 6)  return 'Navigator';
+  if (lvl >= 3)  return 'Pilot';
+  return 'Kadett';
+}
+
+// ---- Shop ----
+const SHOP = [
+  { id:'party',     type:'acc', name:'Partyhut',        price:150, minLevel:1 },
+  { id:'shades',    type:'acc', name:'Sonnenbrille',    price:200, minLevel:1 },
+  { id:'phones',    type:'acc', name:'Kopfhörer',       price:250, minLevel:2 },
+  { id:'crown',     type:'acc', name:'Krone',           price:500, minLevel:4 },
+  { id:'bg_grid',   type:'bg',  name:'Neon-Grid',       price:250, minLevel:1 },
+  { id:'bg_aurora', type:'bg',  name:'Aurora',          price:350, minLevel:2 },
+  { id:'bg_sunset', type:'bg',  name:'Sonnenuntergang', price:350, minLevel:3 }
+];
+function ownedSet(str) { return new Set(String(str || '').split(',').filter(Boolean)); }
+
+// ---- Planeten (Level-basiert freigeschaltet) ----
+const PLANETS = [
+  { id:'verdiania', name:'Verdiania', minLevel:1,  theme:'verdant' },
+  { id:'cryonis',   name:'Cryonis',   minLevel:5,  theme:'ice'     },
+  { id:'magmara',   name:'Magmara',   minLevel:12, theme:'lava'    }
+];
+const ROOM_IDS = new Set(['deck', 'obs'].concat(PLANETS.map(p => p.id)));
 const clamp = (v,a,b) => v<a?a:v>b?b:v;
 
 const players = {}; // socket.id -> Spielerzustand (nur fuer aktive Sitzung)
@@ -87,15 +119,19 @@ io.on('connection', (socket) => {
 
   socket.on('move', (m) => {
     const me = players[socket.id]; if (!me) return;
-    me.x = clamp(+m.x || 0, 60, 980);
-    me.y = clamp(+m.y || 0, 240, 600);
+    me.x = clamp(+m.x || 0, 0, 2600);
+    me.y = clamp(+m.y || 0, 0, 1700);
     me.face = m.face === -1 ? -1 : 1;
     socket.broadcast.emit('player-moved', { id: socket.id, x: me.x, y: me.y, face: me.face });
   });
 
   socket.on('room', (m) => {
     const me = players[socket.id]; if (!me) return;
-    me.room = m.room === 'obs' ? 'obs' : 'deck';
+    const target = String(m.room || '');
+    if (!ROOM_IDS.has(target)) return;
+    const planet = PLANETS.find(p => p.id === target);
+    if (planet && xpLevel(me.xp) < planet.minLevel) { socket.emit('planet-locked', { minLevel: planet.minLevel }); return; }
+    me.room = target;
     me.x = +m.x || me.x; me.y = +m.y || me.y;
     io.emit('player-room', { id: socket.id, room: me.room, x: me.x, y: me.y });
   });
@@ -113,22 +149,61 @@ io.on('connection', (socket) => {
   socket.on('acc', async (a) => {
     const me = players[socket.id]; if (!me) return;
     if (!ACCS.includes(a.acc)) return;
+    if (a.acc !== 'none' && !ownedSet(me.owned).has(a.acc)) return; // nur Besessenes anlegen
     me.acc = a.acc;
     io.emit('player-acc', { id: socket.id, acc: me.acc });
-    await admin.from('profiles').update({ acc: me.acc }).eq('id', socket.userId); // dauerhaft speichern
+    await admin.from('profiles').update({ acc: me.acc }).eq('id', socket.userId);
   });
 
-  // Orb eingesammelt -> Sternenstaub gutschreiben (mit Spam-Bremse)
+  socket.on('equip-bg', async (d) => {
+    const me = players[socket.id]; if (!me) return;
+    if (d.bg !== 'space' && !ownedSet(me.owned).has(d.bg)) return;
+    me.bg = d.bg;
+    io.emit('player-bg', { id: socket.id, bg: me.bg });
+    await admin.from('profiles').update({ bg: me.bg }).eq('id', socket.userId);
+  });
+
+  socket.on('shop-buy', async (d) => {
+    const me = players[socket.id]; if (!me) return;
+    const item = SHOP.find(s => s.id === d.id);
+    if (!item) { socket.emit('shop-result', { ok:false, text:'Unbekannter Artikel.' }); return; }
+    const owned = ownedSet(me.owned);
+    if (owned.has(item.id)) { socket.emit('shop-result', { ok:false, text:'Schon im Inventar.' }); return; }
+    if (xpLevel(me.xp) < item.minLevel) { socket.emit('shop-result', { ok:false, text:'Erst ab Level ' + item.minLevel + '.' }); return; }
+    if (me.stardust < item.price) { socket.emit('shop-result', { ok:false, text:'Zu wenig Sternenstaub.' }); return; }
+    me.stardust -= item.price; owned.add(item.id); me.owned = Array.from(owned).join(',');
+    await admin.from('profiles').update({ stardust: me.stardust, owned: me.owned }).eq('id', socket.userId);
+    socket.emit('stardust', { value: me.stardust });
+    socket.emit('shop-result', { ok:true, text:item.name + ' gekauft!', owned: me.owned });
+  });
+
+  // Orb (Station) eingesammelt -> Sternenstaub + XP
   socket.on('collect', async () => {
     const me = players[socket.id]; if (!me) return;
     const now = Date.now();
-    if (now - (me.lastCollect || 0) < 150) return; // Rate-Limit
+    if (now - (me.lastCollect || 0) < 150) return;
     me.lastCollect = now;
     me.stardust += 5;
     socket.emit('stardust', { value: me.stardust });
-    if (now - (me.lastSave || 0) > 4000) {          // DB-Schreiben drosseln
+    grantXp(socket, me, 2);
+    if (now - (me.lastSave || 0) > 4000) {
       me.lastSave = now;
-      await admin.from('profiles').update({ stardust: me.stardust }).eq('id', socket.userId);
+      await admin.from('profiles').update({ stardust: me.stardust, xp: me.xp }).eq('id', socket.userId);
+    }
+  });
+
+  // Kristall auf einem Planeten -> mehr Sternenstaub + XP
+  socket.on('crystal', async () => {
+    const me = players[socket.id]; if (!me) return;
+    const now = Date.now();
+    if (now - (me.lastCollect || 0) < 150) return;
+    me.lastCollect = now;
+    me.stardust += 10;
+    socket.emit('stardust', { value: me.stardust });
+    grantXp(socket, me, 6);
+    if (now - (me.lastSave || 0) > 3000) {
+      me.lastSave = now;
+      await admin.from('profiles').update({ stardust: me.stardust, xp: me.xp }).eq('id', socket.userId);
     }
   });
 
@@ -237,8 +312,9 @@ io.on('connection', (socket) => {
     if (now - (me.lastSecret || 0) < 120000) { socket.emit('secret-result', { ok:false }); return; } // 2 Min Cooldown
     me.lastSecret = now; me.stardust += 50;
     socket.emit('stardust', { value: me.stardust });
+    grantXp(socket, me, 30);
     socket.emit('secret-result', { ok:true, amount:50 });
-    admin.from('profiles').update({ stardust: me.stardust }).eq('id', me.userId).then(() => {}, () => {});
+    admin.from('profiles').update({ stardust: me.stardust, xp: me.xp }).eq('id', me.userId).then(() => {}, () => {});
   });
 
   socket.on('disconnect', async () => {
@@ -255,6 +331,7 @@ io.on('connection', (socket) => {
 });
 
 function finalizeSpawn(socket, profile) {
+  const lvl = xpLevel(profile.xp || 0);
   const me = {
     id: socket.id,
     userId: socket.userId,
@@ -262,7 +339,10 @@ function finalizeSpawn(socket, profile) {
     color: COLORS.includes(profile.color) ? profile.color : COLORS[0],
     species: SPECIES.includes(profile.species) ? profile.species : SPECIES[0],
     acc: ACCS.includes(profile.acc) ? profile.acc : 'none',
+    bg: profile.bg || 'space',
     stardust: profile.stardust || 0,
+    xp: profile.xp || 0, level: lvl, rank: rankName(lvl),
+    owned: profile.owned || '',
     wins: profile.wins || 0,
     game_stardust: profile.game_stardust || 0,
     sitting: false, table: -1,
@@ -270,10 +350,22 @@ function finalizeSpawn(socket, profile) {
   };
   players[socket.id] = me;
   online[socket.userId] = socket.id;
-  socket.emit('spawn', { name: me.name, color: me.color, species: me.species, acc: me.acc, stardust: profile.stardust || 0 });
+  socket.emit('spawn', {
+    name: me.name, color: me.color, species: me.species, acc: me.acc, bg: me.bg,
+    stardust: me.stardust, xp: me.xp, level: lvl, rank: me.rank, owned: me.owned
+  });
   socket.emit('world', players);
   socket.broadcast.emit('player-joined', me);
   io.emit('system', me.name + ' ist angedockt.');
+}
+
+function grantXp(socket, me, amt) {
+  const before = xpLevel(me.xp || 0);
+  me.xp = (me.xp || 0) + amt;
+  const after = xpLevel(me.xp);
+  me.level = after; me.rank = rankName(after);
+  socket.emit('progress', { xp: me.xp, level: after, rank: me.rank, leveled: after > before, nextXp: xpForLevel(after + 1), curXp: xpForLevel(after) });
+  if (after > before) io.emit('system', me.name + ' ist jetzt Level ' + after + ' (' + me.rank + ')!');
 }
 
 // ---------------- 4 GEWINNT (mehrere Tische) ----------------
@@ -304,8 +396,12 @@ function c4End(g, seat, reason) {
       wp.stardust += C4_REWARD;
       wp.wins = (wp.wins || 0) + 1;
       wp.game_stardust = (wp.game_stardust || 0) + C4_REWARD;
+      const before = xpLevel(wp.xp || 0); wp.xp = (wp.xp || 0) + 40; const after = xpLevel(wp.xp);
+      wp.level = after; wp.rank = rankName(after);
       io.to(win.id).emit('stardust', { value: wp.stardust });
-      admin.from('profiles').update({ stardust: wp.stardust, wins: wp.wins, game_stardust: wp.game_stardust })
+      io.to(win.id).emit('progress', { xp: wp.xp, level: after, rank: wp.rank, leveled: after > before, nextXp: xpForLevel(after + 1), curXp: xpForLevel(after) });
+      if (after > before) io.emit('system', wp.name + ' ist jetzt Level ' + after + ' (' + wp.rank + ')!');
+      admin.from('profiles').update({ stardust: wp.stardust, wins: wp.wins, game_stardust: wp.game_stardust, xp: wp.xp })
         .eq('id', wp.userId).then(() => {}, () => {});
     }
   }
