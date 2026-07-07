@@ -39,11 +39,11 @@ app.get('/config', (req, res) => {
 
 const COLORS  = ['#4dd0ff','#ff5ea8','#ffb14d','#7be0b0','#b18cff','#ffe15e'];
 const SPECIES = ['blobbi','knuffo','slink','zacki','nebli'];
-const ACCS    = ['none','party','crown','phones','shades'];
+const ACCS    = ['none','cap','glasses','shades','bow','flower','beanie','phones','party','monocle','cowboy','horns','star','propeller','tophat','wizard','halo','crown'];
 
-// ---- Fortschritt: XP -> Level -> Rang ----
-function xpLevel(xp) { return 1 + Math.floor(Math.sqrt((xp || 0) / 50)); }
-function xpForLevel(l) { return 50 * (l - 1) * (l - 1); }
+// ---- Fortschritt: XP -> Level -> Rang (steilere Kurve) ----
+function xpLevel(xp) { return 1 + Math.floor(Math.sqrt((xp || 0) / 70)); }
+function xpForLevel(l) { return 70 * (l - 1) * (l - 1); }
 function rankName(lvl) {
   if (lvl >= 25) return 'Sternenadmiral';
   if (lvl >= 15) return 'Captain';
@@ -55,13 +55,34 @@ function rankName(lvl) {
 
 // ---- Shop ----
 const SHOP = [
-  { id:'party',     type:'acc', name:'Partyhut',        price:150, minLevel:1 },
-  { id:'shades',    type:'acc', name:'Sonnenbrille',    price:200, minLevel:1 },
-  { id:'phones',    type:'acc', name:'Kopfhörer',       price:250, minLevel:2 },
-  { id:'crown',     type:'acc', name:'Krone',           price:500, minLevel:4 },
-  { id:'bg_grid',   type:'bg',  name:'Neon-Grid',       price:250, minLevel:1 },
-  { id:'bg_aurora', type:'bg',  name:'Aurora',          price:350, minLevel:2 },
-  { id:'bg_sunset', type:'bg',  name:'Sonnenuntergang', price:350, minLevel:3 }
+  { id:'cap',       type:'acc', name:'Cap',              price:100,  minLevel:1 },
+  { id:'glasses',   type:'acc', name:'Brille',           price:150,  minLevel:1 },
+  { id:'shades',    type:'acc', name:'Sonnenbrille',     price:200,  minLevel:1 },
+  { id:'bow',       type:'acc', name:'Schleife',         price:250,  minLevel:2 },
+  { id:'flower',    type:'acc', name:'Blume',            price:250,  minLevel:2 },
+  { id:'beanie',    type:'acc', name:'Mütze',            price:350,  minLevel:2 },
+  { id:'phones',    type:'acc', name:'Kopfhörer',        price:400,  minLevel:3 },
+  { id:'party',     type:'acc', name:'Partyhut',         price:450,  minLevel:3 },
+  { id:'monocle',   type:'acc', name:'Monokel',          price:600,  minLevel:4 },
+  { id:'cowboy',    type:'acc', name:'Cowboyhut',        price:800,  minLevel:5 },
+  { id:'horns',     type:'acc', name:'Hörner',           price:1000, minLevel:6 },
+  { id:'star',      type:'acc', name:'Sternchen',        price:1300, minLevel:7 },
+  { id:'propeller', type:'acc', name:'Propellermütze',   price:1600, minLevel:8 },
+  { id:'tophat',    type:'acc', name:'Zylinder',         price:2000, minLevel:9 },
+  { id:'wizard',    type:'acc', name:'Zaubererhut',      price:3000, minLevel:11 },
+  { id:'halo',      type:'acc', name:'Heiligenschein',   price:4500, minLevel:14 },
+  { id:'crown',     type:'acc', name:'Krone',            price:6000, minLevel:16 },
+  { id:'bg_grid',   type:'bg',  name:'Neon-Grid',        price:250,  minLevel:1 },
+  { id:'bg_mint',   type:'bg',  name:'Minze',            price:300,  minLevel:2 },
+  { id:'bg_candy',  type:'bg',  name:'Bonbon',           price:300,  minLevel:2 },
+  { id:'bg_deep',   type:'bg',  name:'Tiefsee',          price:450,  minLevel:3 },
+  { id:'bg_aurora', type:'bg',  name:'Aurora',           price:600,  minLevel:4 },
+  { id:'bg_sunset', type:'bg',  name:'Sonnenuntergang',  price:600,  minLevel:4 },
+  { id:'bg_stars',  type:'bg',  name:'Sternenhimmel',    price:800,  minLevel:5 },
+  { id:'bg_nebula', type:'bg',  name:'Nebel',            price:1100, minLevel:6 },
+  { id:'bg_gold',   type:'bg',  name:'Gold',             price:1800, minLevel:9 },
+  { id:'bg_matrix', type:'bg',  name:'Matrix',           price:2200, minLevel:10 },
+  { id:'bg_rainbow',type:'bg',  name:'Regenbogen',       price:3200, minLevel:13 }
 ];
 function ownedSet(str) { return new Set(String(str || '').split(',').filter(Boolean)); }
 
