@@ -30,7 +30,9 @@ const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false }
 });
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res, filePath) => { if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache'); }
+}));
 
 // Der Browser holt sich hier URL + oeffentlichen Key fuer die Anmeldung.
 app.get('/config', (req, res) => {
