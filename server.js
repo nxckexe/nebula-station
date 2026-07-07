@@ -57,36 +57,41 @@ function rankName(lvl) {
 
 // ---- Shop ----
 const SHOP = [
-  { id:'cap',       type:'acc', name:'Cap',              price:100,  minLevel:1 },
-  { id:'glasses',   type:'acc', name:'Brille',           price:150,  minLevel:1 },
-  { id:'shades',    type:'acc', name:'Sonnenbrille',     price:200,  minLevel:1 },
-  { id:'bow',       type:'acc', name:'Schleife',         price:250,  minLevel:2 },
-  { id:'flower',    type:'acc', name:'Blume',            price:250,  minLevel:2 },
-  { id:'beanie',    type:'acc', name:'Mütze',            price:350,  minLevel:2 },
-  { id:'phones',    type:'acc', name:'Kopfhörer',        price:400,  minLevel:3 },
-  { id:'party',     type:'acc', name:'Partyhut',         price:450,  minLevel:3 },
-  { id:'monocle',   type:'acc', name:'Monokel',          price:600,  minLevel:4 },
-  { id:'cowboy',    type:'acc', name:'Cowboyhut',        price:800,  minLevel:5 },
-  { id:'horns',     type:'acc', name:'Hörner',           price:1000, minLevel:6 },
-  { id:'star',      type:'acc', name:'Sternchen',        price:1300, minLevel:7 },
-  { id:'propeller', type:'acc', name:'Propellermütze',   price:1600, minLevel:8 },
-  { id:'tophat',    type:'acc', name:'Zylinder',         price:2000, minLevel:9 },
-  { id:'wizard',    type:'acc', name:'Zaubererhut',      price:3000, minLevel:11 },
-  { id:'halo',      type:'acc', name:'Heiligenschein',   price:4500, minLevel:14 },
-  { id:'crown',     type:'acc', name:'Krone',            price:6000, minLevel:16 },
-  { id:'bg_grid',   type:'bg',  name:'Neon-Grid',        price:250,  minLevel:1 },
-  { id:'bg_mint',   type:'bg',  name:'Minze',            price:300,  minLevel:2 },
-  { id:'bg_candy',  type:'bg',  name:'Bonbon',           price:300,  minLevel:2 },
-  { id:'bg_deep',   type:'bg',  name:'Tiefsee',          price:450,  minLevel:3 },
-  { id:'bg_aurora', type:'bg',  name:'Aurora',           price:600,  minLevel:4 },
-  { id:'bg_sunset', type:'bg',  name:'Sonnenuntergang',  price:600,  minLevel:4 },
-  { id:'bg_stars',  type:'bg',  name:'Sternenhimmel',    price:800,  minLevel:5 },
-  { id:'bg_nebula', type:'bg',  name:'Nebel',            price:1100, minLevel:6 },
-  { id:'bg_gold',   type:'bg',  name:'Gold',             price:1800, minLevel:9 },
-  { id:'bg_matrix', type:'bg',  name:'Matrix',           price:2200, minLevel:10 },
-  { id:'bg_rainbow',type:'bg',  name:'Regenbogen',       price:3200, minLevel:13 }
+  { id:'cap',       type:'acc', name:'Cap',              price:800,   minLevel:1 },
+  { id:'glasses',   type:'acc', name:'Brille',           price:1200,  minLevel:1 },
+  { id:'shades',    type:'acc', name:'Sonnenbrille',     price:1800,  minLevel:1 },
+  { id:'bow',       type:'acc', name:'Schleife',         price:2500,  minLevel:2 },
+  { id:'flower',    type:'acc', name:'Blume',            price:2500,  minLevel:2 },
+  { id:'beanie',    type:'acc', name:'Mütze',            price:3500,  minLevel:2 },
+  { id:'phones',    type:'acc', name:'Kopfhörer',        price:4500,  minLevel:3 },
+  { id:'party',     type:'acc', name:'Partyhut',         price:5000,  minLevel:3 },
+  { id:'monocle',   type:'acc', name:'Monokel',          price:7000,  minLevel:4 },
+  { id:'cowboy',    type:'acc', name:'Cowboyhut',        price:9500,  minLevel:5 },
+  { id:'horns',     type:'acc', name:'Hörner',           price:13000, minLevel:6 },
+  { id:'star',      type:'acc', name:'Sternchen',        price:17000, minLevel:7 },
+  { id:'propeller', type:'acc', name:'Propellermütze',   price:22000, minLevel:8 },
+  { id:'tophat',    type:'acc', name:'Zylinder',         price:28000, minLevel:9 },
+  { id:'wizard',    type:'acc', name:'Zaubererhut',      price:40000, minLevel:11 },
+  { id:'halo',      type:'acc', name:'Heiligenschein',   price:60000, minLevel:14 },
+  { id:'crown',     type:'acc', name:'Krone',            price:90000, minLevel:16 },
+  { id:'bg_grid',   type:'bg',  name:'Neon-Grid',        price:2500,  minLevel:1 },
+  { id:'bg_mint',   type:'bg',  name:'Minze',            price:3000,  minLevel:2 },
+  { id:'bg_candy',  type:'bg',  name:'Bonbon',           price:3000,  minLevel:2 },
+  { id:'bg_deep',   type:'bg',  name:'Tiefsee',          price:4500,  minLevel:3 },
+  { id:'bg_aurora', type:'bg',  name:'Aurora',           price:6500,  minLevel:4 },
+  { id:'bg_sunset', type:'bg',  name:'Sonnenuntergang',  price:6500,  minLevel:4 },
+  { id:'bg_stars',  type:'bg',  name:'Sternenhimmel',    price:9500,  minLevel:5 },
+  { id:'bg_nebula', type:'bg',  name:'Nebel',            price:14000, minLevel:6 },
+  { id:'bg_gold',   type:'bg',  name:'Gold',             price:24000, minLevel:9 },
+  { id:'bg_matrix', type:'bg',  name:'Matrix',           price:30000, minLevel:10 },
+  { id:'bg_rainbow',type:'bg',  name:'Regenbogen',       price:45000, minLevel:13 }
 ];
 function ownedSet(str) { return new Set(String(str || '').split(',').filter(Boolean)); }
+
+// ---- Slot Machine (Nickusch Industries) ----
+const SLOT_SYMS = [ {i:0,w:26,three:8}, {i:1,w:22,three:10}, {i:2,w:18,three:12}, {i:3,w:14,three:15}, {i:4,w:10,three:25}, {i:5,w:6,three:50}, {i:6,w:4,three:100} ];
+const SLOT_BETS = [100, 500, 1000];
+function slotRoll(){ const total=SLOT_SYMS.reduce((s,x)=>s+x.w,0); let r=Math.random()*total; for(const s of SLOT_SYMS){ if((r-=s.w)<0) return s.i; } return 0; }
 
 // ---- Planeten (Level-basiert freigeschaltet) ----
 const PLANETS = [
@@ -198,6 +203,24 @@ io.on('connection', (socket) => {
     await admin.from('profiles').update({ stardust: me.stardust, owned: me.owned }).eq('id', socket.userId);
     socket.emit('stardust', { value: me.stardust });
     socket.emit('shop-result', { ok:true, text:item.name + ' gekauft!', owned: me.owned });
+  });
+
+  socket.on('slot-spin', async (d) => {
+    const me = players[socket.id]; if (!me) return;
+    const bet = +d.bet;
+    if (!SLOT_BETS.includes(bet)) { socket.emit('slot-result', { ok:false, text:'Ungültiger Einsatz.' }); return; }
+    if (me.stardust < bet) { socket.emit('slot-result', { ok:false, text:'Zu wenig Sternenstaub.' }); return; }
+    const now = Date.now();
+    if (now - (me.lastSlot || 0) < 1200) return; // Anti-Spam
+    me.lastSlot = now;
+    me.stardust -= bet;
+    const r = [slotRoll(), slotRoll(), slotRoll()];
+    let win = 0;
+    if (r[0] === r[1] && r[1] === r[2]) win = bet * SLOT_SYMS[r[0]].three;
+    else { const cherries = r.filter(x => x === 0).length; if (cherries >= 2) win = bet * 2; }
+    me.stardust += win;
+    socket.emit('slot-result', { ok:true, reels:r, win, bet, stardust: me.stardust });
+    admin.from('profiles').update({ stardust: me.stardust }).eq('id', me.userId).then(() => {}, () => {});
   });
 
   // Orb (Station) eingesammelt -> Sternenstaub + XP
