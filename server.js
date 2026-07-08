@@ -223,6 +223,19 @@ io.on('connection', (socket) => {
     admin.from('profiles').update({ stardust: me.stardust }).eq('id', me.userId).then(() => {}, () => {});
   });
 
+  socket.on('space-score', async (d) => {
+    const me = players[socket.id]; if (!me) return;
+    const now = Date.now();
+    if (now - (me.lastSpace || 0) < 3000) return;
+    me.lastSpace = now;
+    const gained = Math.max(0, Math.min(3000, Math.round(+d.collected || 0)));
+    const xp = Math.max(0, Math.min(200, Math.round((+d.dist || 0) / 10)));
+    me.stardust += gained;
+    socket.emit('stardust', { value: me.stardust });
+    if (xp > 0) grantXp(socket, me, xp);
+    admin.from('profiles').update({ stardust: me.stardust, xp: me.xp }).eq('id', me.userId).then(() => {}, () => {});
+  });
+
   // Orb (Station) eingesammelt -> Sternenstaub + XP
   socket.on('collect', async () => {
     const me = players[socket.id]; if (!me) return;
