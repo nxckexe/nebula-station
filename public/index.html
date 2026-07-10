@@ -404,12 +404,14 @@
 
 <!-- Lucky Wheel -->
 <div id="wheel" class="pmodal" style="display:none">
-  <div class="pcard" style="width:340px;max-width:92vw;display:flex;flex-direction:column;align-items:center;text-align:center">
+  <div class="pcard" style="width:300px;max-width:94vw;display:flex;flex-direction:column;align-items:center;text-align:center">
     <button class="pclose" id="wheelclose">✕</button>
-    <h2 style="margin:0 0 6px;color:var(--grape);font-size:20px">🎡 Lucky Wheel</h2>
-    <canvas id="wheelCanvas" width="300" height="320" style="width:min(270px,70vw);aspect-ratio:300/320;height:auto;display:block;margin:2px 0 0"></canvas>
-    <div id="wheelmsg" style="font-weight:600;color:var(--ink);margin:8px 0 10px;min-height:20px">…</div>
-    <button class="btn go" id="wheelspin" style="background:var(--sun)">🎡 Drehen</button>
+    <h2 style="margin:0 0 4px;color:var(--grape);font-size:20px">🎡 Lucky Wheel</h2>
+    <div id="wheelmsg" style="font-weight:600;color:var(--ink);margin:0 0 10px;min-height:20px">…</div>
+    <div style="width:240px;height:256px;position:relative;flex:none">
+      <canvas id="wheelCanvas" width="300" height="320" style="width:100%;height:100%;display:block"></canvas>
+    </div>
+    <button class="btn go" id="wheelspin" style="background:var(--sun);margin-top:14px">🎡 Drehen</button>
   </div>
 </div>
 
@@ -620,6 +622,7 @@ function wireSocket(){
   socket.on('wheel-status',d=>{wheelReady=!!d.ready;wheelWait=d.wait||0;if($('wheel').style.display!=='none')updateWheelBtn();});
   socket.on('wheel-result',d=>{
     if(!d.ok){wheelSpinning=false;wheelReady=false;wheelWait=d.wait||0;updateWheelBtn();return;}
+    wheelReady=false;wheelWait=24*3600*1000;
     const seg=Math.PI/4,turns=5,targetCenter=-Math.PI/2-(d.index*seg+seg/2);let end=targetCenter;while(end<wheelAngle+turns*2*Math.PI)end+=2*Math.PI;
     wheelTarget={index:d.index,amount:d.amount,stardust:d.stardust};wheelAnim={start:wheelAngle,end,t0:performance.now(),dur:4200};});
   socket.on('friend-msg',d=>{$('fmsg').style.color=d.ok?'#3aa06a':'#e0396b';$('fmsg').textContent=d.text;if(d.ok)socket.emit('friends-list');});
@@ -950,7 +953,7 @@ function updateWheelBtn(){const b=$('wheelspin'),msg=$('wheelmsg');if(!b)return;
 function openWheel(){$('wheel').style.display='flex';locked=true;
   const c=$('wheelCanvas'),dpr=Math.min(devicePixelRatio||1,3);c.width=300*dpr;c.height=320*dpr;wheelG=c.getContext('2d');wheelG.setTransform(dpr,0,0,dpr,0,0);
   updateWheelBtn();if(!wheelRAF)wheelModalLoop();}
-function closeWheel(){$('wheel').style.display='none';if(wheelRAF)cancelAnimationFrame(wheelRAF);wheelRAF=null;locked=false;}
+function closeWheel(){$('wheel').style.display='none';if(wheelRAF)cancelAnimationFrame(wheelRAF);wheelRAF=null;wheelSpinning=false;wheelAnim=null;wheelTarget=null;locked=false;}
 function spinWheel(){if(wheelSpinning||!wheelReady)return;wheelSpinning=true;updateWheelBtn();socket&&socket.emit('wheel-spin');}
 function drawWheelModal(){const g=wheelG;if(!g)return;const cx=150,cy=160,R=118,seg=Math.PI/4,now=performance.now();
   g.clearRect(0,0,300,320);
@@ -970,8 +973,8 @@ function wheelModalLoop(){if($('wheel').style.display==='none'){wheelRAF=null;re
       if(w)showPopup(w.amount>=2000?'🎉':'🎡',w.amount>=2000?'JACKPOT!':'Lucky Wheel','+'+w.amount+' Sternenstaub','gold');}}
   drawWheelModal();wheelRAF=requestAnimationFrame(wheelModalLoop);}
 $('wheelspin').onclick=spinWheel;
-$('wheelclose').onclick=()=>{if(!wheelSpinning)closeWheel();};
-$('wheel').onclick=e=>{if(e.target.id==='wheel'&&!wheelSpinning)closeWheel();};
+$('wheelclose').onclick=closeWheel;
+$('wheel').onclick=e=>{if(e.target.id==='wheel')closeWheel();};
 
 function drawDrone(){const t=performance.now()/1000;const dx=520+Math.sin(t*0.4)*300,dy=300+Math.sin(t*0.9)*26;  // Lichtkegel
   ctx.fillStyle='rgba(255,246,200,.10)';ctx.beginPath();ctx.moveTo(dx-6,dy+8);ctx.lineTo(dx+6,dy+8);ctx.lineTo(dx+26,dy+90);ctx.lineTo(dx-26,dy+90);ctx.closePath();ctx.fill();
