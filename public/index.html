@@ -446,11 +446,16 @@ const EMOTES=[{icon:'😄',expr:'happy'},{icon:'😂',expr:'laugh'},{icon:'❤�
 const ROOMS={
   deck:{name:'Hauptdeck',accent:'#4dd0ff',wall1:'#4a3aa0',wall2:'#382a80',floor1:'#efe4ff',floor2:'#ddceff',
     door:{x:970,y:360,to:'obs',label:'Aussichtsdeck →'},
+    door2:{x:70,y:470,to:'casino',label:'🎰 Casino →'},
     deco:[{t:'console',x:160,y:250},{t:'crate',x:262,y:262},{t:'crate',x:238,y:290},{t:'holo',x:520,y:250},{t:'vending',x:735,y:236},{t:'plant',x:905,y:272},{t:'plant',x:70,y:330}]},
   obs:{name:'Aussichtsdeck',accent:'#ff5ea8',wall1:'#5a3a95',wall2:'#402872',floor1:'#ffe9f4',floor2:'#ffd3ea',
     door:{x:70,y:360,to:'deck',label:'← Hauptdeck'},
-    deco:[{t:'telescope',x:210,y:262},{t:'bench',x:470,y:300},{t:'bench',x:640,y:300},{t:'plant',x:900,y:284},{t:'holo',x:820,y:246}]}
+    deco:[{t:'telescope',x:210,y:262},{t:'bench',x:470,y:300},{t:'bench',x:640,y:300},{t:'plant',x:900,y:284},{t:'holo',x:820,y:246}]},
+  casino:{name:'Casino-Deck',accent:'#ffd166',wall1:'#7a1233',wall2:'#43091d',floor1:'#efe7d6',floor2:'#e2d6bd',
+    door:{x:70,y:360,to:'deck',label:'← Hauptdeck'},
+    deco:[]}
 };
+const FOUNTAINS=[{x:270,y:300,r:44},{x:770,y:300,r:44}];
 
 const players={}; let myId=null, me=null, spawned=false;
 let myLevel=1,myXp=0,myRank='Kadett',myCurXp=0,myNextXp=50,myOwned=new Set(),myBg='space';
@@ -635,6 +640,7 @@ cv.addEventListener('pointerdown',e=>{if(!me)return;if(document.activeElement===
   if(rid==='obs'){const ti=C4_TABLES.findIndex(t=>Math.hypot(t.x-p.x,t.y-p.y)<t.r);if(ti>=0){openC4Menu(ti);return;}}
   if(rid==='deck'&&Math.hypot(SLOT_OBJ.x-p.x,SLOT_OBJ.y-p.y)<SLOT_OBJ.r){openSlot();return;}
   if(rid==='deck'&&Math.hypot(SHIP_OBJ.x-p.x,SHIP_OBJ.y-p.y)<SHIP_OBJ.r){requestBoard();return;}
+  if(rid==='casino'){const fi=FOUNTAINS.find(f=>Math.hypot(f.x-p.x,f.y-p.y)<f.r);if(fi){tossCoin(fi);showPopup('🪙','Wunschbrunnen','Du wirfst eine Münze hinein und wünschst dir Glück ✨','gold');return;}}
   if(ROOMS[rid]){const dhit=ROOMS[rid].deco.find(dd=>Math.hypot(dd.x-p.x,dd.y-p.y)<36);
     if(dhit){if(dhit.t==='telescope')openTelescope();else if(dhit.t==='holo')openHolo();else if(dhit.t==='vending')openShop();else openDecoDetail(dhit.t);return;}}
   const hit=Object.values(players).filter(q=>q.room===rid).find(q=>Math.hypot(q.x-p.x,q.y-p.y)<26);
@@ -647,6 +653,7 @@ cv.addEventListener('pointermove',e=>{
   if(rid==='obs'){const ti=C4_TABLES.findIndex(t=>Math.hypot(t.x-p.x,t.y-p.y)<t.r);if(ti>=0)h={kind:'table',obj:ti};}
   if(!h&&rid==='deck'&&Math.hypot(SLOT_OBJ.x-p.x,SLOT_OBJ.y-p.y)<SLOT_OBJ.r)h={kind:'slot'};
   if(!h&&rid==='deck'&&Math.hypot(SHIP_OBJ.x-p.x,SHIP_OBJ.y-p.y)<SHIP_OBJ.r)h={kind:'ship'};
+  if(!h&&rid==='casino'){const f=FOUNTAINS.find(f=>Math.hypot(f.x-p.x,f.y-p.y)<f.r);if(f)h={kind:'fountain',obj:f};}
   if(!h&&ROOMS[rid]){const dd=ROOMS[rid].deco.find(d=>Math.hypot(d.x-p.x,d.y-p.y)<36);if(dd)h={kind:'deco',obj:dd};}
   if(!h&&PLANETS[rid]&&planetScene){if(Math.hypot(planetScene.portal.x-p.x,planetScene.portal.y-p.y)<42)h={kind:'portal'};
     else{const c=planetScene.crystals.find(c=>!c.got&&Math.hypot(c.x-p.x,c.y-p.y)<28);if(c)h={kind:'crystal',obj:c};}}
@@ -658,10 +665,11 @@ function hoveredIs(kind,obj){return hover&&hover.kind===kind&&(obj===undefined||
 function drawHovered(cx,cy,fn){const t=performance.now()/300,s=1.06+Math.sin(t)*.03;
   ctx.save();ctx.translate(cx,cy);ctx.scale(s,s);ctx.translate(-cx,-cy);
   ctx.shadowColor='#fff';ctx.shadowBlur=11;fn();ctx.shadowBlur=0;fn();ctx.restore();}
-function checkDoor(){if(!me||!ROOMS[me.room])return;const d=ROOMS[me.room].door;if(Math.hypot(me.x-d.x,me.y-d.y)<52)goToRoom(d.to);}
-function goToRoom(room){if(!me||locked||room===me.room)return;me.room=room;
+function roomDoors(room){return [room.door,room.door2,room.door3].filter(Boolean);}
+function checkDoor(){if(!me||!ROOMS[me.room])return;for(const d of roomDoors(ROOMS[me.room])){if(Math.hypot(me.x-d.x,me.y-d.y)<52){goToRoom(d.to,me.room);return;}}}
+function goToRoom(room,fromRoom){if(!me||locked||room===me.room)return;me.room=room;
   if(PLANETS[room]){const pl=PLANETS[room];me.x=me.tx=pl.w/2;me.y=me.ty=pl.h-130;genPlanet(room);document.getElementById('room-name').textContent=pl.name;}
-  else{const nd=ROOMS[room].door;me.x=me.tx=nd.x>W/2?nd.x-140:nd.x+140;me.y=me.ty=nd.y;document.getElementById('room-name').textContent=ROOMS[room].name;}
+  else{const doors=roomDoors(ROOMS[room]);const nd=(fromRoom&&doors.find(d=>d.to===fromRoom))||doors[0];me.x=me.tx=nd.x>W/2?nd.x-140:nd.x+140;me.y=me.ty=nd.y;document.getElementById('room-name').textContent=ROOMS[room].name;}
   socket&&socket.emit('room',{room:me.room,x:me.x,y:me.y});
   addMsg('','','Du bist bei '+((PLANETS[room]&&PLANETS[room].name)||ROOMS[room].name)+'.','sys');updateOnline();}
 
@@ -691,10 +699,11 @@ function render(){const r=cv.parentElement.getBoundingClientRect();ctx.clearRect
   cam.y=pl&&me?clamp(me.y-H/2,0,pl.h-H):0;
   ctx.save();ctx.translate(offX,offY);ctx.scale(scale,scale);ctx.translate(-cam.x,-cam.y);
   if(pl){renderPlanet(rid);}
-  else{const room=ROOMS[rid];drawWall(room);drawFloor(room);drawDoor(room.door,room.accent);
+  else{const room=ROOMS[rid];drawWall(room);drawFloor(room);roomDoors(room).forEach(d=>drawDoor(d,room.accent));
     if(rid==='deck'){for(const o of orbs)drawOrb(o);drawDeckExtras();
       if(hoveredIs('slot'))drawHovered(SLOT_OBJ.x,SLOT_OBJ.y,()=>drawSlotCabinet(SLOT_OBJ.x,SLOT_OBJ.y));else drawSlotCabinet(SLOT_OBJ.x,SLOT_OBJ.y);
       if(hoveredIs('ship'))drawHovered(SHIP_OBJ.x,SHIP_OBJ.y,()=>drawShipParked(SHIP_OBJ.x,SHIP_OBJ.y));else drawShipParked(SHIP_OBJ.x,SHIP_OBJ.y);}
+    if(rid==='casino')drawCasinoExtras();
     if(rid==='obs')C4_TABLES.forEach((t,i)=>{if(hoveredIs('table',i))drawHovered(t.x,t.y,()=>drawC4Table(t.x,t.y,i));else drawC4Table(t.x,t.y,i);});}
   const here=Object.values(players).filter(p=>p.room===rid).sort((a,b)=>a.y-b.y);
   for(const e of here){if(e.id!==myId&&hoveredIs('player',e))drawHovered(e.x,e.y,()=>drawAvatar(e));else drawAvatar(e);}
@@ -781,8 +790,93 @@ function drawDeckExtras(){const now=performance.now();
   const lx=400,ly=520;ctx.fillStyle='#3a2f7a';ctx.strokeStyle=INK;ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(lx,ly,20,7,0,0,7);ctx.fill();ctx.stroke();
   for(let i=0;i<3;i++){const t=(now/900+i/3)%1;ctx.globalAlpha=(1-t)*0.35;ctx.fillStyle='#cfe6ff';ctx.beginPath();ctx.arc(lx+Math.sin(t*6+i)*6,ly-t*40,6+t*8,0,7);ctx.fill();}ctx.globalAlpha=1;
 }
-function drawDrone(){const t=performance.now()/1000;const dx=520+Math.sin(t*0.4)*300,dy=300+Math.sin(t*0.9)*26;
-  // Lichtkegel
+/* ---------------- CASINO-DECK ---------------- */
+let casinoCoins=[];
+function tossCoin(f){casinoCoins.push({x:f.x,y:f.y,t0:performance.now()});}
+function drawCasinoFloor(top){const x0=22,y0=top,x1=W-22,y1=H-18,cx=W/2;
+  ctx.save();roundRect(20,top,W-40,H-top-16,36);ctx.clip();
+  // Marmor-Grundton
+  ctx.fillStyle='#efe7d6';ctx.fillRect(x0,y0,x1-x0,y1-y0);
+  // Diagonal-Fliesenraster
+  ctx.strokeStyle='rgba(120,90,60,.14)';ctx.lineWidth=2;
+  for(let d=-H;d<W;d+=82){ctx.beginPath();ctx.moveTo(d,y0);ctx.lineTo(d+(y1-y0),y1);ctx.stroke();ctx.beginPath();ctx.moveTo(d,y1);ctx.lineTo(d+(y1-y0),y0);ctx.stroke();}
+  // sanfte Marmoradern
+  ctx.strokeStyle='rgba(120,90,60,.09)';ctx.lineWidth=1.5;
+  for(let i=0;i<6;i++){const yy=y0+40+i*68;ctx.beginPath();ctx.moveTo(x0,yy);for(let xx=x0;xx<x1;xx+=40)ctx.lineTo(xx,yy+Math.sin(xx/60+i)*7);ctx.stroke();}
+  // roter Teppichläufer mittig
+  const cw=300;const rg=ctx.createLinearGradient(cx-cw/2,0,cx+cw/2,0);rg.addColorStop(0,'#7c1024');rg.addColorStop(.5,'#ad182f');rg.addColorStop(1,'#7c1024');
+  ctx.fillStyle=rg;ctx.fillRect(cx-cw/2,y0,cw,y1-y0);
+  ctx.strokeStyle='#ffd166';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(cx-cw/2+9,y0);ctx.lineTo(cx-cw/2+9,y1);ctx.moveTo(cx+cw/2-9,y0);ctx.lineTo(cx+cw/2-9,y1);ctx.stroke();
+  ctx.strokeStyle='#e0b84d';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx-cw/2+15,y0);ctx.lineTo(cx-cw/2+15,y1);ctx.moveTo(cx+cw/2-15,y0);ctx.lineTo(cx+cw/2-15,y1);ctx.stroke();
+  // runder Prunkteppich in der Mitte (Platz für ein Centerpiece-Spiel)
+  const ry=H/2+82;
+  ctx.fillStyle='#8f1329';ctx.beginPath();ctx.ellipse(cx,ry,182,66,0,0,7);ctx.fill();
+  ctx.strokeStyle='#ffd166';ctx.lineWidth=4;ctx.beginPath();ctx.ellipse(cx,ry,182,66,0,0,7);ctx.stroke();
+  ctx.strokeStyle='#e0b84d';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(cx,ry,152,54,0,0,7);ctx.stroke();
+  ctx.fillStyle='rgba(255,209,102,.55)';ctx.font='700 26px Fredoka';ctx.textAlign='center';ctx.fillText('✦',cx,ry+9);
+  ctx.restore();
+}
+function drawColumn(x,by){const h=150,top=by-h,w=28;
+  ctx.fillStyle='rgba(43,27,82,.15)';ctx.beginPath();ctx.ellipse(x,by+6,w+10,8,0,0,7);ctx.fill();
+  ctx.fillStyle='#e9dcc0';ctx.strokeStyle=INK;ctx.lineWidth=3;roundRect(x-w-5,by-14,(w+5)*2,16,4);ctx.fill();ctx.stroke();
+  const g=ctx.createLinearGradient(x-w,0,x+w,0);g.addColorStop(0,'#d3c39d');g.addColorStop(.5,'#f6eed9');g.addColorStop(1,'#cabb94');ctx.fillStyle=g;
+  ctx.strokeStyle=INK;ctx.lineWidth=3;roundRect(x-w,top+16,w*2,h-30,6);ctx.fill();ctx.stroke();
+  ctx.strokeStyle='rgba(120,90,60,.22)';ctx.lineWidth=2;for(let i=-2;i<=2;i++){ctx.beginPath();ctx.moveTo(x+i*10,top+22);ctx.lineTo(x+i*10,by-16);ctx.stroke();}
+  ctx.fillStyle='#f6eed9';ctx.strokeStyle=INK;ctx.lineWidth=3;roundRect(x-w-7,top,(w+7)*2,18,4);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#ffd166';roundRect(x-w-7,top+13,(w+7)*2,5,2);ctx.fill();
+}
+function drawChandelier(x,y,now){
+  ctx.strokeStyle='#b98f2e';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,y-14);ctx.stroke();
+  ctx.strokeStyle='#ffd166';ctx.lineWidth=4;ctx.beginPath();ctx.ellipse(x,y,32,9,0,0,7);ctx.stroke();
+  ctx.strokeStyle='#e0b84d';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(x,y,18,5,0,0,7);ctx.stroke();
+  for(let i=0;i<6;i++){const a=i/6*6.283,cxx=x+Math.cos(a)*32,cyy=y+Math.sin(a)*9,fl=.7+.3*Math.sin(now/200+i);
+    const rg=ctx.createRadialGradient(cxx,cyy-6,1,cxx,cyy-6,13);rg.addColorStop(0,'rgba(255,240,180,'+(.8*fl)+')');rg.addColorStop(1,'transparent');ctx.fillStyle=rg;ctx.beginPath();ctx.arc(cxx,cyy-6,13,0,7);ctx.fill();
+    ctx.fillStyle='#ffd166';ctx.fillRect(cxx-2,cyy-2,4,6);ctx.fillStyle='#fff2c0';ctx.beginPath();ctx.ellipse(cxx,cyy-6,2.3,5*fl,0,0,7);ctx.fill();}
+  ctx.fillStyle='#ffd166';ctx.strokeStyle=INK;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y+2,6,0,7);ctx.fill();ctx.stroke();
+}
+function drawRope(x1,y1,x2,y2){[[x1,y1],[x2,y2]].forEach(([px,py])=>{
+    ctx.fillStyle='#3a2f7a';ctx.beginPath();ctx.ellipse(px,py+2,10,4,0,0,7);ctx.fill();
+    ctx.fillStyle='#ffd166';ctx.strokeStyle=INK;ctx.lineWidth=3;roundRect(px-4,py-46,8,46,4);ctx.fill();ctx.stroke();
+    ctx.beginPath();ctx.arc(px,py-50,6,0,7);ctx.fill();ctx.stroke();});
+  ctx.strokeStyle='#ad182f';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(x1,y1-48);ctx.quadraticCurveTo((x1+x2)/2,y1-24,x2,y2-48);ctx.stroke();
+  ctx.strokeStyle='#7c1024';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x1,y1-46);ctx.quadraticCurveTo((x1+x2)/2,y1-22,x2,y2-46);ctx.stroke();
+}
+function drawFountain(x,y,now){
+  ctx.fillStyle='rgba(43,27,82,.18)';ctx.beginPath();ctx.ellipse(x,y+30,52,12,0,0,7);ctx.fill();
+  ctx.fillStyle='#efe7d6';ctx.strokeStyle=INK;ctx.lineWidth=4;ctx.beginPath();ctx.ellipse(x,y+24,50,18,0,0,7);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#3aa0d0';ctx.beginPath();ctx.ellipse(x,y+22,42,13,0,0,7);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.35)';for(let i=0;i<3;i++){const px=x-24+((now/400+i*30)%60);ctx.beginPath();ctx.ellipse(px,y+20+Math.sin(now/300+i)*2,6,2,0,0,7);ctx.fill();}
+  ctx.strokeStyle='#ffd166';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(x,y+24,50,18,0,0,7);ctx.stroke();
+  ctx.fillStyle='#e9dcc0';ctx.strokeStyle=INK;ctx.lineWidth=3;roundRect(x-8,y-6,16,28,4);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#efe7d6';ctx.strokeStyle=INK;ctx.beginPath();ctx.ellipse(x,y-6,22,8,0,0,7);ctx.fill();ctx.stroke();
+  ctx.strokeStyle='#ffd166';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(x,y-6,22,8,0,0,7);ctx.stroke();
+  ctx.strokeStyle='rgba(180,230,255,.9)';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x,y-8);ctx.lineTo(x,y-30);ctx.stroke();
+  for(let i=0;i<7;i++){const t=((now/700)+i/7)%1;const dx=Math.cos(i*1.7)*22*t;const dy=-30+t*t*44;ctx.globalAlpha=1-t;ctx.fillStyle='#bfeaff';ctx.beginPath();ctx.arc(x+dx,y+dy,2.2,0,7);ctx.fill();}ctx.globalAlpha=1;
+  const rg=ctx.createRadialGradient(x,y-30,1,x,y-30,10);rg.addColorStop(0,'rgba(200,240,255,.7)');rg.addColorStop(1,'transparent');ctx.fillStyle=rg;ctx.beginPath();ctx.arc(x,y-30,10,0,7);ctx.fill();
+}
+function drawCoins(now){casinoCoins=casinoCoins.filter(c=>now-c.t0<1200);
+  for(const c of casinoCoins){const t=(now-c.t0)/1200;const up=Math.sin(Math.min(t*1.4,1)*Math.PI)*44,drop=t>0.7?(t-0.7)*80:0,yy=c.y-up+drop;
+    ctx.save();ctx.translate(c.x,yy);ctx.scale(1,Math.abs(Math.cos(now/60))*0.6+0.3);
+    ctx.fillStyle='#ffd166';ctx.strokeStyle='#d99a1f';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,6,0,7);ctx.fill();ctx.stroke();ctx.restore();
+    if(t>0.85){ctx.strokeStyle='rgba(191,234,255,'+(1-t)+')';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(c.x,c.y+22,(t-0.85)*80,(t-0.85)*24,0,0,7);ctx.stroke();}}
+}
+function drawCasinoExtras(){const now=performance.now();
+  // Kronleuchter
+  drawChandelier(W/2,92,now);drawChandelier(300,78,now+400);drawChandelier(740,78,now+800);
+  // Casino-Leuchtschild (Marquee)
+  ctx.font='800 30px Fredoka';ctx.textAlign='center';const t='★ CASINO ★',tw=ctx.measureText(t).width;
+  ctx.fillStyle='#43091d';ctx.strokeStyle='#ffd166';ctx.lineWidth=4;roundRect(W/2-tw/2-26,140,tw+52,42,12);ctx.fill();ctx.stroke();
+  for(let i=0;i<Math.floor((tw+52)/16);i++){const bx=W/2-tw/2-18+i*16;ctx.fillStyle=Math.sin(now/220+i)>0?'#fff2c0':'#d99a1f';ctx.beginPath();ctx.arc(bx,140,2.6,0,7);ctx.fill();ctx.beginPath();ctx.arc(bx,182,2.6,0,7);ctx.fill();}
+  const gg=ctx.createLinearGradient(0,146,0,178);gg.addColorStop(0,'#fff2c0');gg.addColorStop(.5,'#ffd166');gg.addColorStop(1,'#d99a1f');ctx.fillStyle=gg;ctx.fillText(t,W/2,172);
+  // Säulen (rahmen den Raum)
+  [[160,300],[880,300],[160,472],[880,472]].forEach(([cx,cy])=>drawColumn(cx,cy));
+  // Samtkordeln am Eingang
+  drawRope(150,520,300,520);drawRope(740,520,890,520);
+  // Springbrunnen (interaktiv)
+  for(const f of FOUNTAINS){if(hoveredIs('fountain',f))drawHovered(f.x,f.y,()=>drawFountain(f.x,f.y,now));else drawFountain(f.x,f.y,now);}
+  drawCoins(now);
+}
+function drawDrone(){const t=performance.now()/1000;const dx=520+Math.sin(t*0.4)*300,dy=300+Math.sin(t*0.9)*26;  // Lichtkegel
   ctx.fillStyle='rgba(255,246,200,.10)';ctx.beginPath();ctx.moveTo(dx-6,dy+8);ctx.lineTo(dx+6,dy+8);ctx.lineTo(dx+26,dy+90);ctx.lineTo(dx-26,dy+90);ctx.closePath();ctx.fill();
   // Rotor
   ctx.save();ctx.translate(dx,dy-12);ctx.rotate(t*20);ctx.strokeStyle=INK;ctx.lineWidth=2;ctx.fillStyle='rgba(200,220,255,.6)';
@@ -838,8 +932,9 @@ function drawLamp(x,y){ctx.fillStyle=INK;roundRect(x-14,y,28,10,4);ctx.fill();
   ctx.fillStyle='#fff6c8';ctx.beginPath();ctx.moveTo(x-14,y+10);ctx.lineTo(x+14,y+10);ctx.lineTo(x+30,y+60);ctx.lineTo(x-30,y+60);ctx.closePath();ctx.globalAlpha=.18;ctx.fill();ctx.globalAlpha=1;
   ctx.fillStyle='#ffe15e';ctx.beginPath();ctx.ellipse(x,y+10,10,4,0,0,7);ctx.fill();}
 function drawFloor(room){const top=196;ctx.fillStyle=room.floor1;ctx.strokeStyle=INK;ctx.lineWidth=6;roundRect(20,top,W-40,H-top-16,36);ctx.fill();ctx.stroke();
-  ctx.fillStyle=room.floor2;for(let x=70;x<W-40;x+=66)for(let y=top+50;y<H-26;y+=66){ctx.beginPath();ctx.arc(x,y,5,0,7);ctx.fill();}
-  ctx.strokeStyle=room.accent;ctx.lineWidth=6;ctx.setLineDash([16,13]);ctx.beginPath();ctx.ellipse(W/2,H/2+90,170,60,0,0,7);ctx.stroke();ctx.setLineDash([]);
+  if(room===ROOMS.casino){drawCasinoFloor(top);}
+  else{ctx.fillStyle=room.floor2;for(let x=70;x<W-40;x+=66)for(let y=top+50;y<H-26;y+=66){ctx.beginPath();ctx.arc(x,y,5,0,7);ctx.fill();}
+  ctx.strokeStyle=room.accent;ctx.lineWidth=6;ctx.setLineDash([16,13]);ctx.beginPath();ctx.ellipse(W/2,H/2+90,170,60,0,0,7);ctx.stroke();ctx.setLineDash([]);}
   for(const d of [...room.deco].sort((a,b)=>a.y-b.y)){if(!DECO[d.t])continue;
     if(hoveredIs('deco',d))drawHovered(d.x,d.y,()=>DECO[d.t](d.x,d.y,room.accent));else DECO[d.t](d.x,d.y,room.accent);}}
 const DECO={
@@ -1051,7 +1146,7 @@ $('invtoggle').onclick=()=>{const inv=$('pinv');const open=inv.style.display==='
   $('invtoggle').firstElementChild.textContent=open?'Inventar schließen':'Inventar öffnen';};
 
 /* ---------------- KARTE ---------------- */
-const ROOM_LIST=[{id:'deck',name:'Hauptdeck'},{id:'obs',name:'Aussichtsdeck'}];
+const ROOM_LIST=[{id:'deck',name:'Hauptdeck'},{id:'obs',name:'Aussichtsdeck'},{id:'casino',name:'Casino-Deck'}];
 function buildMap(){const r=$('rooms');r.innerHTML='';
   ROOM_LIST.forEach(rm=>{const b=document.createElement('div');b.className='roombtn';
     const dot=document.createElement('div');dot.className='roomdot';dot.style.background=ROOMS[rm.id].accent;
