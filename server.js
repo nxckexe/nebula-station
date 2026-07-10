@@ -91,6 +91,10 @@ function ownedSet(str) { return new Set(String(str || '').split(',').filter(Bool
 // ---- Slot Machine (Nickusch Industries) ----
 const SLOT_SYMS = [ {i:0,w:26,three:8}, {i:1,w:22,three:10}, {i:2,w:18,three:12}, {i:3,w:14,three:15}, {i:4,w:10,three:25}, {i:5,w:6,three:50}, {i:6,w:4,three:100} ];
 const SLOT_BETS = [100, 500, 1000];
+const WHEEL_VALUES = [50, 100, 200, 500, 100, 300, 1000, 2000];
+const WHEEL_WEIGHTS = [30, 24, 16, 8, 24, 12, 4, 2];
+const WHEEL_DAY = 24 * 3600 * 1000;
+function wheelRoll(){ const total=WHEEL_WEIGHTS.reduce((a,b)=>a+b,0); let r=Math.random()*total; for(let i=0;i<WHEEL_WEIGHTS.length;i++){ if((r-=WHEEL_WEIGHTS[i])<0) return i; } return 0; }
 function slotRoll(){ const total=SLOT_SYMS.reduce((s,x)=>s+x.w,0); let r=Math.random()*total; for(const s of SLOT_SYMS){ if((r-=s.w)<0) return s.i; } return 0; }
 
 // ---- Planeten (Level-basiert freigeschaltet) ----
@@ -246,6 +250,21 @@ io.on('connection', (socket) => {
       .order('space_best', { ascending: false })
       .limit(10);
     socket.emit('space-leaderboard-data', { rows: (data || []).filter(r => (r.space_best || 0) > 0) });
+  });
+
+  socket.on('wheel-spin', async () => {
+    const me = players[socket.id]; if (!me) return;
+    const now = Date.now();
+    const since = now - (me.lastWheel || 0);
+    if (since < WHEEL_DAY) { socket.emit('wheel-result', { ok:false, wait: WHEEL_DAY - since }); return; }
+    const idx = wheelRoll();
+    const amount = WHEEL_VALUES[idx];
+    me.lastWheel = now;
+    me.stardust += amount;
+    socket.emit('wheel-result', { ok:true, index: idx, amount, stardust: me.stardust });
+    socket.emit('stardust', { value: me.stardust });
+    grantXp(socket, me, 10);
+    admin.from('profiles').update({ stardust: me.stardust, last_wheel: me.lastWheel, xp: me.xp }).eq('id', me.userId).then(() => {}, () => {});
   });
 
   // Orb (Station) eingesammelt -> Sternenstaub + XP
@@ -417,6 +436,7 @@ function finalizeSpawn(socket, profile) {
     wins: profile.wins || 0,
     game_stardust: profile.game_stardust || 0,
     spaceBest: profile.space_best || 0,
+    lastWheel: profile.last_wheel || 0,
     sitting: false, table: -1,
     room: 'deck', x: 520, y: 400, face: 1, lastCollect: 0, lastSave: 0
   };
@@ -429,6 +449,8 @@ function finalizeSpawn(socket, profile) {
   socket.emit('world', players);
   socket.broadcast.emit('player-joined', me);
   io.emit('system', me.name + ' ist angedockt.');
+  const wleft = WHEEL_DAY - (Date.now() - (me.lastWheel || 0));
+  socket.emit('wheel-status', { ready: wleft <= 0, wait: Math.max(0, wleft) });
 }
 
 function grantXp(socket, me, amt) {
