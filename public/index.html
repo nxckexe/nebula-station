@@ -404,11 +404,11 @@
 
 <!-- Lucky Wheel -->
 <div id="wheel" class="pmodal" style="display:none">
-  <div class="pcard" style="width:340px;text-align:center">
+  <div class="pcard" style="width:340px;max-width:92vw;display:flex;flex-direction:column;align-items:center;text-align:center">
     <button class="pclose" id="wheelclose">✕</button>
     <h2 style="margin:0 0 6px;color:var(--grape);font-size:20px">🎡 Lucky Wheel</h2>
-    <canvas id="wheelCanvas" width="300" height="320" style="width:min(300px,78vw);height:auto"></canvas>
-    <div id="wheelmsg" style="font-weight:600;color:var(--ink);margin:6px 0 10px;min-height:20px">…</div>
+    <canvas id="wheelCanvas" width="300" height="320" style="width:min(270px,70vw);aspect-ratio:300/320;height:auto;display:block;margin:2px 0 0"></canvas>
+    <div id="wheelmsg" style="font-weight:600;color:var(--ink);margin:8px 0 10px;min-height:20px">…</div>
     <button class="btn go" id="wheelspin" style="background:var(--sun)">🎡 Drehen</button>
   </div>
 </div>
