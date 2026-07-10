@@ -229,11 +229,23 @@ io.on('connection', (socket) => {
     if (now - (me.lastSpace || 0) < 3000) return;
     me.lastSpace = now;
     const gained = Math.max(0, Math.min(3000, Math.round(+d.collected || 0)));
-    const xp = Math.max(0, Math.min(200, Math.round((+d.dist || 0) / 10)));
+    const dist = Math.max(0, Math.min(100000, Math.round(+d.dist || 0)));
+    const xp = Math.max(0, Math.min(200, Math.round(dist / 10)));
     me.stardust += gained;
     socket.emit('stardust', { value: me.stardust });
     if (xp > 0) grantXp(socket, me, xp);
-    admin.from('profiles').update({ stardust: me.stardust, xp: me.xp }).eq('id', me.userId).then(() => {}, () => {});
+    const isRecord = dist > (me.spaceBest || 0);
+    if (isRecord) me.spaceBest = dist;
+    socket.emit('space-best', { best: me.spaceBest, record: isRecord });
+    admin.from('profiles').update({ stardust: me.stardust, xp: me.xp, space_best: me.spaceBest }).eq('id', me.userId).then(() => {}, () => {});
+  });
+
+  socket.on('space-leaderboard', async () => {
+    const { data } = await admin.from('profiles')
+      .select('username,space_best')
+      .order('space_best', { ascending: false })
+      .limit(10);
+    socket.emit('space-leaderboard-data', { rows: (data || []).filter(r => (r.space_best || 0) > 0) });
   });
 
   // Orb (Station) eingesammelt -> Sternenstaub + XP
@@ -404,6 +416,7 @@ function finalizeSpawn(socket, profile) {
     owned: profile.owned || '',
     wins: profile.wins || 0,
     game_stardust: profile.game_stardust || 0,
+    spaceBest: profile.space_best || 0,
     sitting: false, table: -1,
     room: 'deck', x: 520, y: 400, face: 1, lastCollect: 0, lastSave: 0
   };
