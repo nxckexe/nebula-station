@@ -99,7 +99,7 @@ const PLANETS = [
   { id:'cryonis',   name:'Cryonis',   minLevel:5,  theme:'ice'     },
   { id:'magmara',   name:'Magmara',   minLevel:12, theme:'lava'    }
 ];
-const ROOM_IDS = new Set(['deck', 'obs'].concat(PLANETS.map(p => p.id)));
+const ROOM_IDS = new Set(['deck', 'obs', 'casino'].concat(PLANETS.map(p => p.id)));
 const clamp = (v,a,b) => v<a?a:v>b?b:v;
 
 const players = {}; // socket.id -> Spielerzustand (nur fuer aktive Sitzung)
