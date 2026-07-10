@@ -393,6 +393,15 @@
   </div>
 </div>
 
+<!-- Weltraum-Bestenliste -->
+<div id="sblb" class="pmodal" style="display:none">
+  <div class="pcard lbcard">
+    <button class="pclose" id="sblbclose">✕</button>
+    <h2>🚀 Flug-Rekorde</h2>
+    <div id="sblblist"></div>
+  </div>
+</div>
+
 <!-- 4 Gewinnt: Warte-Banner -->
 <div id="c4wait" class="c4wait" style="display:none">
   <span>Warte auf Gegenspieler…</span>
@@ -584,6 +593,8 @@ function wireSocket(){
     locked=false;sitTable=-1;});
   socket.on('player-sit',d=>{const p=players[d.id];if(p){if(d.sitting&&!p.sitting)p.sitAnim=1;p.sitting=d.sitting;}});
   socket.on('leaderboard-data',d=>{renderLeaderboard(d.rows||[]);});
+  socket.on('space-leaderboard-data',d=>{renderSpaceBoard(d.rows||[]);});
+  socket.on('space-best',d=>{spaceBest=d.best||0;if(d.record)spaceNewRecord=true;});
   socket.on('friend-msg',d=>{$('fmsg').style.color=d.ok?'#3aa06a':'#e0396b';$('fmsg').textContent=d.text;if(d.ok)socket.emit('friends-list');});
   socket.on('friend-refresh',()=>{socket.emit('friends-list');});
   socket.on('friends-data',d=>{renderFriends(d);buildRel(d);});
@@ -1058,6 +1069,7 @@ const SHIP_OBJ={x:840,y:495,r:56};
 let pendingBoard=false;
 let spaceRAF=null,spaceG=null,spacePhase='boarding',spaceT=0,spaceLast=0,spaceStars=null,spacePointer=null;
 let ship={x:210,y:340},aster=[],dust=[],spSpeed=1,spDist=0,spColl=0,spSpawn=0,spDustSpawn=0;
+let spaceBest=0,spaceNewRecord=false;
 const spaceKeys={};
 const SLOT_SYMBOLS=['🍒','🍋','🍊','🍉','🔔','⭐','7️⃣'];
 let slotRAF=null,slotG=null,slotBet=500,slotReels=null,slotLever=0,slotSpinning=false,slotWinFlash=0;
@@ -1070,6 +1082,12 @@ function renderLeaderboard(rows){const el=$('lblist');el.innerHTML='';
   if(!rows.length){el.innerHTML='<div class="lbempty">Noch keine Siege – sei der Erste! 🏆</div>';return;}
   rows.forEach((r,i)=>{const row=document.createElement('div');row.className='lbrow';
     row.innerHTML='<span class="lbrank">'+(i+1)+'</span><span class="lbname">'+esc(r.username||'Alien')+'</span><span class="lbwins">🏆 '+(r.wins||0)+'</span><span class="lbstar">✦ '+(r.game_stardust||0)+'</span>';
+    el.appendChild(row);});}
+function renderSpaceBoard(rows){const el=$('sblblist');el.innerHTML='';
+  if(!rows.length){el.innerHTML='<div class="lbempty">Noch keine Flüge – heb ab und setz den Rekord! 🚀</div>';return;}
+  rows.forEach((r,i)=>{const row=document.createElement('div');row.className='lbrow';
+    const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1);
+    row.innerHTML='<span class="lbrank">'+medal+'</span><span class="lbname">'+esc(r.username||'Alien')+'</span><span class="lbwins">🚀 '+(r.space_best||0)+' m</span>';
     el.appendChild(row);});}
 function buildC4(){const bd=$('c4board');bd.innerHTML='';
   for(let i=0;i<42;i++){const c=document.createElement('div');c.className='c4cell';c.dataset.col=i%7;
@@ -1097,6 +1115,9 @@ $('c4mplay').onclick=()=>{$('c4menu').style.display='none';requestSit(menuTable)
 $('c4mlb').onclick=()=>{$('c4menu').style.display='none';socket&&socket.emit('leaderboard');$('lblist').innerHTML='<div class="lbempty">Lade…</div>';$('lb').style.display='flex';};
 $('lbclose').onclick=()=>$('lb').style.display='none';
 $('lb').onclick=e=>{if(e.target.id==='lb')$('lb').style.display='none';};
+$('sblbclose').onclick=()=>$('sblb').style.display='none';
+$('sblb').onclick=e=>{if(e.target.id==='sblb')$('sblb').style.display='none';};
+function openSpaceBoard(){socket&&socket.emit('space-leaderboard');$('sblblist').innerHTML='<div class="lbempty">Lade…</div>';$('sblb').style.display='flex';}
 
 function drawC4Table(x,y,i){
   // Schild
@@ -1341,10 +1362,10 @@ function openSpace(){const c=$('spaceCanvas'),dpr=Math.min(devicePixelRatio||1,2
   $('spacefoot').textContent='Einsteigen…';$('space').style.display='flex';locked=true;spaceLast=performance.now();if(!spaceRAF)spaceLoop();}
 function closeSpace(){$('space').style.display='none';if(spaceRAF)cancelAnimationFrame(spaceRAF);spaceRAF=null;locked=false;}
 function spaceStart(){spacePhase='play';ship={x:210,y:350};aster=[];dust=[];spSpeed=1;spDist=0;spColl=0;spSpawn=0.6;spDustSpawn=0.4;$('spacefoot').textContent='WASD / Pfeile zum Steuern';}
-function spaceGameOver(){spacePhase='over';socket&&socket.emit('space-score',{collected:spColl,dist:spDist});
+function spaceGameOver(){spacePhase='over';spaceNewRecord=false;socket&&socket.emit('space-score',{collected:spColl,dist:spDist});
   showPopup('🛸','Bruchlandung!','+'+spColl+' Sternenstaub','gold');
-  $('spacefoot').innerHTML='<button class="betb" id="spaceagain">🚀 Nochmal</button><button class="betb" id="spaceexit">Aussteigen</button>';
-  const a=$('spaceagain'),x=$('spaceexit');if(a)a.onclick=()=>{spacePhase='boarding';spaceT=0;$('spacefoot').textContent='Einsteigen…';};if(x)x.onclick=closeSpace;}
+  $('spacefoot').innerHTML='<button class="betb" id="spaceagain">🚀 Nochmal</button><button class="betb" id="spaceboard">🏆 Rekorde</button><button class="betb" id="spaceexit">Aussteigen</button>';
+  const a=$('spaceagain'),x=$('spaceexit'),b=$('spaceboard');if(a)a.onclick=()=>{spacePhase='boarding';spaceT=0;$('spacefoot').textContent='Einsteigen…';};if(x)x.onclick=closeSpace;if(b)b.onclick=openSpaceBoard;}
 function spaceLoop(){const now=performance.now(),dt=Math.min((now-spaceLast)/1000,.05);spaceLast=now;
   if($('space').style.display==='none'){spaceRAF=null;return;}
   const g=spaceG,W2=420,H2=470;g.fillStyle='#060418';g.fillRect(0,0,W2,H2);
@@ -1389,7 +1410,9 @@ function playSpace(g,dt,W2,H2){spDist+=spSpeed*dt*55;spSpeed+=dt*0.05;
 function drawSpaceOver(g,W2,H2){g.fillStyle='rgba(6,4,20,.55)';g.fillRect(0,110,W2,H2-170);
   g.fillStyle='#ff5ea8';g.strokeStyle=INK;g.lineWidth=5;g.font='800 32px Fredoka';g.textAlign='center';g.strokeText('BRUCHLANDUNG',210,225);g.fillText('BRUCHLANDUNG',210,225);
   g.fillStyle='#fff';g.font='700 18px Fredoka';g.fillText('Strecke: '+Math.floor(spDist)+' m',210,262);
-  g.fillStyle='#ffd166';g.fillText('+'+spColl+' ✦ gesammelt',210,290);}
+  g.fillStyle='#ffd166';g.fillText('+'+spColl+' ✦ gesammelt',210,290);
+  if(spaceNewRecord){g.fillStyle='#7be0b0';g.font='800 17px Fredoka';g.fillText('🏆 NEUER REKORD!',210,318);}
+  else if(spaceBest>0){g.fillStyle='#bfeaff';g.font='700 15px Fredoka';g.fillText('Rekord: '+spaceBest+' m',210,316);}}
 function drawCockpit(g,W2,H2){
   g.strokeStyle='#0b0a1c';g.lineWidth=26;roundRect2(g,13,13,W2-26,H2-66,30);g.stroke();
   g.fillStyle='#141a3d';g.fillRect(0,H2-52,W2,52);g.strokeStyle=INK;g.lineWidth=4;g.beginPath();g.moveTo(0,H2-52);g.lineTo(W2,H2-52);g.stroke();
