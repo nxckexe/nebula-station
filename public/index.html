@@ -98,8 +98,18 @@
   .slotctrl{display:flex;align-items:center;gap:14px;margin-top:12px;background:var(--cream);border:4px solid var(--ink);border-radius:16px;padding:8px 14px;box-shadow:0 5px 0 var(--ink)}
   .slotbal{display:flex;align-items:center;gap:6px;font-weight:700;color:var(--ink);font-size:15px}
   .slotbets{display:flex;align-items:center;gap:6px}
-  .betb{font-family:inherit;font-weight:700;font-size:13px;border:3px solid var(--ink);border-radius:10px;padding:5px 9px;cursor:pointer;background:#fff;color:var(--ink);box-shadow:0 3px 0 var(--ink)}
-  .betb.on{background:var(--sun)}
+  .betb,.bjbet{font-family:inherit;font-weight:700;font-size:13px;border:3px solid var(--ink);border-radius:10px;padding:5px 9px;cursor:pointer;background:#fff;color:var(--ink);box-shadow:0 3px 0 var(--ink)}
+  .betb.on,.bjbet.on{background:var(--sun)}
+  .bjrow{display:flex;align-items:center;gap:8px;width:100%;margin:3px 0;min-height:58px}
+  .bjlab{font-weight:700;color:var(--grape);font-size:13px;white-space:nowrap;min-width:70px;text-align:left}
+  .bjcards{display:flex;gap:4px;flex-wrap:wrap;flex:1}
+  .bjcard{width:38px;height:54px;border:2px solid var(--ink);border-radius:7px;background:#fff;color:var(--ink);font-weight:800;font-size:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05;box-shadow:0 2px 0 var(--ink)}
+  .bjcard.red{color:#e0396b}
+  .bjcard.back{background:repeating-linear-gradient(45deg,#7a1233,#7a1233 5px,#5a0d26 5px,#5a0d26 10px);color:#ffd166;border-color:#ffd166}
+  .bjmsg{font-weight:600;color:var(--ink);margin:6px 0;min-height:20px}
+  .bjbal{font-weight:800;color:var(--grape);margin-bottom:4px}
+  .bjbtns{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:8px;width:100%}
+  .bjbtns .btn{flex:1;min-width:72px}
   .slotmsg{margin-top:10px;font-weight:700;color:#fff;font-size:15px;text-shadow:-1.5px -1.5px 0 var(--ink),1.5px -1.5px 0 var(--ink),-1.5px 1.5px 0 var(--ink),1.5px 1.5px 0 var(--ink);min-height:20px;text-align:center}
   #space{background:rgba(6,4,20,.97)}
   .spacewrap{position:relative;width:min(440px,96vw);display:flex;flex-direction:column;align-items:center}
@@ -415,6 +425,30 @@
   </div>
 </div>
 
+<!-- Blackjack -->
+<div id="bj" class="pmodal" style="display:none">
+  <div class="pcard" style="width:370px;max-width:95vw;display:flex;flex-direction:column;align-items:center;text-align:center">
+    <button class="pclose" id="bjclose">✕</button>
+    <h2 style="margin:0 0 6px;color:var(--grape);font-size:20px">♠ Blackjack ♥</h2>
+    <div class="bjrow"><span class="bjlab">Dealer <b id="bjdval"></b></span><div id="bjdealer" class="bjcards"></div></div>
+    <div class="bjrow"><span class="bjlab">Du <b id="bjpval"></b></span><div id="bjplayer" class="bjcards"></div></div>
+    <div id="bjmsg" class="bjmsg">Setze deinen Einsatz und gib die Karten!</div>
+    <div class="bjbal"><span class="coinico"></span> <span id="bjbal">0</span></div>
+    <div id="bjbets" class="slotbets">
+      <span style="color:#8a76c4;font-weight:600;font-size:12px">Einsatz</span>
+      <button class="bjbet on" data-bet="100">100</button>
+      <button class="bjbet" data-bet="500">500</button>
+      <button class="bjbet" data-bet="1000">1000</button>
+    </div>
+    <div class="bjbtns">
+      <button class="btn" id="bjdeal" style="background:var(--sun)">Karten geben</button>
+      <button class="btn" id="bjhit" style="background:var(--mint);display:none">Karte</button>
+      <button class="btn" id="bjstand" style="background:#ff9e64;display:none">Halten</button>
+      <button class="btn" id="bjdouble" style="background:#b18cff;display:none">Verdoppeln</button>
+    </div>
+  </div>
+</div>
+
 <!-- 4 Gewinnt: Warte-Banner -->
 <div id="c4wait" class="c4wait" style="display:none">
   <span>Warte auf Gegenspieler…</span>
@@ -472,6 +506,7 @@ const ROOMS={
 const FOUNTAINS=[{x:210,y:500,r:44},{x:1390,y:500,r:44}];
 const CASINO_SLOTS=[{x:300,y:300},{x:470,y:300},{x:640,y:300},{x:1160,y:300},{x:1330,y:300}];
 const WHEEL_OBJ={x:800,y:378,r:74};
+const BJ_TABLES=[{x:450,y:492},{x:1150,y:492}];
 const WHEEL_VALUES=[50,100,200,500,100,300,1000,2000];
 const WHEEL_COLS=['#4dd0ff','#ff5ea8','#7be0b0','#b18cff','#ffd166','#ff9e64','#4dd0ff','#e0396b'];
 let wheelReady=false,wheelWait=0,wheelG=null,wheelAngle=0,wheelSpinning=false,wheelRAF=null,wheelTarget=null,wheelAnim=null;
@@ -625,6 +660,19 @@ function wireSocket(){
     wheelReady=false;wheelWait=24*3600*1000;
     const seg=Math.PI/4,turns=5,targetCenter=-Math.PI/2-(d.index*seg+seg/2);let end=targetCenter;while(end<wheelAngle+turns*2*Math.PI)end+=2*Math.PI;
     wheelTarget={index:d.index,amount:d.amount,stardust:d.stardust};wheelAnim={start:wheelAngle,end,t0:performance.now(),dur:4200};});
+  socket.on('bj-idle',()=>{bjCanDouble=false;$('bjdealer').innerHTML='';$('bjplayer').innerHTML='';$('bjdval').textContent='';$('bjpval').textContent='';$('bjmsg').textContent='Setze deinen Einsatz und gib die Karten!';bjButtons('pre');$('bjbal').textContent=(me&&me.stardust)||0;});
+  socket.on('bj-state',d=>{if(d.error){$('bjmsg').textContent=d.error;return;}
+    bjCards($('bjdealer'),d.dealer);bjCards($('bjplayer'),d.player);
+    $('bjpval').textContent=d.pVal;$('bjdval').textContent=(d.reveal&&d.dVal!=null)?d.dVal:'?';
+    bjCanDouble=!!d.canDouble;
+    if(d.done){bjButtons('over');}else{$('bjmsg').textContent='Ziehen oder halten?';bjButtons('play');}
+    $('bjbal').textContent=(me&&me.stardust)||0;});
+  socket.on('bj-result',d=>{
+    const t={blackjack:'BLACKJACK! 🎉',win:'Gewonnen! 🎉',lose:'Verloren 😢',bust:'Überkauft! 💥',push:'Push – unentschieden 🤝'}[d.outcome]||'';
+    const net=d.payout-d.bet;$('bjmsg').textContent=t+'  ('+(net>=0?'+':'')+net+')';
+    bjCanDouble=false;bjButtons('over');$('bjbal').textContent=(me&&me.stardust)||0;
+    if(d.outcome==='win'||d.outcome==='blackjack')showPopup('♠','Blackjack','+'+net+' Sternenstaub','gold');});
+  socket.on('bj-msg',d=>{$('bjmsg').textContent=d.text||'';});
   socket.on('friend-msg',d=>{$('fmsg').style.color=d.ok?'#3aa06a':'#e0396b';$('fmsg').textContent=d.text;if(d.ok)socket.emit('friends-list');});
   socket.on('friend-refresh',()=>{socket.emit('friends-list');});
   socket.on('friends-data',d=>{renderFriends(d);buildRel(d);});
@@ -665,6 +713,7 @@ cv.addEventListener('pointerdown',e=>{if(!me)return;if(document.activeElement===
   if(rid==='obs'){const ti=C4_TABLES.findIndex(t=>Math.hypot(t.x-p.x,t.y-p.y)<t.r);if(ti>=0){openC4Menu(ti);return;}}
   if(rid==='deck'&&Math.hypot(SHIP_OBJ.x-p.x,SHIP_OBJ.y-p.y)<SHIP_OBJ.r){requestBoard();return;}
   if(rid==='casino'){
+    const bt=BJ_TABLES.find(b=>bjTableHit(b,p));if(bt){openBj();return;}
     if(CASINO_SLOTS.some(s=>Math.hypot(s.x-p.x,s.y-p.y)<54)){openSlot();return;}
     if(Math.hypot(WHEEL_OBJ.x-p.x,WHEEL_OBJ.y-p.y)<WHEEL_OBJ.r){openWheel();return;}
     const fi=FOUNTAINS.find(f=>Math.hypot(f.x-p.x,f.y-p.y)<f.r);if(fi){tossCoin(fi);showPopup('🪙','Wunschbrunnen','Du wirfst eine Münze hinein und wünschst dir Glück ✨','gold');return;}}
@@ -680,6 +729,7 @@ cv.addEventListener('pointermove',e=>{
   if(rid==='obs'){const ti=C4_TABLES.findIndex(t=>Math.hypot(t.x-p.x,t.y-p.y)<t.r);if(ti>=0)h={kind:'table',obj:ti};}
   if(!h&&rid==='deck'&&Math.hypot(SHIP_OBJ.x-p.x,SHIP_OBJ.y-p.y)<SHIP_OBJ.r)h={kind:'ship'};
   if(!h&&rid==='casino'){const s=CASINO_SLOTS.find(s=>Math.hypot(s.x-p.x,s.y-p.y)<54);if(s)h={kind:'slot',obj:s};
+    if(!h){const bt=BJ_TABLES.find(b=>bjTableHit(b,p));if(bt)h={kind:'bjtable',obj:bt};}
     if(!h&&Math.hypot(WHEEL_OBJ.x-p.x,WHEEL_OBJ.y-p.y)<WHEEL_OBJ.r)h={kind:'wheel'};
     if(!h){const f=FOUNTAINS.find(f=>Math.hypot(f.x-p.x,f.y-p.y)<f.r);if(f)h={kind:'fountain',obj:f};}}
   if(!h&&ROOMS[rid]){const dd=ROOMS[rid].deco.find(d=>Math.hypot(d.x-p.x,d.y-p.y)<36);if(dd)h={kind:'deco',obj:dd};}
@@ -731,7 +781,8 @@ function render(){const r=cv.parentElement.getBoundingClientRect();ctx.clearRect
   else{const room=ROOMS[rid];
     if(rid==='casino'){drawCasinoWall();drawCasinoFloor(196);roomDoors(room).forEach(d=>drawDoor(d,room.accent));drawCasinoExtras();
       for(const s of CASINO_SLOTS){if(hoveredIs('slot',s))drawHovered(s.x,s.y,()=>drawSlotCabinet(s.x,s.y));else drawSlotCabinet(s.x,s.y);}
-      if(hoveredIs('wheel'))drawHovered(WHEEL_OBJ.x,WHEEL_OBJ.y,()=>drawWheelCabinet(WHEEL_OBJ.x,WHEEL_OBJ.y));else drawWheelCabinet(WHEEL_OBJ.x,WHEEL_OBJ.y);}
+      if(hoveredIs('wheel'))drawHovered(WHEEL_OBJ.x,WHEEL_OBJ.y,()=>drawWheelCabinet(WHEEL_OBJ.x,WHEEL_OBJ.y));else drawWheelCabinet(WHEEL_OBJ.x,WHEEL_OBJ.y);
+      for(const b of BJ_TABLES){if(hoveredIs('bjtable',b))drawHovered(b.x,b.y,()=>drawBjTable(b.x,b.y));else drawBjTable(b.x,b.y);}}
     else{drawWall(room);drawFloor(room);roomDoors(room).forEach(d=>drawDoor(d,room.accent));
       if(rid==='deck'){for(const o of orbs)drawOrb(o);drawDeckExtras();
         if(hoveredIs('ship'))drawHovered(SHIP_OBJ.x,SHIP_OBJ.y,()=>drawShipParked(SHIP_OBJ.x,SHIP_OBJ.y));else drawShipParked(SHIP_OBJ.x,SHIP_OBJ.y);}
@@ -975,6 +1026,44 @@ function wheelModalLoop(){if($('wheel').style.display==='none'){wheelRAF=null;re
 $('wheelspin').onclick=spinWheel;
 $('wheelclose').onclick=closeWheel;
 $('wheel').onclick=e=>{if(e.target.id==='wheel')closeWheel();};
+
+/* ---------------- BLACKJACK ---------------- */
+const SUITS=['♠','♥','♦','♣'];
+let bjBet=100,bjCanDouble=false;
+function bjRank(r){return r===1?'A':r===11?'J':r===12?'Q':r===13?'K':String(r);}
+function openBj(){$('bj').style.display='flex';locked=true;$('bjbal').textContent=(me&&me.stardust)||0;socket&&socket.emit('bj-sync');}
+function closeBj(){$('bj').style.display='none';locked=false;}
+function bjButtons(mode){
+  $('bjdeal').style.display=(mode==='pre'||mode==='over')?'':'none';
+  $('bjhit').style.display=mode==='play'?'':'none';
+  $('bjstand').style.display=mode==='play'?'':'none';
+  $('bjdouble').style.display=(mode==='play'&&bjCanDouble)?'':'none';
+  $('bjbets').style.display=mode==='play'?'none':'flex';
+  $('bjdeal').textContent=mode==='over'?'Nochmal':'Karten geben';}
+function bjCards(el,cards){el.innerHTML='';for(const c of cards){const d=document.createElement('div');
+  if(c.hidden){d.className='bjcard back';d.textContent='★';}
+  else{const red=(c.s===1||c.s===2);d.className='bjcard'+(red?' red':'');d.innerHTML=bjRank(c.r)+'<span style="font-size:14px">'+SUITS[c.s]+'</span>';}
+  el.appendChild(d);}}
+$('bjclose').onclick=closeBj;
+$('bj').onclick=e=>{if(e.target.id==='bj')closeBj();};
+$('bjdeal').onclick=()=>{if(((me&&me.stardust)||0)<bjBet){$('bjmsg').textContent='Zu wenig Sternenstaub!';return;}socket&&socket.emit('bj-deal',{bet:bjBet});};
+$('bjhit').onclick=()=>socket&&socket.emit('bj-hit');
+$('bjstand').onclick=()=>socket&&socket.emit('bj-stand');
+$('bjdouble').onclick=()=>socket&&socket.emit('bj-double');
+document.querySelectorAll('.bjbet').forEach(b=>b.onclick=()=>{bjBet=+b.dataset.bet;document.querySelectorAll('.bjbet').forEach(x=>x.classList.remove('on'));b.classList.add('on');});
+function drawBjTable(x,y){
+  ctx.fillStyle='rgba(43,27,82,.2)';ctx.beginPath();ctx.ellipse(x,y+36,98,20,0,0,7);ctx.fill();
+  ctx.strokeStyle=INK;ctx.lineWidth=8;ctx.lineCap='round';[-64,64].forEach(dx=>{ctx.beginPath();ctx.moveTo(x+dx*0.7,y+24);ctx.lineTo(x+dx,y+46);ctx.stroke();});
+  ctx.fillStyle='#ffd166';ctx.strokeStyle=INK;ctx.lineWidth=5;ctx.beginPath();ctx.ellipse(x,y,100,58,0,0,7);ctx.fill();ctx.stroke();
+  const g=ctx.createRadialGradient(x,y-12,10,x,y,98);g.addColorStop(0,'#1aa661');g.addColorStop(1,'#0c6238');ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(x,y,88,48,0,0,7);ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,.45)';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(x,y+8,64,30,0,Math.PI*0.1,Math.PI*0.9);ctx.stroke();
+  ctx.fillStyle='#fff';ctx.font='800 13px Fredoka';ctx.textAlign='center';ctx.fillText('BLACKJACK',x,y-14);
+  ctx.fillStyle='#ffe9a8';ctx.font='700 9px Fredoka';ctx.fillText('zahlt 3 : 2',x,y-2);
+  [['#e0396b',-58],['#4dd0ff',-34],['#ffd166',58]].forEach(([col,dx])=>{for(let i=0;i<4;i++){ctx.fillStyle=col;ctx.strokeStyle=INK;ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(x+dx,y+16-i*3,11,5,0,0,7);ctx.fill();ctx.stroke();}});
+  ctx.save();ctx.translate(x+16,y+12);ctx.rotate(0.16);ctx.fillStyle='#fff';ctx.strokeStyle=INK;ctx.lineWidth=2;roundRect(-10,-14,20,28,3);ctx.fill();ctx.stroke();ctx.fillStyle='#e0396b';ctx.font='800 11px Fredoka';ctx.fillText('A',0,3);ctx.restore();
+  ctx.save();ctx.translate(x+30,y+10);ctx.rotate(0.3);ctx.fillStyle='#fff';ctx.strokeStyle=INK;ctx.lineWidth=2;roundRect(-10,-14,20,28,3);ctx.fill();ctx.stroke();ctx.fillStyle=INK;ctx.font='800 11px Fredoka';ctx.fillText('K',0,3);ctx.restore();
+}
+function bjTableHit(b,p){return ((p.x-b.x)/100)**2+((p.y-b.y)/58)**2<1;}
 
 function drawDrone(){const t=performance.now()/1000;const dx=520+Math.sin(t*0.4)*300,dy=300+Math.sin(t*0.9)*26;  // Lichtkegel
   ctx.fillStyle='rgba(255,246,200,.10)';ctx.beginPath();ctx.moveTo(dx-6,dy+8);ctx.lineTo(dx+6,dy+8);ctx.lineTo(dx+26,dy+90);ctx.lineTo(dx-26,dy+90);ctx.closePath();ctx.fill();
