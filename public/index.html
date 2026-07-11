@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Nebula Station</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88'>🌌</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -1747,8 +1748,8 @@ function drawAsteroid(g,a){g.save();g.translate(a.x,a.y);g.rotate(a.rot);g.fillS
   g.fillStyle='#5b5570';g.beginPath();g.arc(-a.size*.2,a.size*.1,a.size*.24,0,7);g.fill();g.restore();}
 function drawSpaceDust(g,d){g.save();g.translate(d.x,d.y);const gl=g.createRadialGradient(0,0,1,0,0,d.size+7);gl.addColorStop(0,'#fff6c8');gl.addColorStop(1,'transparent');g.fillStyle=gl;g.beginPath();g.arc(0,0,d.size+7,0,7);g.fill();
   g.fillStyle='#ffe15e';g.strokeStyle=INK;g.lineWidth=2;g.beginPath();for(let i=0;i<10;i++){const a=-1.57+i*Math.PI/5,rr=i%2?d.size*.4:d.size,px=Math.cos(a)*rr,py=Math.sin(a)*rr;i?g.lineTo(px,py):g.moveTo(px,py);}g.closePath();g.fill();g.stroke();g.restore();}
-addEventListener('keydown',e=>{if($('space').style.display==='none')return;const k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)){spaceKeys[k]=true;e.preventDefault();}});
-addEventListener('keyup',e=>{spaceKeys[e.key.toLowerCase()]=false;});
+addEventListener('keydown',e=>{if($('space').style.display==='none'||!e.key)return;const k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)){spaceKeys[k]=true;e.preventDefault();}});
+addEventListener('keyup',e=>{if(!e.key)return;spaceKeys[e.key.toLowerCase()]=false;});
 function setSpacePointer(e){const c=$('spaceCanvas'),r=c.getBoundingClientRect();spacePointer={x:(e.clientX-r.left)*(420/r.width),y:(e.clientY-r.top)*(470/r.height)};}
 $('spaceCanvas').addEventListener('pointerdown',e=>{if(spacePhase==='play')setSpacePointer(e);});
 $('spaceCanvas').addEventListener('pointermove',e=>{if(spacePointer&&spacePhase==='play')setSpacePointer(e);});
