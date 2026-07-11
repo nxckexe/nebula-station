@@ -95,6 +95,13 @@ const WHEEL_VALUES = [50, 100, 200, 500, 100, 300, 1000, 2000];
 const WHEEL_WEIGHTS = [30, 24, 16, 8, 24, 12, 4, 2];
 const WHEEL_DAY = 24 * 3600 * 1000;
 function wheelRoll(){ const total=WHEEL_WEIGHTS.reduce((a,b)=>a+b,0); let r=Math.random()*total; for(let i=0;i<WHEEL_WEIGHTS.length;i++){ if((r-=WHEEL_WEIGHTS[i])<0) return i; } return 0; }
+
+// ---- Blackjack ----
+const BJ_BETS = [100, 500, 1000];
+function bjMakeDeck(){ const d=[]; for(let s=0;s<4;s++) for(let r=1;r<=13;r++) d.push({r,s}); for(let i=d.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=d[i]; d[i]=d[j]; d[j]=t; } return d; }
+function bjCardVal(r){ return r===1?11:Math.min(r,10); }
+function bjHand(cards){ let sum=0,aces=0; for(const c of cards){ sum+=bjCardVal(c.r); if(c.r===1)aces++; } while(sum>21&&aces>0){ sum-=10; aces--; } return sum; }
+function bjIsBJ(cards){ return cards.length===2 && bjHand(cards)===21; }
 function slotRoll(){ const total=SLOT_SYMS.reduce((s,x)=>s+x.w,0); let r=Math.random()*total; for(const s of SLOT_SYMS){ if((r-=s.w)<0) return s.i; } return 0; }
 
 // ---- Planeten (Level-basiert freigeschaltet) ----
@@ -163,6 +170,7 @@ io.on('connection', (socket) => {
     if (!ROOM_IDS.has(target)) return;
     const planet = PLANETS.find(p => p.id === target);
     if (planet && xpLevel(me.xp) < planet.minLevel) { socket.emit('planet-locked', { minLevel: planet.minLevel }); return; }
+    if (me.bjTable != null && target !== 'casino') bjLeave(socket);
     me.room = target;
     me.x = +m.x || me.x; me.y = +m.y || me.y;
     io.emit('player-room', { id: socket.id, room: me.room, x: me.x, y: me.y });
@@ -264,7 +272,66 @@ io.on('connection', (socket) => {
     socket.emit('wheel-result', { ok:true, index: idx, amount, stardust: me.stardust });
     socket.emit('stardust', { value: me.stardust });
     grantXp(socket, me, 10);
-    admin.from('profiles').update({ stardust: me.stardust, last_wheel: me.lastWheel, xp: me.xp }).eq('id', me.userId).then(() => {}, () => {});
+    admin.from('profiles').update({ stardust: me.stardust, xp: me.xp }).eq('id', me.userId).then(() => {}, () => {});
+    admin.from('profiles').update({ last_wheel: me.lastWheel }).eq('id', me.userId).then(() => {}, () => {});
+  });
+
+  socket.on('bj-open', (d) => {
+    const me = players[socket.id]; if (!me) return;
+    if (me.room !== 'casino') return;
+    const t = +(d && d.table);
+    if (!(t >= 0 && t < 2)) return;
+    me.bjTable = t; me.bj = null;
+    socket.emit('bj-idle');
+    bjBroadcastLive(socket, me);
+  });
+  socket.on('bj-close', () => { bjLeave(socket); });
+  socket.on('bj-watch', () => {
+    const me = players[socket.id]; if (!me) return;
+    for (const id in players) {
+      const p = players[id]; if (p.bjTable == null) continue;
+      const bj = p.bj;
+      const dealer = bj ? (bj.done ? bj.dealer : [bj.dealer[0], { hidden: true }]) : [];
+      socket.emit('bj-live', { id, table: p.bjTable, name: p.name, color: p.color, dealer, player: bj ? bj.player : [], pVal: bj ? bjHand(bj.player) : 0, dVal: (bj && bj.done) ? bjHand(bj.dealer) : null, done: bj ? bj.done : false, outcome: bj ? bj.outcome : null, active: !!bj && !bj.done });
+    }
+  });
+  socket.on('bj-deal', (d) => {
+    const me = players[socket.id]; if (!me) return;
+    if (me.bjTable == null) return;
+    if (me.bj && !me.bj.done) return; // laufende Hand
+    const bet = +(d && d.bet);
+    if (!BJ_BETS.includes(bet)) { socket.emit('bj-state', { error: 'Ungültiger Einsatz.' }); return; }
+    if (me.stardust < bet) { socket.emit('bj-state', { error: 'Zu wenig Sternenstaub.' }); return; }
+    me.stardust -= bet;
+    const deck = bjMakeDeck();
+    const player = [deck.pop(), deck.pop()];
+    const dealer = [deck.pop(), deck.pop()];
+    me.bj = { deck, player, dealer, bet, done: false, doubled: false, outcome: null };
+    socket.emit('stardust', { value: me.stardust });
+    admin.from('profiles').update({ stardust: me.stardust }).eq('id', me.userId).then(() => {}, () => {});
+    if (bjIsBJ(player) || bjIsBJ(dealer)) { bjSettle(socket, me); return; }
+    bjEmitState(socket, me, false);
+    bjBroadcastLive(socket, me);
+  });
+  socket.on('bj-hit', () => {
+    const me = players[socket.id]; if (!me || me.bjTable == null || !me.bj || me.bj.done) return;
+    me.bj.player.push(me.bj.deck.pop());
+    if (bjHand(me.bj.player) >= 21) { bjSettle(socket, me); return; }
+    bjEmitState(socket, me, false);
+    bjBroadcastLive(socket, me);
+  });
+  socket.on('bj-stand', () => {
+    const me = players[socket.id]; if (!me || me.bjTable == null || !me.bj || me.bj.done) return;
+    bjSettle(socket, me);
+  });
+  socket.on('bj-double', () => {
+    const me = players[socket.id]; if (!me || me.bjTable == null || !me.bj || me.bj.done) return;
+    if (me.bj.player.length !== 2 || me.bj.doubled) return;
+    if (me.stardust < me.bj.bet) { socket.emit('bj-msg', { text: 'Zu wenig zum Verdoppeln.' }); return; }
+    me.stardust -= me.bj.bet; me.bj.bet *= 2; me.bj.doubled = true;
+    socket.emit('stardust', { value: me.stardust });
+    me.bj.player.push(me.bj.deck.pop());
+    bjSettle(socket, me);
   });
 
   // Orb (Station) eingesammelt -> Sternenstaub + XP
@@ -409,6 +476,7 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', async () => {
     const me = players[socket.id];
+    bjLeave(socket);
     c4LeaveHandler(socket.id);
     if (online[socket.userId] === socket.id) delete online[socket.userId];
     if (me) {
@@ -460,6 +528,61 @@ function grantXp(socket, me, amt) {
   me.level = after; me.rank = rankName(after);
   socket.emit('progress', { xp: me.xp, level: after, rank: me.rank, leveled: after > before, nextXp: xpForLevel(after + 1), curXp: xpForLevel(after) });
   if (after > before) io.emit('system', me.name + ' ist jetzt Level ' + after + ' (' + me.rank + ')!');
+}
+
+function bjEmitState(socket, me, reveal) {
+  const bj = me.bj; if (!bj) return;
+  const dealer = reveal ? bj.dealer : [bj.dealer[0], { hidden: true }];
+  socket.emit('bj-state', {
+    player: bj.player, dealer,
+    pVal: bjHand(bj.player),
+    dVal: reveal ? bjHand(bj.dealer) : null,
+    done: false, reveal: !!reveal, bet: bj.bet,
+    canDouble: bj.player.length === 2 && !bj.doubled && me.stardust >= bj.bet
+  });
+}
+function bjSettle(socket, me) {
+  const bj = me.bj; if (!bj || bj.done) return;
+  const pVal = bjHand(bj.player);
+  if (pVal <= 21) { while (bjHand(bj.dealer) < 17) bj.dealer.push(bj.deck.pop()); }
+  const dVal = bjHand(bj.dealer);
+  const pBJ = bjIsBJ(bj.player), dBJ = bjIsBJ(bj.dealer);
+  let outcome, payout = 0; // payout = Rückzahlung (Einsatz wurde beim Geben abgezogen)
+  if (pBJ && !dBJ) { outcome = 'blackjack'; payout = Math.round(bj.bet * 2.5); }
+  else if (pVal > 21) { outcome = 'bust'; payout = 0; }
+  else if (dBJ) { outcome = 'lose'; payout = 0; }
+  else if (dVal > 21) { outcome = 'win'; payout = bj.bet * 2; }
+  else if (pVal > dVal) { outcome = 'win'; payout = bj.bet * 2; }
+  else if (pVal < dVal) { outcome = 'lose'; payout = 0; }
+  else { outcome = 'push'; payout = bj.bet; }
+  me.stardust += payout;
+  bj.done = true;
+  bj.outcome = outcome;
+  socket.emit('bj-state', { player: bj.player, dealer: bj.dealer, pVal, dVal, done: true, reveal: true, bet: bj.bet });
+  socket.emit('bj-result', { outcome, payout, bet: bj.bet, stardust: me.stardust, pVal, dVal });
+  socket.emit('stardust', { value: me.stardust });
+  if (outcome === 'win' || outcome === 'blackjack') grantXp(socket, me, 6);
+  admin.from('profiles').update({ stardust: me.stardust }).eq('id', me.userId).then(() => {}, () => {});
+  bjBroadcastLive(socket, me);
+}
+function bjBroadcastLive(socket, me) {
+  if (me.bjTable == null) return;
+  const bj = me.bj;
+  const dealer = bj ? (bj.done ? bj.dealer : [bj.dealer[0], { hidden: true }]) : [];
+  io.emit('bj-live', {
+    id: socket.id, table: me.bjTable, name: me.name, color: me.color,
+    dealer, player: bj ? bj.player : [],
+    pVal: bj ? bjHand(bj.player) : 0,
+    dVal: (bj && bj.done) ? bjHand(bj.dealer) : null,
+    done: bj ? bj.done : false, outcome: bj ? bj.outcome : null,
+    active: !!bj && !bj.done
+  });
+}
+function bjLeave(socket) {
+  const me = players[socket.id]; if (!me) return;
+  if (me.bj && !me.bj.done) bjSettle(socket, me); // faire Abrechnung statt verfallenem Einsatz
+  if (me.bjTable != null) io.emit('bj-live-clear', { id: socket.id });
+  me.bjTable = null; me.bj = null;
 }
 
 // ---------------- 4 GEWINNT (mehrere Tische) ----------------
