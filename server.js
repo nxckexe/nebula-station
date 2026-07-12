@@ -102,6 +102,15 @@ function bjMakeDeck(){ const d=[]; for(let s=0;s<4;s++) for(let r=1;r<=13;r++) d
 function bjCardVal(r){ return r===1?11:Math.min(r,10); }
 function bjHand(cards){ let sum=0,aces=0; for(const c of cards){ sum+=bjCardVal(c.r); if(c.r===1)aces++; } while(sum>21&&aces>0){ sum-=10; aces--; } return sum; }
 function bjIsBJ(cards){ return cards.length===2 && bjHand(cards)===21; }
+
+// ---- Plinko ----
+const PLINKO_BETS = [100, 500, 1000];
+const PLINKO_ROWS = 12;
+const PLINKO_MULT = [25, 10, 5, 2, 1, 0.5, 0.3, 0.5, 1, 2, 5, 10, 25]; // RTP ~95%
+function plinkoDrop(){ const path = []; let slot = 0;
+  for (let i = 0; i < PLINKO_ROWS; i++) { const right = Math.random() < 0.5 ? 0 : 1; path.push(right); slot += right; }
+  return { path, slot };
+}
 function slotRoll(){ const total=SLOT_SYMS.reduce((s,x)=>s+x.w,0); let r=Math.random()*total; for(const s of SLOT_SYMS){ if((r-=s.w)<0) return s.i; } return 0; }
 
 // ---- Planeten (Level-basiert freigeschaltet) ----
@@ -332,6 +341,26 @@ io.on('connection', (socket) => {
     socket.emit('stardust', { value: me.stardust });
     me.bj.player.push(me.bj.deck.pop());
     bjSettle(socket, me);
+  });
+
+  socket.on('plinko-drop', (d) => {
+    const me = players[socket.id]; if (!me) return;
+    const now = Date.now();
+    if (now - (me.lastPlinko || 0) < 700) return; // Anti-Spam
+    const bet = +(d && d.bet);
+    if (!PLINKO_BETS.includes(bet)) { socket.emit('plinko-result', { ok:false, text:'Ungültiger Einsatz.' }); return; }
+    if (me.stardust < bet) { socket.emit('plinko-result', { ok:false, text:'Zu wenig Sternenstaub.' }); return; }
+    me.lastPlinko = now;
+    me.stardust -= bet;
+    const { path, slot } = plinkoDrop();
+    const mult = PLINKO_MULT[slot];
+    const win = Math.round(bet * mult);
+    me.stardust += win;
+    socket.emit('plinko-result', { ok:true, path, slot, mult, win, bet, stardust: me.stardust });
+    socket.emit('stardust', { value: me.stardust });
+    if (win > bet) grantXp(socket, me, 5);
+    admin.from('profiles').update({ stardust: me.stardust, xp: me.xp }).eq('id', me.userId).then(() => {}, () => {});
+    if (mult >= 10) io.emit('system', me.name + ' gewinnt ' + win + ' Sternenstaub bei Plinko (' + mult + 'x)!');
   });
 
   // Orb (Station) eingesammelt -> Sternenstaub + XP
