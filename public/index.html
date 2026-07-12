@@ -99,8 +99,8 @@
   .slotctrl{display:flex;align-items:center;gap:14px;margin-top:12px;background:var(--cream);border:4px solid var(--ink);border-radius:16px;padding:8px 14px;box-shadow:0 5px 0 var(--ink)}
   .slotbal{display:flex;align-items:center;gap:6px;font-weight:700;color:var(--ink);font-size:15px}
   .slotbets{display:flex;align-items:center;gap:6px}
-  .betb,.bjbet{font-family:inherit;font-weight:700;font-size:13px;border:3px solid var(--ink);border-radius:10px;padding:5px 9px;cursor:pointer;background:#fff;color:var(--ink);box-shadow:0 3px 0 var(--ink)}
-  .betb.on,.bjbet.on{background:var(--sun)}
+  .betb,.bjbet,.plbet{font-family:inherit;font-weight:700;font-size:13px;border:3px solid var(--ink);border-radius:10px;padding:5px 9px;cursor:pointer;background:#fff;color:var(--ink);box-shadow:0 3px 0 var(--ink)}
+  .betb.on,.bjbet.on,.plbet.on{background:var(--sun)}
   .bjrow{display:flex;align-items:center;gap:8px;width:100%;margin:3px 0;min-height:58px}
   .bjlab{font-weight:700;color:var(--grape);font-size:13px;white-space:nowrap;min-width:70px;text-align:left}
   .bjcards{display:flex;gap:4px;flex-wrap:wrap;flex:1}
@@ -450,6 +450,26 @@
   </div>
 </div>
 
+<!-- Plinko -->
+<div id="plinko" class="pmodal" style="display:none">
+  <div class="pcard" style="width:360px;max-width:95vw;display:flex;flex-direction:column;align-items:center;text-align:center">
+    <button class="pclose" id="plclose">✕</button>
+    <h2 style="margin:0 0 4px;color:var(--grape);font-size:20px">🔴 Plinko</h2>
+    <div id="plmsg" class="bjmsg" style="margin:0 0 6px">Wirf die Kugel und triff die Ränder!</div>
+    <div style="width:320px;max-width:88vw;height:340px;position:relative;flex:none">
+      <canvas id="plCanvas" width="320" height="340" style="width:100%;height:100%;display:block"></canvas>
+    </div>
+    <div class="bjbal" style="margin-top:8px"><span class="coinico"></span> <span id="plbal">0</span></div>
+    <div class="slotbets">
+      <span style="color:#8a76c4;font-weight:600;font-size:12px">Einsatz</span>
+      <button class="plbet on" data-bet="100">100</button>
+      <button class="plbet" data-bet="500">500</button>
+      <button class="plbet" data-bet="1000">1000</button>
+    </div>
+    <button class="btn go" id="pldrop" style="background:var(--sun);margin-top:8px">🔴 Kugel werfen</button>
+  </div>
+</div>
+
 <!-- 4 Gewinnt: Warte-Banner -->
 <div id="c4wait" class="c4wait" style="display:none">
   <span>Warte auf Gegenspieler…</span>
@@ -508,6 +528,11 @@ const FOUNTAINS=[{x:210,y:500,r:44},{x:1390,y:500,r:44}];
 const CASINO_SLOTS=[{x:300,y:300},{x:470,y:300},{x:640,y:300},{x:1160,y:300},{x:1330,y:300}];
 const WHEEL_OBJ={x:800,y:378,r:74};
 const BJ_TABLES=[{x:450,y:492},{x:1150,y:492}];
+const PLINKO_OBJ={x:950,y:300,r:58};
+const PLINKO_ROWS=12;
+const PLINKO_MULT=[25,10,5,2,1,0.5,0.3,0.5,1,2,5,10,25];
+const PLINKO_COLS=['#e0396b','#ff5ea8','#ff9e64','#ffd166','#7be0b0','#4dd0ff','#b18cff','#4dd0ff','#7be0b0','#ffd166','#ff9e64','#ff5ea8','#e0396b'];
+let plBet=100,plBalls=[],plRAF=null,plG=null,plBusy=false,plLast=null;
 const WHEEL_VALUES=[50,100,200,500,100,300,1000,2000];
 const WHEEL_COLS=['#4dd0ff','#ff5ea8','#7be0b0','#b18cff','#ffd166','#ff9e64','#4dd0ff','#e0396b'];
 let wheelReady=false,wheelWait=0,wheelG=null,wheelAngle=0,wheelSpinning=false,wheelRAF=null,wheelTarget=null,wheelAnim=null;
@@ -676,6 +701,9 @@ function wireSocket(){
   socket.on('bj-msg',d=>{$('bjmsg').textContent=d.text||'';});
   socket.on('bj-live',d=>{if(d&&d.id)bjLive[d.id]=d;});
   socket.on('bj-live-clear',d=>{if(d&&d.id)delete bjLive[d.id];});
+  socket.on('plinko-result',d=>{
+    if(!d.ok){plBusy=false;$('pldrop').disabled=false;$('plmsg').textContent=d.text||'Fehler';return;}
+    plStartBall(d.path,d.slot,d.mult,d.win,d.bet);});
   socket.on('friend-msg',d=>{$('fmsg').style.color=d.ok?'#3aa06a':'#e0396b';$('fmsg').textContent=d.text;if(d.ok)socket.emit('friends-list');});
   socket.on('friend-refresh',()=>{socket.emit('friends-list');});
   socket.on('friends-data',d=>{renderFriends(d);buildRel(d);});
@@ -717,6 +745,7 @@ cv.addEventListener('pointerdown',e=>{if(!me)return;if(document.activeElement===
   if(rid==='deck'&&Math.hypot(SHIP_OBJ.x-p.x,SHIP_OBJ.y-p.y)<SHIP_OBJ.r){requestBoard();return;}
   if(rid==='casino'){
     const ti=BJ_TABLES.findIndex(b=>bjTableHit(b,p));if(ti>=0){openBj(ti);return;}
+    if(Math.hypot(PLINKO_OBJ.x-p.x,PLINKO_OBJ.y-p.y)<PLINKO_OBJ.r){openPlinko();return;}
     if(CASINO_SLOTS.some(s=>Math.hypot(s.x-p.x,s.y-p.y)<54)){openSlot();return;}
     if(Math.hypot(WHEEL_OBJ.x-p.x,WHEEL_OBJ.y-p.y)<WHEEL_OBJ.r){openWheel();return;}
     const fi=FOUNTAINS.find(f=>Math.hypot(f.x-p.x,f.y-p.y)<f.r);if(fi){tossCoin(fi);showPopup('🪙','Wunschbrunnen','Du wirfst eine Münze hinein und wünschst dir Glück ✨','gold');return;}}
@@ -733,6 +762,7 @@ cv.addEventListener('pointermove',e=>{
   if(!h&&rid==='deck'&&Math.hypot(SHIP_OBJ.x-p.x,SHIP_OBJ.y-p.y)<SHIP_OBJ.r)h={kind:'ship'};
   if(!h&&rid==='casino'){const s=CASINO_SLOTS.find(s=>Math.hypot(s.x-p.x,s.y-p.y)<54);if(s)h={kind:'slot',obj:s};
     if(!h){const bt=BJ_TABLES.find(b=>bjTableHit(b,p));if(bt)h={kind:'bjtable',obj:bt};}
+    if(!h&&Math.hypot(PLINKO_OBJ.x-p.x,PLINKO_OBJ.y-p.y)<PLINKO_OBJ.r)h={kind:'plinko'};
     if(!h&&Math.hypot(WHEEL_OBJ.x-p.x,WHEEL_OBJ.y-p.y)<WHEEL_OBJ.r)h={kind:'wheel'};
     if(!h){const f=FOUNTAINS.find(f=>Math.hypot(f.x-p.x,f.y-p.y)<f.r);if(f)h={kind:'fountain',obj:f};}}
   if(!h&&ROOMS[rid]){const dd=ROOMS[rid].deco.find(d=>Math.hypot(d.x-p.x,d.y-p.y)<36);if(dd)h={kind:'deco',obj:dd};}
@@ -786,7 +816,8 @@ function render(){const r=cv.parentElement.getBoundingClientRect();ctx.clearRect
     if(rid==='casino'){drawCasinoWall();drawCasinoFloor(196);roomDoors(room).forEach(d=>drawDoor(d,room.accent));drawCasinoExtras();
       for(const s of CASINO_SLOTS){if(hoveredIs('slot',s))drawHovered(s.x,s.y,()=>drawSlotCabinet(s.x,s.y));else drawSlotCabinet(s.x,s.y);}
       if(hoveredIs('wheel'))drawHovered(WHEEL_OBJ.x,WHEEL_OBJ.y,()=>drawWheelCabinet(WHEEL_OBJ.x,WHEEL_OBJ.y));else drawWheelCabinet(WHEEL_OBJ.x,WHEEL_OBJ.y);
-      for(const b of BJ_TABLES){if(hoveredIs('bjtable',b))drawHovered(b.x,b.y,()=>drawBjTable(b.x,b.y));else drawBjTable(b.x,b.y);}}
+      for(const b of BJ_TABLES){if(hoveredIs('bjtable',b))drawHovered(b.x,b.y,()=>drawBjTable(b.x,b.y));else drawBjTable(b.x,b.y);}
+      if(hoveredIs('plinko'))drawHovered(PLINKO_OBJ.x,PLINKO_OBJ.y,()=>drawPlinkoCabinet(PLINKO_OBJ.x,PLINKO_OBJ.y));else drawPlinkoCabinet(PLINKO_OBJ.x,PLINKO_OBJ.y);}
     else{drawWall(room);drawFloor(room);roomDoors(room).forEach(d=>drawDoor(d,room.accent));
       if(rid==='deck'){for(const o of orbs)drawOrb(o);drawDeckExtras();
         if(hoveredIs('ship'))drawHovered(SHIP_OBJ.x,SHIP_OBJ.y,()=>drawShipParked(SHIP_OBJ.x,SHIP_OBJ.y));else drawShipParked(SHIP_OBJ.x,SHIP_OBJ.y);}
@@ -1070,8 +1101,7 @@ function drawBjTable(x,y){
   ctx.save();ctx.translate(x+30,y+10);ctx.rotate(0.3);ctx.fillStyle='#fff';ctx.strokeStyle=INK;ctx.lineWidth=2;roundRect(-10,-14,20,28,3);ctx.fill();ctx.stroke();ctx.fillStyle=INK;ctx.font='800 11px Fredoka';ctx.fillText('K',0,3);ctx.restore();
 }
 function bjTableHit(b,p){return ((p.x-b.x)/100)**2+((p.y-b.y)/58)**2<1;}
-function bjMiniCard(x,y,card){const w=17,h=23;
-  if(!card||card.hidden){ctx.fillStyle='#7a1233';ctx.strokeStyle='#ffd166';ctx.lineWidth=1.5;roundRect(x,y,w,h,3);ctx.fill();ctx.stroke();ctx.fillStyle='#ffd166';ctx.font='700 10px Fredoka';ctx.textAlign='center';ctx.fillText('★',x+w/2,y+15);return;}
+function bjMiniCard(x,y,card){const w=17,h=23;  if(!card||card.hidden){ctx.fillStyle='#7a1233';ctx.strokeStyle='#ffd166';ctx.lineWidth=1.5;roundRect(x,y,w,h,3);ctx.fill();ctx.stroke();ctx.fillStyle='#ffd166';ctx.font='700 10px Fredoka';ctx.textAlign='center';ctx.fillText('★',x+w/2,y+15);return;}
   ctx.fillStyle='#fff';ctx.strokeStyle=INK;ctx.lineWidth=1.5;roundRect(x,y,w,h,3);ctx.fill();ctx.stroke();
   const red=(card.s===1||card.s===2);ctx.fillStyle=red?'#e0396b':INK;ctx.textAlign='center';
   ctx.font='800 10px Fredoka';ctx.fillText(bjRank(card.r),x+w/2,y+11);
@@ -1100,6 +1130,101 @@ function drawBjLive(table,tx,ty){
     if(e.player&&e.player.length){ctx.fillStyle='#8fe3ff';ctx.font='800 11px Fredoka';ctx.fillText(String(e.pVal),cx+2,cy+15);}
     ry+=rowH;}
   if(list.length>2){ctx.fillStyle='#cbb3ff';ctx.font='600 9px Fredoka';ctx.textAlign='center';ctx.fillText('+'+(list.length-2)+' weitere Spieler',tx,py+h-6);}
+}
+
+/* ---------------- PLINKO ---------------- */
+const PLW=320,PLH=340,PLCX=160,PLTOP=34,PLROWH=19,PLSP=23,PLSLOTY=272;
+function plPegX(row,rights){return PLCX+(2*rights-row)*PLSP/2;}
+function plPegY(row){return PLTOP+row*PLROWH;}
+function plSlotX(k){return PLCX+(2*k-PLINKO_ROWS)*PLSP/2;}
+function plFmt(m){return (m>=1?m:m.toFixed(1).replace('.',','))+'x';}
+function openPlinko(){$('plinko').style.display='flex';locked=true;$('plbal').textContent=(me&&me.stardust)||0;
+  const c=$('plCanvas'),dpr=Math.min(devicePixelRatio||1,3);c.width=PLW*dpr;c.height=PLH*dpr;plG=c.getContext('2d');plG.setTransform(dpr,0,0,dpr,0,0);
+  if(!plRAF)plLoop();}
+function closePlinko(){$('plinko').style.display='none';if(plRAF)cancelAnimationFrame(plRAF);plRAF=null;plBalls=[];plBusy=false;locked=false;}
+function plDrop(){if(plBusy)return;if(((me&&me.stardust)||0)<plBet){$('plmsg').textContent='Zu wenig Sternenstaub!';return;}
+  plBusy=true;$('pldrop').disabled=true;$('plmsg').textContent='Die Kugel fällt…';socket&&socket.emit('plinko-drop',{bet:plBet});}
+function plStartBall(path,slot,mult,win,bet){
+  plBalls.push({path,slot,mult,win,bet,t0:performance.now(),seg:0,done:false});}
+function plBallPos(b,now){
+  const SEG=95,drop=380;const el=now-b.t0;
+  const seg=Math.floor(el/SEG);
+  if(seg>=PLINKO_ROWS){
+    // in den Slot fallen
+    const t=Math.min(1,(el-PLINKO_ROWS*SEG)/drop);
+    const sx=plSlotX(b.slot),sy0=plPegY(PLINKO_ROWS),sy1=PLSLOTY+26;
+    const e=t*t; // beschleunigt
+    if(t>=1)b.done=true;
+    return{x:sx,y:sy0+(sy1-sy0)*e,land:t>=1};}
+  const f=(el-seg*SEG)/SEG;
+  let rights=0;for(let i=0;i<seg;i++)rights+=b.path[i];
+  const x0=plPegX(seg,rights),y0=plPegY(seg);
+  const r2=rights+b.path[seg];
+  const x1=plPegX(seg+1,r2),y1=plPegY(seg+1);
+  // Bogen: seitlich linear, vertikal mit kleinem Hüpfer
+  const x=x0+(x1-x0)*f, y=y0+(y1-y0)*f-Math.sin(f*Math.PI)*5;
+  return{x,y,land:false};}
+function drawPlinkoModal(){const g=plG;if(!g)return;const now=performance.now();
+  g.clearRect(0,0,PLW,PLH);
+  // Rahmen
+  g.fillStyle='#241a5c';g.strokeStyle=INK;g.lineWidth=3;
+  g.beginPath();g.roundRect?g.roundRect(6,6,PLW-12,PLH-12,14):g.rect(6,6,PLW-12,PLH-12);g.fill();g.stroke();
+  // Stifte
+  for(let r=0;r<PLINKO_ROWS;r++)for(let j=0;j<=r;j++){
+    const px=plPegX(r,j),py=plPegY(r);
+    g.fillStyle='#fff';g.beginPath();g.arc(px,py,2.8,0,7);g.fill();
+    g.fillStyle='rgba(255,255,255,.25)';g.beginPath();g.arc(px,py,4.6,0,7);g.fill();}
+  // Slots
+  for(let k=0;k<=PLINKO_ROWS;k++){
+    const sx=plSlotX(k),w=PLSP-2,m=PLINKO_MULT[k];
+    const hot=plLast&&plLast.slot===k&&now-plLast.t<1600;
+    g.fillStyle=PLINKO_COLS[k];g.globalAlpha=hot?1:.85;
+    g.beginPath();g.roundRect?g.roundRect(sx-w/2,PLSLOTY,w,34,5):g.rect(sx-w/2,PLSLOTY,w,34);g.fill();g.globalAlpha=1;
+    if(hot){g.strokeStyle='#fff';g.lineWidth=2;g.stroke();}
+    g.fillStyle=INK;g.font='800 9px Fredoka';g.textAlign='center';
+    g.save();g.translate(sx,PLSLOTY+21);if(m>=10)g.font='800 10px Fredoka';g.fillText(plFmt(m),0,0);g.restore();}
+  // Kugeln
+  for(const b of plBalls){const p=plBallPos(b,now);
+    const gl=g.createRadialGradient(p.x,p.y,1,p.x,p.y,11);gl.addColorStop(0,'rgba(255,120,160,.55)');gl.addColorStop(1,'transparent');g.fillStyle=gl;g.beginPath();g.arc(p.x,p.y,11,0,7);g.fill();
+    g.fillStyle='#e0396b';g.strokeStyle=INK;g.lineWidth=2;g.beginPath();g.arc(p.x,p.y,6,0,7);g.fill();g.stroke();
+    g.fillStyle='rgba(255,255,255,.75)';g.beginPath();g.arc(p.x-2,p.y-2,2,0,7);g.fill();}
+}
+function plLoop(){if($('plinko').style.display==='none'){plRAF=null;return;}
+  const now=performance.now();
+  for(const b of plBalls){if(b.done&&!b.settled){b.settled=true;plLast={slot:b.slot,t:now};
+      const net=b.win-b.bet;
+      $('plmsg').textContent=plFmt(b.mult)+' → '+(net>=0?'+':'')+net+' Sternenstaub';
+      $('plbal').textContent=(me&&me.stardust)||0;
+      plBusy=false;$('pldrop').disabled=false;
+      if(b.mult>=5)showPopup('🔴',b.mult>=25?'PLINKO JACKPOT!':'Plinko',plFmt(b.mult)+' – +'+net+' Sternenstaub','gold');}}
+  plBalls=plBalls.filter(b=>!b.settled||now-b.t0<3000);
+  drawPlinkoModal();plRAF=requestAnimationFrame(plLoop);}
+$('pldrop').onclick=plDrop;
+$('plclose').onclick=closePlinko;
+$('plinko').onclick=e=>{if(e.target.id==='plinko')closePlinko();};
+document.querySelectorAll('.plbet').forEach(b=>b.onclick=()=>{plBet=+b.dataset.bet;document.querySelectorAll('.plbet').forEach(x=>x.classList.remove('on'));b.classList.add('on');});
+function drawPlinkoCabinet(x,y){const now=performance.now();
+  ctx.fillStyle='rgba(43,27,82,.2)';ctx.beginPath();ctx.ellipse(x,y+62,50,12,0,0,7);ctx.fill();
+  // Beine
+  ctx.strokeStyle=INK;ctx.lineWidth=7;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(x-26,y+40);ctx.lineTo(x-32,y+58);ctx.moveTo(x+26,y+40);ctx.lineTo(x+32,y+58);ctx.stroke();
+  // Gehäuse
+  ctx.fillStyle='#3a2f7a';ctx.strokeStyle=INK;ctx.lineWidth=4;roundRect(x-46,y-96,92,140,12);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#241a5c';roundRect(x-38,y-84,76,104,8);ctx.fill();
+  // Stifte im Display
+  ctx.fillStyle='#fff';for(let r=0;r<6;r++)for(let j=0;j<=r;j++){const px=x+(2*j-r)*5.4,py=y-76+r*11;ctx.beginPath();ctx.arc(px,py,1.7,0,7);ctx.fill();}
+  // Slots unten im Display
+  for(let k=0;k<7;k++){ctx.fillStyle=['#e0396b','#ff9e64','#ffd166','#4dd0ff','#ffd166','#ff9e64','#e0396b'][k];ctx.fillRect(x-36+k*10.4,y+6,9,12);}
+  // fallende Kugel (Deko)
+  const t=(now/1400)%1,by=y-78+t*84,bx=x+Math.sin(t*9)*13;
+  const gl=ctx.createRadialGradient(bx,by,1,bx,by,9);gl.addColorStop(0,'rgba(255,120,160,.6)');gl.addColorStop(1,'transparent');ctx.fillStyle=gl;ctx.beginPath();ctx.arc(bx,by,9,0,7);ctx.fill();
+  ctx.fillStyle='#e0396b';ctx.strokeStyle=INK;ctx.lineWidth=2;ctx.beginPath();ctx.arc(bx,by,4.5,0,7);ctx.fill();ctx.stroke();
+  // Schild
+  ctx.font='800 13px Fredoka';ctx.textAlign='center';const t2='PLINKO',tw=ctx.measureText(t2).width;
+  ctx.fillStyle='#43091d';ctx.strokeStyle='#ffd166';ctx.lineWidth=3;roundRect(x-tw/2-11,y-120,tw+22,22,10);ctx.fill();ctx.stroke();
+  for(let i=0;i<Math.floor((tw+22)/9);i++){ctx.fillStyle=Math.sin(now/200+i)>0?'#fff2c0':'#d99a1f';ctx.beginPath();ctx.arc(x-tw/2-6+i*9,y-120,1.8,0,7);ctx.fill();}
+  ctx.fillStyle='#ffd166';ctx.fillText(t2,x,y-104);
+  // 25x Hinweis
+  ctx.fillStyle='#7be0b0';ctx.font='800 10px Fredoka';ctx.fillText('bis 25x',x,y+34);
 }
 
 function drawDrone(){const t=performance.now()/1000;const dx=520+Math.sin(t*0.4)*300,dy=300+Math.sin(t*0.9)*26;  // Lichtkegel
