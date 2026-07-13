@@ -111,6 +111,84 @@ function plinkoDrop(){ const path = []; let slot = 0;
   for (let i = 0; i < PLINKO_ROWS; i++) { const right = Math.random() < 0.5 ? 0 : 1; path.push(right); slot += right; }
   return { path, slot };
 }
+
+// ---- Roulette (europäisch, eine Null) ----
+const ROU_RED = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+const ROU_BETS = [100, 500, 1000];
+const ROU_BET_MS = 24000, ROU_SPIN_MS = 8000, ROU_RESULT_MS = 6000;
+const rou = { phase: 'bet', endsAt: Date.now() + ROU_BET_MS, round: 1, number: null, bets: {}, history: [] };
+function rouColor(n){ return n === 0 ? 'green' : (ROU_RED.has(n) ? 'red' : 'black'); }
+function rouPayout(bet, n){ // Rückzahlung inkl. Einsatz (0 = verloren)
+  const a = bet.amount, v = bet.value;
+  switch (bet.type) {
+    case 'number': return v === n ? a * 36 : 0;            // 35:1
+    case 'red':    return rouColor(n) === 'red' ? a * 2 : 0;
+    case 'black':  return rouColor(n) === 'black' ? a * 2 : 0;
+    case 'even':   return n !== 0 && n % 2 === 0 ? a * 2 : 0;
+    case 'odd':    return n !== 0 && n % 2 === 1 ? a * 2 : 0;
+    case 'low':    return n >= 1 && n <= 18 ? a * 2 : 0;
+    case 'high':   return n >= 19 && n <= 36 ? a * 2 : 0;
+    case 'dozen':  return n !== 0 && Math.ceil(n / 12) === v ? a * 3 : 0;  // 2:1
+    default: return 0;
+  }
+}
+function rouPublic(){
+  const players_ = [];
+  for (const id in rou.bets) {
+    const e = rou.bets[id];
+    if (!e.list.length) continue;
+    players_.push({ id, name: e.name, color: e.color, total: e.list.reduce((s,b)=>s+b.amount,0), n: e.list.length, won: e.won });
+  }
+  return { phase: rou.phase, endsAt: rou.endsAt, round: rou.round, number: rou.number, history: rou.history.slice(0,10), players: players_ };
+}
+function rouBroadcast(){ io.emit('roul-state', rouPublic()); }
+function rouSettle(){
+  const n = rou.number;
+  for (const id in rou.bets) {
+    const e = rou.bets[id];
+    const me = players[id];
+    if (!me) continue;
+    let payout = 0;
+    for (const b of e.list) payout += rouPayout(b, n);
+    e.won = payout;
+    const staked = e.list.reduce((s,b)=>s+b.amount,0);
+    if (payout > 0) {
+      me.stardust += payout;
+      const sock = io.sockets.sockets.get(id);
+      if (sock) {
+        sock.emit('stardust', { value: me.stardust });
+        sock.emit('roul-win', { number: n, payout, staked, net: payout - staked, stardust: me.stardust });
+        if (payout > staked) grantXp(sock, me, 5);
+      }
+      admin.from('profiles').update({ stardust: me.stardust }).eq('id', me.userId).then(()=>{},()=>{});
+      if (payout >= staked * 10 && staked > 0) io.emit('system', me.name + ' gewinnt ' + payout + ' Sternenstaub am Roulette (Zahl ' + n + ')!');
+    } else {
+      const sock = io.sockets.sockets.get(id);
+      if (sock) sock.emit('roul-win', { number: n, payout: 0, staked, net: -staked, stardust: me.stardust });
+    }
+  }
+}
+function rouTick(){
+  const now = Date.now();
+  if (now < rou.endsAt) return;
+  if (rou.phase === 'bet') {
+    rou.number = Math.floor(Math.random() * 37);
+    rou.phase = 'spin'; rou.endsAt = now + ROU_SPIN_MS;
+    io.emit('roul-spin', { number: rou.number, endsAt: rou.endsAt });
+    rouBroadcast();
+  } else if (rou.phase === 'spin') {
+    rouSettle();
+    rou.history.unshift({ n: rou.number, c: rouColor(rou.number) });
+    rou.history = rou.history.slice(0, 12);
+    rou.phase = 'result'; rou.endsAt = now + ROU_RESULT_MS;
+    rouBroadcast();
+  } else {
+    rou.bets = {}; rou.number = null; rou.round++;
+    rou.phase = 'bet'; rou.endsAt = now + ROU_BET_MS;
+    rouBroadcast();
+  }
+}
+setInterval(rouTick, 500);
 function slotRoll(){ const total=SLOT_SYMS.reduce((s,x)=>s+x.w,0); let r=Math.random()*total; for(const s of SLOT_SYMS){ if((r-=s.w)<0) return s.i; } return 0; }
 
 // ---- Planeten (Level-basiert freigeschaltet) ----
@@ -363,6 +441,43 @@ io.on('connection', (socket) => {
     if (mult >= 10) io.emit('system', me.name + ' gewinnt ' + win + ' Sternenstaub bei Plinko (' + mult + 'x)!');
   });
 
+  socket.on('roul-sync', () => { socket.emit('roul-state', rouPublic()); });
+  socket.on('roul-bet', (d) => {
+    const me = players[socket.id]; if (!me) return;
+    if (me.room !== 'casino') return;
+    if (rou.phase !== 'bet') { socket.emit('roul-msg', { text: 'Einsätze sind geschlossen!' }); return; }
+    const amount = +(d && d.amount);
+    if (!ROU_BETS.includes(amount)) return;
+    const type = String(d && d.type || '');
+    let value = (d && d.value != null) ? +d.value : null;
+    const simple = ['red','black','even','odd','low','high'];
+    if (type === 'number') { if (!(value >= 0 && value <= 36)) return; }
+    else if (type === 'dozen') { if (!(value >= 1 && value <= 3)) return; }
+    else if (simple.includes(type)) { value = null; }
+    else return;
+    if (me.stardust < amount) { socket.emit('roul-msg', { text: 'Zu wenig Sternenstaub.' }); return; }
+    const e = rou.bets[socket.id] || (rou.bets[socket.id] = { name: me.name, color: me.color, list: [], won: 0 });
+    if (e.list.length >= 12) { socket.emit('roul-msg', { text: 'Maximal 12 Einsätze pro Runde.' }); return; }
+    me.stardust -= amount;
+    e.list.push({ type, value, amount });
+    socket.emit('stardust', { value: me.stardust });
+    admin.from('profiles').update({ stardust: me.stardust }).eq('id', me.userId).then(()=>{},()=>{});
+    socket.emit('roul-mybets', { list: e.list });
+    rouBroadcast();
+  });
+  socket.on('roul-clear', () => {
+    const me = players[socket.id]; if (!me) return;
+    if (rou.phase !== 'bet') return;
+    const e = rou.bets[socket.id]; if (!e || !e.list.length) return;
+    const back = e.list.reduce((s,b)=>s+b.amount,0);
+    me.stardust += back;
+    e.list = [];
+    socket.emit('stardust', { value: me.stardust });
+    admin.from('profiles').update({ stardust: me.stardust }).eq('id', me.userId).then(()=>{},()=>{});
+    socket.emit('roul-mybets', { list: [] });
+    rouBroadcast();
+  });
+
   // Orb (Station) eingesammelt -> Sternenstaub + XP
   socket.on('collect', async () => {
     const me = players[socket.id]; if (!me) return;
@@ -505,6 +620,12 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', async () => {
     const me = players[socket.id];
+    if (me && rou.bets[socket.id] && rou.phase === 'bet') { // noch nicht gedreht -> Einsätze zurück
+      const back = rou.bets[socket.id].list.reduce((s,b)=>s+b.amount,0);
+      if (back > 0) { me.stardust += back; admin.from('profiles').update({ stardust: me.stardust }).eq('id', me.userId).then(()=>{},()=>{}); }
+      delete rou.bets[socket.id];
+      rouBroadcast();
+    }
     bjLeave(socket);
     c4LeaveHandler(socket.id);
     if (online[socket.userId] === socket.id) delete online[socket.userId];
