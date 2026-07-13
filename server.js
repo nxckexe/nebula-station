@@ -159,6 +159,7 @@ function rouSettle(){
         sock.emit('stardust', { value: me.stardust });
         sock.emit('roul-win', { number: n, payout, staked, net: payout - staked, stardust: me.stardust });
         if (payout > staked) grantXp(sock, me, 5);
+        recordWin(sock, me, 'roulette', payout - staked);
       }
       admin.from('profiles').update({ stardust: me.stardust }).eq('id', me.userId).then(()=>{},()=>{});
       if (payout >= staked * 10 && staked > 0) io.emit('system', me.name + ' gewinnt ' + payout + ' Sternenstaub am Roulette (Zahl ' + n + ')!');
@@ -319,6 +320,7 @@ io.on('connection', (socket) => {
     else { const cherries = r.filter(x => x === 0).length; if (cherries >= 2) win = bet * 2; }
     me.stardust += win;
     socket.emit('slot-result', { ok:true, reels:r, win, bet, stardust: me.stardust });
+    recordWin(socket, me, 'slot', win - bet);
     admin.from('profiles').update({ stardust: me.stardust }).eq('id', me.userId).then(() => {}, () => {});
   });
 
@@ -357,6 +359,7 @@ io.on('connection', (socket) => {
     me.lastWheel = now;
     me.stardust += amount;
     socket.emit('wheel-result', { ok:true, index: idx, amount, stardust: me.stardust });
+    recordWin(socket, me, 'wheel', amount);
     socket.emit('stardust', { value: me.stardust });
     grantXp(socket, me, 10);
     admin.from('profiles').update({ stardust: me.stardust, xp: me.xp }).eq('id', me.userId).then(() => {}, () => {});
@@ -437,11 +440,22 @@ io.on('connection', (socket) => {
     socket.emit('plinko-result', { ok:true, path, slot, mult, win, bet, stardust: me.stardust });
     socket.emit('stardust', { value: me.stardust });
     if (win > bet) grantXp(socket, me, 5);
+    recordWin(socket, me, 'plinko', win - bet);
     admin.from('profiles').update({ stardust: me.stardust, xp: me.xp }).eq('id', me.userId).then(() => {}, () => {});
     if (mult >= 10) io.emit('system', me.name + ' gewinnt ' + win + ' Sternenstaub bei Plinko (' + mult + 'x)!');
   });
 
   socket.on('roul-sync', () => { socket.emit('roul-state', rouPublic()); });
+  socket.on('casino-leaderboard', async () => {
+    const { data } = await admin.from('profiles')
+      .select('username,casino_best,casino_best_game')
+      .order('casino_best', { ascending: false })
+      .limit(10);
+    socket.emit('casino-leaderboard-data', {
+      rows: (data || []).filter(r => (r.casino_best || 0) > 0),
+      feed: recentWins
+    });
+  });
   socket.on('roul-bet', (d) => {
     const me = players[socket.id]; if (!me) return;
     if (me.room !== 'casino') return;
@@ -655,6 +669,8 @@ function finalizeSpawn(socket, profile) {
     game_stardust: profile.game_stardust || 0,
     spaceBest: profile.space_best || 0,
     lastWheel: profile.last_wheel || 0,
+    casinoBest: profile.casino_best || 0,
+    casinoBestGame: profile.casino_best_game || null,
     sitting: false, table: -1,
     room: 'deck', x: 520, y: 400, face: 1, lastCollect: 0, lastSave: 0
   };
@@ -669,6 +685,7 @@ function finalizeSpawn(socket, profile) {
   io.emit('system', me.name + ' ist angedockt.');
   const wleft = WHEEL_DAY - (Date.now() - (me.lastWheel || 0));
   socket.emit('wheel-status', { ready: wleft <= 0, wait: Math.max(0, wleft) });
+  socket.emit('casino-best', { best: me.casinoBest || 0, game: me.casinoBestGame });
 }
 
 function grantXp(socket, me, amt) {
@@ -712,11 +729,31 @@ function bjSettle(socket, me) {
   socket.emit('bj-result', { outcome, payout, bet: bj.bet, stardust: me.stardust, pVal, dVal });
   socket.emit('stardust', { value: me.stardust });
   if (outcome === 'win' || outcome === 'blackjack') grantXp(socket, me, 6);
+  recordWin(socket, me, 'blackjack', payout - bj.bet);
   admin.from('profiles').update({ stardust: me.stardust }).eq('id', me.userId).then(() => {}, () => {});
   bjBroadcastLive(socket, me);
 }
-function bjBroadcastLive(socket, me) {
-  if (me.bjTable == null) return;
+// ---------------- CASINO-BESTENLISTE ----------------
+const GAME_NAMES = { slot: 'Slots', wheel: 'Lucky Wheel', blackjack: 'Blackjack', plinko: 'Plinko', roulette: 'Roulette' };
+const recentWins = []; // Live-Feed der letzten großen Gewinne (Speicher)
+function recordWin(socket, me, game, net) {
+  if (!me || !(net > 0)) return;
+  if (net >= 1000) {
+    recentWins.unshift({ name: me.name, color: me.color, game, net, t: Date.now() });
+    if (recentWins.length > 10) recentWins.pop();
+    io.emit('casino-feed', { rows: recentWins });
+  }
+  if (net > (me.casinoBest || 0)) {
+    me.casinoBest = net;
+    me.casinoBestGame = game;
+    socket.emit('casino-best', { best: net, game });
+    admin.from('profiles').update({ casino_best: net }).eq('id', me.userId).then(() => {}, () => {});
+    admin.from('profiles').update({ casino_best_game: game }).eq('id', me.userId).then(() => {}, () => {});
+    if (net >= 5000) io.emit('system', '🏆 ' + me.name + ' stellt mit ' + net + ' Sternenstaub bei ' + (GAME_NAMES[game] || game) + ' einen neuen Rekord auf!');
+  }
+}
+
+function bjBroadcastLive(socket, me) {  if (me.bjTable == null) return;
   const bj = me.bj;
   const dealer = bj ? (bj.done ? bj.dealer : [bj.dealer[0], { hidden: true }]) : [];
   io.emit('bj-live', {
