@@ -391,7 +391,7 @@
     <canvas id="slotCanvas" width="360" height="480"></canvas>
     <div class="slotctrl">
       <div class="slotbal"><span class="coinico"></span> <span id="slotbal">0</span></div>
-      <div class="slotbets">
+      <div class="slotbets" id="slotbets">
         <span style="color:#8a76c4;font-weight:600;font-size:12px">Einsatz</span>
         <button class="betb" data-bet="100">100</button>
         <button class="betb on" data-bet="500">500</button>
@@ -594,8 +594,15 @@ const ROOMS={
     deco:[{t:'telescope',x:210,y:262},{t:'bench',x:470,y:300},{t:'bench',x:640,y:300},{t:'plant',x:900,y:284},{t:'holo',x:820,y:246}]},
   casino:{name:'Casino-Deck',accent:'#ffd166',wall1:'#7a1233',wall2:'#43091d',floor1:'#efe7d6',floor2:'#e2d6bd',w:CW,
     door:{x:70,y:360,to:'deck',label:'← Hauptdeck'},
+    door2:{x:1900,y:360,to:'vip',label:'💎 VIP →'},
+    deco:[]},
+  vip:{name:'VIP-Lounge',accent:'#ffd166',wall1:'#2a2440',wall2:'#12101f',floor1:'#1b1730',floor2:'#141126',
+    door:{x:70,y:360,to:'casino',label:'← Casino'},
     deco:[]}
 };
+const VIP_LEVEL=10;
+const VIP_SLOTS=[{x:300,y:300},{x:470,y:300},{x:800,y:300}];
+const VIP_BJ={x:520,y:470};
 const FOUNTAINS=[{x:210,y:500,r:44},{x:1390,y:500,r:44}];
 const CASINO_SLOTS=[{x:300,y:300},{x:470,y:300},{x:640,y:300},{x:1160,y:300},{x:1330,y:300}];
 const WHEEL_OBJ={x:800,y:378,r:74};
@@ -732,6 +739,7 @@ function wireSocket(){
     if($('holo').style.display!=='none')renderHolo();if($('shop').style.display!=='none')renderShop();});
   socket.on('player-bg',d=>{const p=players[d.id];if(p)p.bg=d.bg;if(d.id===myId)myBg=d.bg;});
   socket.on('planet-locked',d=>{addMsg('','','🔒 Dieser Planet ist erst ab Level '+d.minLevel+' erreichbar.','sys');if(me)goToRoom('deck');});
+  socket.on('vip-locked',d=>{addMsg('','','🔒 Die VIP-Lounge ist erst ab Level '+d.minLevel+' erreichbar.','sys');if(me){me.room='casino';me.x=me.tx=1760;me.y=me.ty=360;}});
   socket.on('shop-result',d=>{addMsg('','',d.text,'sys');
     if(d.ok){myOwned=new Set((d.owned||'').split(',').filter(Boolean));renderShop();showPopup('🛍️','Gekauft!',d.text.replace(' gekauft!',''),'pink');}});
   socket.on('stardust',d=>{document.getElementById('orbs').textContent=d.value;if(me)me.stardust=d.value;if($('shop').style.display!=='none')$('shopcoins').textContent=d.value;});
@@ -856,6 +864,9 @@ cv.addEventListener('pointerdown',e=>{if(!me)return;if(document.activeElement===
     if(CASINO_SLOTS.some(s=>Math.hypot(s.x-p.x,s.y-p.y)<54)){openSlot();return;}
     if(Math.hypot(WHEEL_OBJ.x-p.x,WHEEL_OBJ.y-p.y)<WHEEL_OBJ.r){openWheel();return;}
     const fi=FOUNTAINS.find(f=>Math.hypot(f.x-p.x,f.y-p.y)<f.r);if(fi){tossCoin(fi);showPopup('🪙','Wunschbrunnen','Du wirfst eine Münze hinein und wünschst dir Glück ✨','gold');return;}}
+  if(rid==='vip'){
+    if(bjTableHit(VIP_BJ,p)){openBj(2);return;}
+    if(VIP_SLOTS.some(s=>Math.hypot(s.x-p.x,s.y-p.y)<54)){openSlot();return;}}
   if(ROOMS[rid]){const dhit=ROOMS[rid].deco.find(dd=>Math.hypot(dd.x-p.x,dd.y-p.y)<36);
     if(dhit){if(dhit.t==='telescope')openTelescope();else if(dhit.t==='holo')openHolo();else if(dhit.t==='vending')openShop();else openDecoDetail(dhit.t);return;}}
   const hit=Object.values(players).filter(q=>q.room===rid).find(q=>Math.hypot(q.x-p.x,q.y-p.y)<26);
@@ -874,6 +885,8 @@ cv.addEventListener('pointermove',e=>{
     if(!h&&Math.abs(p.x-HALL_OBJ.x)<60&&p.y>HALL_OBJ.y-76&&p.y<HALL_OBJ.y+70)h={kind:'hall'};
     if(!h&&Math.hypot(WHEEL_OBJ.x-p.x,WHEEL_OBJ.y-p.y)<WHEEL_OBJ.r)h={kind:'wheel'};
     if(!h){const f=FOUNTAINS.find(f=>Math.hypot(f.x-p.x,f.y-p.y)<f.r);if(f)h={kind:'fountain',obj:f};}}
+  if(!h&&rid==='vip'){const vs=VIP_SLOTS.find(s=>Math.hypot(s.x-p.x,s.y-p.y)<54);if(vs)h={kind:'slot',obj:vs};
+    if(!h&&bjTableHit(VIP_BJ,p))h={kind:'bjtable',obj:VIP_BJ};}
   if(!h&&ROOMS[rid]){const dd=ROOMS[rid].deco.find(d=>Math.hypot(d.x-p.x,d.y-p.y)<36);if(dd)h={kind:'deco',obj:dd};}
   if(!h&&PLANETS[rid]&&planetScene){if(Math.hypot(planetScene.portal.x-p.x,planetScene.portal.y-p.y)<42)h={kind:'portal'};
     else{const c=planetScene.crystals.find(c=>!c.got&&Math.hypot(c.x-p.x,c.y-p.y)<28);if(c)h={kind:'crystal',obj:c};}}
@@ -887,7 +900,9 @@ function drawHovered(cx,cy,fn){const t=performance.now()/300,s=1.06+Math.sin(t)*
   ctx.shadowColor='#fff';ctx.shadowBlur=11;fn();ctx.shadowBlur=0;fn();ctx.restore();}
 function roomDoors(room){return [room.door,room.door2,room.door3].filter(Boolean);}
 function checkDoor(){if(!me||!ROOMS[me.room])return;for(const d of roomDoors(ROOMS[me.room])){if(Math.hypot(me.x-d.x,me.y-d.y)<52){goToRoom(d.to,me.room);return;}}}
-function goToRoom(room,fromRoom){if(!me||locked||room===me.room)return;me.room=room;
+function goToRoom(room,fromRoom){if(!me||locked||room===me.room)return;
+  if(room==='vip'&&(myLevel||1)<VIP_LEVEL){showPopup('🔒','VIP-Lounge','Zutritt erst ab Level '+VIP_LEVEL+'. Du bist Level '+(myLevel||1)+'.','purple');return;}
+  me.room=room;
   if(PLANETS[room]){const pl=PLANETS[room];me.x=me.tx=pl.w/2;me.y=me.ty=pl.h-130;genPlanet(room);document.getElementById('room-name').textContent=pl.name;}
   else{const doors=roomDoors(ROOMS[room]);const nd=(fromRoom&&doors.find(d=>d.to===fromRoom))||doors[0];me.x=me.tx=nd.x>W/2?nd.x-140:nd.x+140;me.y=me.ty=nd.y;document.getElementById('room-name').textContent=ROOMS[room].name;}
   socket&&socket.emit('room',{room:me.room,x:me.x,y:me.y});
@@ -929,6 +944,9 @@ function render(){const r=cv.parentElement.getBoundingClientRect();ctx.clearRect
       if(hoveredIs('plinko'))drawHovered(PLINKO_OBJ.x,PLINKO_OBJ.y,()=>drawPlinkoCabinet(PLINKO_OBJ.x,PLINKO_OBJ.y));else drawPlinkoCabinet(PLINKO_OBJ.x,PLINKO_OBJ.y);
       if(hoveredIs('roul'))drawHovered(ROU_OBJ.x,ROU_OBJ.y,()=>drawRouTable(ROU_OBJ.x,ROU_OBJ.y));else drawRouTable(ROU_OBJ.x,ROU_OBJ.y);
       if(hoveredIs('hall'))drawHovered(HALL_OBJ.x,HALL_OBJ.y,()=>drawHallBoard(HALL_OBJ.x,HALL_OBJ.y));else drawHallBoard(HALL_OBJ.x,HALL_OBJ.y);}
+    else if(rid==='vip'){drawVipWall();drawVipFloor();roomDoors(room).forEach(d=>drawDoor(d,room.accent));drawVipExtras();
+      for(const s of VIP_SLOTS){if(hoveredIs('slot',s))drawHovered(s.x,s.y,()=>drawSlotCabinet(s.x,s.y));else drawSlotCabinet(s.x,s.y);}
+      if(hoveredIs('bjtable',VIP_BJ))drawHovered(VIP_BJ.x,VIP_BJ.y,()=>drawBjTable(VIP_BJ.x,VIP_BJ.y));else drawBjTable(VIP_BJ.x,VIP_BJ.y);}
     else{drawWall(room);drawFloor(room);roomDoors(room).forEach(d=>drawDoor(d,room.accent));
       if(rid==='deck'){for(const o of orbs)drawOrb(o);drawDeckExtras();
         if(hoveredIs('ship'))drawHovered(SHIP_OBJ.x,SHIP_OBJ.y,()=>drawShipParked(SHIP_OBJ.x,SHIP_OBJ.y));else drawShipParked(SHIP_OBJ.x,SHIP_OBJ.y);}
@@ -937,6 +955,7 @@ function render(){const r=cv.parentElement.getBoundingClientRect();ctx.clearRect
   for(const e of here){if(e.id!==myId&&hoveredIs('player',e))drawHovered(e.x,e.y,()=>drawAvatar(e));else drawAvatar(e);}
   if(rid==='deck')drawDrone();
   if(rid==='casino'){BJ_TABLES.forEach((b,i)=>drawBjLive(i,b.x,b.y));drawRouLive(ROU_OBJ.x,ROU_OBJ.y);}
+  if(rid==='vip')drawBjLive(2,VIP_BJ.x,VIP_BJ.y);
   ctx.restore();}
 
 /* ---------------- PLANETEN ---------------- */
@@ -1135,7 +1154,7 @@ function drawCasinoExtras(){const now=performance.now();
   for(let i=0;i<Math.floor((tw+52)/16);i++){const bx=cx-tw/2-18+i*16;ctx.fillStyle=Math.sin(now/220+i)>0?'#fff2c0':'#d99a1f';ctx.beginPath();ctx.arc(bx,138,2.6,0,7);ctx.fill();ctx.beginPath();ctx.arc(bx,180,2.6,0,7);ctx.fill();}
   const gg=ctx.createLinearGradient(0,144,0,176);gg.addColorStop(0,'#fff2c0');gg.addColorStop(.5,'#ffd166');gg.addColorStop(1,'#d99a1f');ctx.fillStyle=gg;ctx.fillText(t,cx,170);
   // Säulen (rahmen den Raum, ohne Automaten/Wheel zu überdecken)
-  [[120,300],[560,300],[1040,300],[1480,300],[1930,300]].forEach(([px,py])=>drawColumn(px,py));
+  [[120,300],[560,300],[1040,300],[1480,300]].forEach(([px,py])=>drawColumn(px,py));
   // Samtkordeln
   drawRope(150,545,300,545);drawRope(1300,545,1450,545);
   // Springbrunnen (interaktiv)
@@ -1179,7 +1198,7 @@ const SUITS=['♠','♥','♦','♣'];
 let bjBet=100,bjCanDouble=false;
 function bjRank(r){return r===1?'A':r===11?'J':r===12?'Q':r===13?'K':String(r);}
 let bjLive={},bjMyTable=-1;
-function openBj(ti){bjMyTable=ti;$('bj').style.display='flex';locked=true;$('bjbal').textContent=(me&&me.stardust)||0;socket&&socket.emit('bj-open',{table:ti});}
+function openBj(ti){bjMyTable=ti;$('bj').style.display='flex';locked=true;$('bjbal').textContent=(me&&me.stardust)||0;refreshBjBets(ti===2);socket&&socket.emit('bj-open',{table:ti});}
 function closeBj(){$('bj').style.display='none';locked=false;socket&&socket.emit('bj-close');bjMyTable=-1;}
 function bjButtons(mode){
   $('bjdeal').style.display=(mode==='pre'||mode==='over')?'':'none';
@@ -1198,7 +1217,6 @@ $('bjdeal').onclick=()=>{if(((me&&me.stardust)||0)<bjBet){$('bjmsg').textContent
 $('bjhit').onclick=()=>socket&&socket.emit('bj-hit');
 $('bjstand').onclick=()=>socket&&socket.emit('bj-stand');
 $('bjdouble').onclick=()=>socket&&socket.emit('bj-double');
-document.querySelectorAll('.bjbet').forEach(b=>b.onclick=()=>{bjBet=+b.dataset.bet;document.querySelectorAll('.bjbet').forEach(x=>x.classList.remove('on'));b.classList.add('on');});
 function drawBjTable(x,y){
   ctx.fillStyle='rgba(43,27,82,.2)';ctx.beginPath();ctx.ellipse(x,y+36,98,20,0,0,7);ctx.fill();
   ctx.strokeStyle=INK;ctx.lineWidth=8;ctx.lineCap='round';[-64,64].forEach(dx=>{ctx.beginPath();ctx.moveTo(x+dx*0.7,y+24);ctx.lineTo(x+dx,y+46);ctx.stroke();});
@@ -1336,6 +1354,69 @@ function drawPlinkoCabinet(x,y){const now=performance.now();
   ctx.fillStyle='#ffd166';ctx.fillText(t2,x,y-104);
   // 25x Hinweis
   ctx.fillStyle='#7be0b0';ctx.font='800 10px Fredoka';ctx.fillText('bis 25x',x,y+34);
+}
+
+/* ---------------- VIP-LOUNGE ---------------- */
+function drawVipWall(){const now=performance.now();
+  const g=ctx.createLinearGradient(0,0,0,200);g.addColorStop(0,'#2a2440');g.addColorStop(1,'#12101f');ctx.fillStyle=g;ctx.fillRect(0,0,W,220);
+  ctx.strokeStyle='#ffd166';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,22);ctx.lineTo(W,22);ctx.stroke();
+  // Panorama-Fenster
+  const px=180,pw=W-360;
+  ctx.fillStyle='#0a0818';ctx.strokeStyle='#ffd166';ctx.lineWidth=5;roundRect(px,44,pw,124,16);ctx.fill();ctx.stroke();
+  ctx.save();roundRect(px,44,pw,124,16);ctx.clip();
+  for(let i=0;i<70;i++){const sx=px+((i*137)%pw),sy=48+((i*91)%116),tw=.5+.5*Math.sin(now/500+i);
+    ctx.fillStyle='rgba(255,255,255,'+tw+')';ctx.fillRect(sx,sy,1.8,1.8);}
+  // Nebel
+  const ng=ctx.createRadialGradient(px+pw*0.7,110,5,px+pw*0.7,110,90);ng.addColorStop(0,'rgba(177,140,255,.35)');ng.addColorStop(1,'transparent');ctx.fillStyle=ng;ctx.fillRect(px,44,pw,124);
+  // Planet
+  ctx.fillStyle='#e0396b';ctx.beginPath();ctx.arc(px+pw*0.22,120,26,0,7);ctx.fill();
+  ctx.strokeStyle='rgba(255,209,102,.7)';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(px+pw*0.22,120,40,10,-.35,0,7);ctx.stroke();
+  ctx.restore();
+  // Goldene Sconces
+  for(const sx of [110,W-110]){ctx.fillStyle='#ffd166';ctx.strokeStyle=INK;ctx.lineWidth=2;roundRect(sx-4,120,8,30,3);ctx.fill();ctx.stroke();
+    const rg=ctx.createRadialGradient(sx,114,1,sx,114,20);rg.addColorStop(0,'rgba(255,240,180,'+(.55+.3*Math.sin(now/300))+')');rg.addColorStop(1,'transparent');ctx.fillStyle=rg;ctx.beginPath();ctx.arc(sx,114,20,0,7);ctx.fill();}
+  ctx.strokeStyle='#ffd166';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(0,196);ctx.lineTo(W,196);ctx.stroke();
+}
+function drawVipFloor(){const top=196;
+  ctx.fillStyle='#1b1730';ctx.strokeStyle=INK;ctx.lineWidth=6;roundRect(20,top,W-40,H-top-16,36);ctx.fill();ctx.stroke();
+  ctx.save();roundRect(20,top,W-40,H-top-16,36);ctx.clip();
+  // Goldene Rautenintarsien
+  ctx.strokeStyle='rgba(255,209,102,.16)';ctx.lineWidth=1.5;
+  for(let d=-H;d<W;d+=64){ctx.beginPath();ctx.moveTo(d,top);ctx.lineTo(d+(H-top),H);ctx.stroke();ctx.beginPath();ctx.moveTo(d,H);ctx.lineTo(d+(H-top),top);ctx.stroke();}
+  // Schimmernder Glanz
+  const sg=ctx.createLinearGradient(0,top,W,H);sg.addColorStop(0,'rgba(255,209,102,.05)');sg.addColorStop(.5,'rgba(255,209,102,.12)');sg.addColorStop(1,'rgba(255,209,102,.04)');ctx.fillStyle=sg;ctx.fillRect(20,top,W-40,H-top);
+  // Runder Goldteppich
+  const cx=W/2,ry=H/2+92;
+  ctx.fillStyle='#2a1f10';ctx.beginPath();ctx.ellipse(cx,ry,210,74,0,0,7);ctx.fill();
+  ctx.strokeStyle='#ffd166';ctx.lineWidth=4;ctx.beginPath();ctx.ellipse(cx,ry,210,74,0,0,7);ctx.stroke();
+  ctx.strokeStyle='rgba(255,209,102,.5)';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(cx,ry,176,60,0,0,7);ctx.stroke();
+  ctx.restore();
+}
+function drawVipExtras(){const now=performance.now();
+  drawChandelier(300,86,now);drawChandelier(740,86,now+500);
+  // VIP-Schild
+  ctx.font='800 28px Fredoka';ctx.textAlign='center';const t='💎 VIP LOUNGE',tw=ctx.measureText(t).width,cx=W/2;
+  ctx.fillStyle='#12101f';ctx.strokeStyle='#ffd166';ctx.lineWidth=4;roundRect(cx-tw/2-24,138,tw+48,40,12);ctx.fill();ctx.stroke();
+  for(let i=0;i<Math.floor((tw+48)/16);i++){const bx=cx-tw/2-16+i*16;ctx.fillStyle=Math.sin(now/220+i)>0?'#fff2c0':'#d99a1f';ctx.beginPath();ctx.arc(bx,138,2.6,0,7);ctx.fill();ctx.beginPath();ctx.arc(bx,178,2.6,0,7);ctx.fill();}
+  const gg=ctx.createLinearGradient(0,144,0,174);gg.addColorStop(0,'#fff2c0');gg.addColorStop(.5,'#ffd166');gg.addColorStop(1,'#d99a1f');ctx.fillStyle=gg;ctx.fillText(t,cx,168);
+  // Säulen
+  [[190,300],[930,300]].forEach(([px,py])=>drawColumn(px,py));
+  // Champagner-Bar rechts
+  drawVipBar(930,470);
+  // Kordeln
+  drawRope(120,545,240,545);
+}
+function drawVipBar(x,y){const now=performance.now();
+  ctx.fillStyle='rgba(0,0,0,.25)';ctx.beginPath();ctx.ellipse(x,y+34,58,12,0,0,7);ctx.fill();
+  ctx.fillStyle='#2a1f10';ctx.strokeStyle='#ffd166';ctx.lineWidth=4;roundRect(x-54,y-14,108,44,8);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#3a2c16';roundRect(x-48,y-8,96,10,4);ctx.fill();
+  // Gläser
+  for(let i=0;i<3;i++){const gx=x-26+i*26;
+    ctx.strokeStyle='rgba(255,255,255,.8)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(gx-5,y-38);ctx.lineTo(gx-2,y-20);ctx.lineTo(gx+2,y-20);ctx.lineTo(gx+5,y-38);ctx.stroke();
+    ctx.fillStyle='rgba(255,225,120,.85)';ctx.beginPath();ctx.moveTo(gx-4.4,y-31);ctx.lineTo(gx-2,y-21);ctx.lineTo(gx+2,y-21);ctx.lineTo(gx+4.4,y-31);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(gx,y-20);ctx.lineTo(gx,y-15);ctx.stroke();
+    for(let b=0;b<3;b++){const bt=((now/900)+b/3+i/5)%1;ctx.fillStyle='rgba(255,255,255,'+(1-bt)*.8+')';ctx.beginPath();ctx.arc(gx+Math.sin(b*2+i)*2,y-22-bt*8,1.1,0,7);ctx.fill();}}
+  ctx.fillStyle='#ffd166';ctx.font='700 10px Fredoka';ctx.textAlign='center';ctx.fillText('CHAMPAGNER',x,y+20);
 }
 
 /* ---------------- CASINO-BESTENLISTE ---------------- */
@@ -1754,7 +1835,7 @@ $('invtoggle').onclick=()=>{const inv=$('pinv');const open=inv.style.display==='
   $('invtoggle').firstElementChild.textContent=open?'Inventar schließen':'Inventar öffnen';};
 
 /* ---------------- KARTE ---------------- */
-const ROOM_LIST=[{id:'deck',name:'Hauptdeck'},{id:'obs',name:'Aussichtsdeck'},{id:'casino',name:'Casino-Deck'}];
+const ROOM_LIST=[{id:'deck',name:'Hauptdeck'},{id:'obs',name:'Aussichtsdeck'},{id:'casino',name:'Casino-Deck'},{id:'vip',name:'VIP-Lounge'}];
 function buildMap(){const r=$('rooms');r.innerHTML='';
   ROOM_LIST.forEach(rm=>{const b=document.createElement('div');b.className='roombtn';
     const dot=document.createElement('div');dot.className='roomdot';dot.style.background=ROOMS[rm.id].accent;
@@ -1978,7 +2059,7 @@ $('holo').onclick=e=>{if(e.target.id==='holo')$('holo').style.display='none';};
 /* ---------------- SPIELAUTOMAT ---------------- */
 let slotLeverTarget=0,slotPending=null,slotLast=performance.now();
 function roundRect2(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath();}
-function openSlot(){$('slotbal').textContent=(me&&me.stardust)||0;$('slotmsg').textContent='Zieh am Hebel! 🍒🍋🍊';
+function openSlot(){$('slotbal').textContent=(me&&me.stardust)||0;$('slotmsg').textContent=myRoom()==='vip'?'💎 High-Roller-Automat – zieh am Hebel!':'Zieh am Hebel! 🍒🍋🍊';refreshSlotBets();
   if(!slotReels)slotReels=[0,1,2].map(()=>({pos:Math.random()*7,vel:0,state:'idle',landing:0,target:0,stopAt:0}));
   slotSpinning=false;slotLever=0;slotLeverTarget=0;slotWinFlash=0;slotPending=null;
   const c=$('slotCanvas'),dpr=Math.min(devicePixelRatio||1,3);c.width=360*dpr;c.height=480*dpr;slotG=c.getContext('2d');slotG.setTransform(dpr,0,0,dpr,0,0);
@@ -2046,7 +2127,18 @@ function drawSlotMachine(){const g=slotG,now=performance.now();g.clearRect(0,0,3
 $('slotclose').onclick=closeSlot;
 $('slot').onclick=e=>{if(e.target.id==='slot')closeSlot();};
 $('slotCanvas').addEventListener('pointerdown',e=>{const c=$('slotCanvas'),r=c.getBoundingClientRect();const px=(e.clientX-r.left)*(360/r.width);if(px>316)slotPull();});
-document.querySelectorAll('.betb').forEach(b=>b.onclick=()=>{slotBet=+b.dataset.bet;document.querySelectorAll('.betb').forEach(x=>x.classList.remove('on'));b.classList.add('on');});
+const VIP_BETS=[5000,10000,25000];
+function buildBets(containerId,cls,vip,cur,setter){
+  const el=$(containerId);if(!el)return cur;
+  const list=vip?VIP_BETS:[100,500,1000];
+  if(!list.includes(cur))cur=list[0];
+  el.innerHTML='<span style="color:'+(vip?'#d99a1f':'#8a76c4')+';font-weight:600;font-size:12px">'+(vip?'💎 VIP-Einsatz':'Einsatz')+'</span>';
+  list.forEach(v=>{const b=document.createElement('button');b.className=cls+(v===cur?' on':'');b.dataset.bet=v;b.textContent=v;
+    b.onclick=()=>{setter(v);el.querySelectorAll('.'+cls).forEach(x=>x.classList.remove('on'));b.classList.add('on');};
+    el.appendChild(b);});
+  return cur;}
+function refreshSlotBets(){slotBet=buildBets('slotbets','betb',myRoom()==='vip',slotBet,v=>slotBet=v);}
+function refreshBjBets(vip){bjBet=buildBets('bjbets','bjbet',vip,bjBet,v=>bjBet=v);}
 
 /* ---------------- WELTRAUM-MINISPIEL ---------------- */
 function drawShipParked(x,y){const now=performance.now();
