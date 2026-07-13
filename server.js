@@ -91,6 +91,11 @@ function ownedSet(str) { return new Set(String(str || '').split(',').filter(Bool
 // ---- Slot Machine (Nickusch Industries) ----
 const SLOT_SYMS = [ {i:0,w:26,three:8}, {i:1,w:22,three:10}, {i:2,w:18,three:12}, {i:3,w:14,three:15}, {i:4,w:10,three:25}, {i:5,w:6,three:50}, {i:6,w:4,three:100} ];
 const SLOT_BETS = [100, 500, 1000];
+// ---- VIP ----
+const VIP_LEVEL = 10;
+const SLOT_BETS_VIP = [5000, 10000, 25000];
+const BJ_BETS_VIP = [5000, 10000, 25000];
+function isVip(me) { return me && me.room === 'vip' && xpLevel(me.xp || 0) >= VIP_LEVEL; }
 const WHEEL_VALUES = [50, 100, 200, 500, 100, 300, 1000, 2000];
 const WHEEL_WEIGHTS = [30, 24, 16, 8, 24, 12, 4, 2];
 const WHEEL_DAY = 24 * 3600 * 1000;
@@ -198,7 +203,7 @@ const PLANETS = [
   { id:'cryonis',   name:'Cryonis',   minLevel:5,  theme:'ice'     },
   { id:'magmara',   name:'Magmara',   minLevel:12, theme:'lava'    }
 ];
-const ROOM_IDS = new Set(['deck', 'obs', 'casino'].concat(PLANETS.map(p => p.id)));
+const ROOM_IDS = new Set(['deck', 'obs', 'casino', 'vip'].concat(PLANETS.map(p => p.id)));
 const clamp = (v,a,b) => v<a?a:v>b?b:v;
 
 const players = {}; // socket.id -> Spielerzustand (nur fuer aktive Sitzung)
@@ -258,7 +263,8 @@ io.on('connection', (socket) => {
     if (!ROOM_IDS.has(target)) return;
     const planet = PLANETS.find(p => p.id === target);
     if (planet && xpLevel(me.xp) < planet.minLevel) { socket.emit('planet-locked', { minLevel: planet.minLevel }); return; }
-    if (me.bjTable != null && target !== 'casino') bjLeave(socket);
+    if (target === 'vip' && xpLevel(me.xp || 0) < VIP_LEVEL) { socket.emit('vip-locked', { minLevel: VIP_LEVEL }); return; }
+    if (me.bjTable != null && target !== 'casino' && target !== 'vip') bjLeave(socket);
     me.room = target;
     me.x = +m.x || me.x; me.y = +m.y || me.y;
     io.emit('player-room', { id: socket.id, room: me.room, x: me.x, y: me.y });
@@ -308,7 +314,8 @@ io.on('connection', (socket) => {
   socket.on('slot-spin', async (d) => {
     const me = players[socket.id]; if (!me) return;
     const bet = +d.bet;
-    if (!SLOT_BETS.includes(bet)) { socket.emit('slot-result', { ok:false, text:'Ungültiger Einsatz.' }); return; }
+    const slotOk = SLOT_BETS.includes(bet) || (SLOT_BETS_VIP.includes(bet) && isVip(me));
+    if (!slotOk) { socket.emit('slot-result', { ok:false, text:'Ungültiger Einsatz.' }); return; }
     if (me.stardust < bet) { socket.emit('slot-result', { ok:false, text:'Zu wenig Sternenstaub.' }); return; }
     const now = Date.now();
     if (now - (me.lastSlot || 0) < 1200) return; // Anti-Spam
@@ -368,9 +375,10 @@ io.on('connection', (socket) => {
 
   socket.on('bj-open', (d) => {
     const me = players[socket.id]; if (!me) return;
-    if (me.room !== 'casino') return;
     const t = +(d && d.table);
-    if (!(t >= 0 && t < 2)) return;
+    if (!(t >= 0 && t < 3)) return;
+    if (t === 2) { if (!isVip(me)) return; }        // VIP-Tisch nur im VIP-Raum ab Level 10
+    else if (me.room !== 'casino') return;
     me.bjTable = t; me.bj = null;
     socket.emit('bj-idle');
     bjBroadcastLive(socket, me);
@@ -390,7 +398,8 @@ io.on('connection', (socket) => {
     if (me.bjTable == null) return;
     if (me.bj && !me.bj.done) return; // laufende Hand
     const bet = +(d && d.bet);
-    if (!BJ_BETS.includes(bet)) { socket.emit('bj-state', { error: 'Ungültiger Einsatz.' }); return; }
+    const bjOk = BJ_BETS.includes(bet) || (BJ_BETS_VIP.includes(bet) && isVip(me));
+    if (!bjOk) { socket.emit('bj-state', { error: 'Ungültiger Einsatz.' }); return; }
     if (me.stardust < bet) { socket.emit('bj-state', { error: 'Zu wenig Sternenstaub.' }); return; }
     me.stardust -= bet;
     const deck = bjMakeDeck();
