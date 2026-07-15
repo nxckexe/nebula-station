@@ -86,6 +86,52 @@ const SHOP = [
   { id:'bg_matrix', type:'bg',  name:'Matrix',           price:30000, minLevel:10 },
   { id:'bg_rainbow',type:'bg',  name:'Regenbogen',       price:45000, minLevel:13 }
 ];
+// Emotes: 'wave' und 'dance' sind gratis, der Rest kaufbar
+const EMOTE_DEFS = {
+  wave:  { free:true },
+  dance: { free:true },
+  cheer: { free:false }, spin:  { free:false }, jump:  { free:false },
+  sit:   { free:false }, backflip:{ free:false }, heart: { free:false },
+  cry:   { free:false }, laugh: { free:false },
+  wobble:{ free:false }, facepalm:{ free:false }, clap:{ free:false }, angry:{ free:false },
+  sleep: { free:false }, roll:{ free:false }, moonwalk:{ free:false }, disco:{ free:false },
+  bow:   { free:false }, shrug:{ free:false }, think:{ free:false }, salute:{ free:false },
+  float: { free:false }, teleport:{ free:false }, breakdance:{ free:false }, rage:{ free:false }
+};
+const EMOTE_SHOP = [
+  { id:'em_cheer',    type:'emote', emote:'cheer',    name:'Jubeln',       price:1500,  minLevel:1 },
+  { id:'em_jump',     type:'emote', emote:'jump',     name:'Hüpfen',       price:2000,  minLevel:1 },
+  { id:'em_clap',     type:'emote', emote:'clap',     name:'Applaus',      price:2000,  minLevel:1 },
+  { id:'em_wobble',   type:'emote', emote:'wobble',   name:'Wackelpudding',price:2500,  minLevel:1 },
+  { id:'em_spin',     type:'emote', emote:'spin',     name:'Drehung',      price:3000,  minLevel:2 },
+  { id:'em_heart',    type:'emote', emote:'heart',    name:'Herzchen',     price:3500,  minLevel:2 },
+  { id:'em_angry',    type:'emote', emote:'angry',    name:'Wütend',       price:3500,  minLevel:2 },
+  { id:'em_laugh',    type:'emote', emote:'laugh',    name:'Lachanfall',   price:4000,  minLevel:3 },
+  { id:'em_cry',      type:'emote', emote:'cry',      name:'Heulen',       price:4000,  minLevel:3 },
+  { id:'em_facepalm', type:'emote', emote:'facepalm', name:'Facepalm',     price:4500,  minLevel:3 },
+  { id:'em_sit',      type:'emote', emote:'sit',      name:'Hinsetzen',    price:5000,  minLevel:4 },
+  { id:'em_sleep',    type:'emote', emote:'sleep',    name:'Schlafen',     price:5500,  minLevel:4 },
+  { id:'em_roll',     type:'emote', emote:'roll',     name:'Purzeln',      price:7000,  minLevel:5 },
+  { id:'em_moonwalk', type:'emote', emote:'moonwalk', name:'Moonwalk',     price:9000,  minLevel:5 },
+  { id:'em_backflip', type:'emote', emote:'backflip', name:'Rückwärtssalto',price:12000, minLevel:6 },
+  { id:'em_disco',    type:'emote', emote:'disco',    name:'Disco-Fieber', price:18000, minLevel:8 },
+  { id:'em_bow',      type:'emote', emote:'bow',      name:'Verbeugung',   price:2500,  minLevel:1 },
+  { id:'em_shrug',    type:'emote', emote:'shrug',    name:'Schulterzucken',price:3000,  minLevel:2 },
+  { id:'em_think',    type:'emote', emote:'think',    name:'Grübeln',      price:3500,  minLevel:2 },
+  { id:'em_salute',   type:'emote', emote:'salute',   name:'Salutieren',   price:4000,  minLevel:3 },
+  { id:'em_float',    type:'emote', emote:'float',    name:'Schweben',     price:6000,  minLevel:4 },
+  { id:'em_teleport', type:'emote', emote:'teleport', name:'Teleport',     price:9000,  minLevel:5 },
+  { id:'em_breakdance',type:'emote',emote:'breakdance',name:'Breakdance',  price:15000, minLevel:7 },
+  { id:'em_rage',     type:'emote', emote:'rage',     name:'Weltraum-Wut', price:22000, minLevel:9 }
+];
+SHOP.push(...EMOTE_SHOP);
+function emoteAllowed(me, name) {
+  const def = EMOTE_DEFS[name];
+  if (!def) return false;
+  if (def.free) return true;
+  const item = EMOTE_SHOP.find(e => e.emote === name);
+  return item ? ownedSet(me.owned).has(item.id) : false;
+}
 function ownedSet(str) { return new Set(String(str || '').split(',').filter(Boolean)); }
 
 // ---- Slot Machine (Nickusch Industries) ----
@@ -276,8 +322,11 @@ io.on('connection', (socket) => {
   });
 
   socket.on('emote', (e) => {
-    if (!players[socket.id]) return;
-    io.emit('player-emote', { id: socket.id, icon: String(e.icon || '').slice(0, 8), expr: String(e.expr || 'happy') });
+    const me = players[socket.id]; if (!me) return;
+    const name = String(e && e.name || '');
+    if (!emoteAllowed(me, name)) return;
+    me.emote = name; me.emoteAt = Date.now();
+    io.emit('player-emote', { id: socket.id, name, icon: String(e.icon || '').slice(0, 8), expr: String(e.expr || 'happy') });
   });
 
   socket.on('acc', async (a) => {
