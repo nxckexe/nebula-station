@@ -614,6 +614,7 @@ const EMOTE_LIST=[
   {name:'rage',  label:'Weltraum-Wut', icon:'🔥', item:'em_rage'}
 ];
 const EMOTE_DUR={wave:2.2,dance:3.4,cheer:2.4,jump:1.6,clap:2.2,wobble:2,spin:1.4,heart:2.6,angry:2.2,laugh:2.4,cry:2.8,facepalm:2.4,sit:4,sleep:4.5,roll:1.4,moonwalk:3,backflip:1.1,disco:4,bow:2,shrug:2.2,think:3,salute:2.4,float:4,teleport:1.6,breakdance:3.2,rage:3};
+const EMOTE_META={em_cheer:{price:1500,minLevel:1},em_jump:{price:2000,minLevel:1},em_clap:{price:2000,minLevel:1},em_wobble:{price:2500,minLevel:1},em_spin:{price:3000,minLevel:2},em_heart:{price:3500,minLevel:2},em_angry:{price:3500,minLevel:2},em_laugh:{price:4000,minLevel:3},em_cry:{price:4000,minLevel:3},em_facepalm:{price:4500,minLevel:3},em_sit:{price:5000,minLevel:4},em_sleep:{price:5500,minLevel:4},em_roll:{price:7000,minLevel:5},em_moonwalk:{price:9000,minLevel:5},em_backflip:{price:12000,minLevel:6},em_disco:{price:18000,minLevel:8},em_bow:{price:2500,minLevel:1},em_shrug:{price:3000,minLevel:2},em_think:{price:3500,minLevel:2},em_salute:{price:4000,minLevel:3},em_float:{price:6000,minLevel:4},em_teleport:{price:9000,minLevel:5},em_breakdance:{price:15000,minLevel:7},em_rage:{price:22000,minLevel:9}};
 function emoteOwned(name){const e=EMOTE_LIST.find(x=>x.name===name);if(!e)return false;if(e.free)return true;return myOwned.has(e.item);}
 function sendEmote(name){if(!emoteOwned(name))return;const e=EMOTE_LIST.find(x=>x.name===name);socket&&socket.emit('emote',{name,icon:e.icon});
   if(me){me.emote=name;me.emoteT=EMOTE_DUR[name]||2.2;me.emote0=me.emoteT;}}
@@ -2134,8 +2135,9 @@ function openShop(cat){if(cat){shopTab=cat;['acc','emote','bg'].forEach(t=>$('sh
 function renderShop(){$('shopcoins').textContent=(me&&me.stardust)||0;const list=$('shoplist');list.innerHTML='';
   let items=SHOP.filter(s=>s.type===shopTab);
   if(shopTab==='bg')items=[{id:'space',type:'bg',name:'Standard',price:0,minLevel:1,ico:'🪐',free:true}].concat(items);
-  if(shopTab==='emote'){const free=EMOTE_LIST.filter(e=>e.free).map(e=>({id:'free_'+e.name,type:'emote',emote:e.name,name:e.label,price:0,minLevel:1,ico:e.icon,free:true}));
-    items=free.concat(SHOP.filter(s=>s.type==='emote').map(s=>({...s,ico:(EMOTE_LIST.find(e=>e.item===s.id)||{}).icon||'🎭'})));}
+  if(shopTab==='emote'){
+    items=EMOTE_LIST.filter(e=>e.free).map(e=>({id:'free_'+e.name,type:'emote',emote:e.name,name:e.label,price:0,minLevel:1,ico:e.icon,free:true}))
+      .concat(EMOTE_LIST.filter(e=>!e.free).map(e=>({id:e.item,type:'emote',emote:e.name,name:e.label,ico:e.icon,price:(EMOTE_META[e.item]||{}).price||0,minLevel:(EMOTE_META[e.item]||{}).minLevel||1})));}
   items.forEach(it=>{const row=document.createElement('div');row.className='shopitem';
     const owned=it.free||myOwned.has(it.id);
     const equipped=(it.type==='acc'?(me&&me.acc===it.id):it.type==='bg'?myBg===it.id:false);
