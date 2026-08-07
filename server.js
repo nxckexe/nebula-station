@@ -759,6 +759,25 @@ function finalizeSpawn(socket, profile) {
     sitting: false, table: -1,
     room: 'deck', x: 520, y: 400, face: 1, lastCollect: 0, lastSave: 0
   };
+  // --- Doppelte Sitzung desselben Kontos aufräumen ---
+  // Bei Reconnect (Netzwechsel, Handy-Standby) bekommt der Spieler eine neue socket.id.
+  // Die alte Verbindung hängt evtl. noch -> sonst steht der Avatar doppelt in der Welt.
+  const prevId = online[socket.userId];
+  if (prevId && prevId !== socket.id) {
+    const prevSock = io.sockets.sockets.get(prevId);
+    if (prevSock) { try { bjLeave(prevSock); } catch (e) {} }
+    raceLeave(prevId);
+    c4LeaveHandler(prevId);
+    if (rou.bets[prevId]) delete rou.bets[prevId];
+    // erst aus der Welt nehmen, dann trennen -> die alte Sitzung löst keine
+    // "hat die Station verlassen"-Meldung mehr aus (Guthaben ist längst gespeichert)
+    delete players[prevId];
+    io.emit('player-left', prevId);
+    if (prevSock) {
+      try { prevSock.emit('session-replaced'); } catch (e) {}
+      try { prevSock.disconnect(true); } catch (e) {}
+    }
+  }
   players[socket.id] = me;
   online[socket.userId] = socket.id;
   socket.emit('spawn', {
