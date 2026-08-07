@@ -923,6 +923,9 @@ const RANK_KEY={Kadett:'rank_cadet',Pilot:'rank_pilot',Navigator:'rank_navigator
 function rankLabel(rankDe){return t(RANK_KEY[rankDe]||'rank_cadet');}
 
 let mode='login';
+function toHalfWidth(str){ // Wandelt Vollbreite-Zeichen (全角) in normale ASCII-Zeichen um – wichtig, falls die IME beim Tippen auf Japanisch stand
+  return String(str||'').replace(/[\uFF01-\uFF5E]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/\u3000/g,' ').trim();
+}
 function showAuth(msg){$('auth').style.display='flex';$('intro').style.display='none';if(msg)$('autherr').textContent=msg;}
 function setMode(m){mode=m;$('tabLogin').classList.toggle('on',m==='login');$('tabReg').classList.toggle('on',m==='reg');
   $('uname').style.display=m==='reg'?'block':'none';$('authBtn').textContent=t(m==='reg'?'auth_btn_register':'auth_btn_login');$('autherr').textContent='';}
@@ -943,12 +946,12 @@ async function initAuth(){
 }
 async function doAuth(){
   $('autherr').textContent='';
-  const email=$('email').value.trim(),pass=$('pass').value;
+  const email=toHalfWidth($('email').value),pass=toHalfWidth($('pass').value);
   if(!email||!pass){$('autherr').textContent=t('err_need_email_pass');return;}
   $('authBtn').disabled=true;
   try{
     if(mode==='reg'){
-      const username=($('uname').value.trim())||'Alien';
+      const username=toHalfWidth($('uname').value)||'Alien';
       const {data,error}=await supabase.auth.signUp({email,password:pass,options:{data:{username}}});
       if(error)throw error;
       if(data.session){connectGame(data.session.access_token);}
@@ -2286,7 +2289,7 @@ function sendDM(){const t=$('dminput').value.trim();if(!t||!dmWith||!socket)retu
 $('friendsBtn').onclick=openFriends;
 $('fclose').onclick=()=>$('friends').style.display='none';
 $('friends').onclick=e=>{if(e.target.id==='friends')$('friends').style.display='none';};
-$('faddbtn').onclick=()=>{const u=$('faddinput').value.trim();if(u&&socket){socket.emit('friend-add',{username:u});$('faddinput').value='';}};
+$('faddbtn').onclick=()=>{const u=toHalfWidth($('faddinput').value);if(u&&socket){socket.emit('friend-add',{username:u});$('faddinput').value='';}};
 $('faddinput').addEventListener('keydown',e=>{if(e.key==='Enter')$('faddbtn').click();});
 $('dmclose').onclick=()=>{$('dm').style.display='none';dmWith=null;};
 $('dm').onclick=e=>{if(e.target.id==='dm'){$('dm').style.display='none';dmWith=null;}};
