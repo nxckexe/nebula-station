@@ -79,6 +79,12 @@
   .helppay td{padding:3px 6px;border-bottom:1px solid #eee4ff;font-weight:600;color:var(--ink)}
   .helppay td:last-child{text-align:right;color:var(--grape);font-weight:800}
   .helptip{background:#fff6dd;border:2px solid var(--ink);border-radius:10px;padding:8px 10px;font-size:12px;font-weight:600;color:var(--ink);margin-top:10px}
+  .racecard{width:392px;max-width:96vw;text-align:center}
+  .racehead{font-weight:800;font-size:18px;color:var(--grape);margin-bottom:8px}
+  #raceCanvas{position:static;inset:auto;background:#08201a;border:4px solid var(--ink);border-radius:16px;width:360px;height:440px;max-width:100%;display:block;margin:0 auto;touch-action:none;cursor:pointer}
+  .racemsg{font-weight:700;font-size:14px;color:var(--ink);margin-top:8px;min-height:20px}
+  .racefoot{font-size:12px;font-weight:600;color:#8a76c4;margin-top:4px;min-height:18px}
+  .racerow{display:flex;justify-content:space-between;gap:8px;font-size:13px;font-weight:700;padding:3px 6px;border-bottom:1px solid #eee4ff}
   .phead{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:10px}
   #pcanvas{position:static;inset:auto;background:#e7dcff;border:3px solid var(--ink);border-radius:16px;flex:0 0 auto;width:150px;height:170px}
   .pmeta{display:flex;flex-direction:column;align-items:center;gap:6px}
@@ -573,6 +579,18 @@
   </div>
 </div>
 
+<!-- Meteoriten-Rennen -->
+<div id="race" class="pmodal" style="display:none">
+  <div class="pcard racecard">
+    <button class="pclose" id="raceclose">✕</button>
+    <button class="pinfo" id="raceinfo">ℹ</button>
+    <div id="racehead" class="racehead">🛷 <span data-i18n="race_title">Meteoriten-Rennen</span></div>
+    <canvas id="raceCanvas" width="360" height="440"></canvas>
+    <div id="racemsg" class="racemsg"></div>
+    <div id="racefoot" class="racefoot"></div>
+  </div>
+</div>
+
 <!-- Spielanleitung -->
 <div id="help" class="pmodal" style="display:none">
   <div class="pcard helpcard">
@@ -908,6 +926,13 @@ const I18N={
   slot_good_luck:'Viel Glück…',slot_no_luck:'Kein Glück – nochmal? 🍀',bj_hit_or_stand:'Ziehen oder halten?',canvas_table_prefix:'TISCH ',canvas_flight_capsule:'FLUG-KAPSEL',msg_going_to_capsule:'Du gehst zur Flug-Kapsel…',
   bj_more_players:'+{n} weitere Spieler',holo_explore:'erkunden →',holo_locked:'🔒 ab Level {level}',label_vip_bet:'💎 VIP-Einsatz',
   c4_tie:'Unentschieden!',c4_opp_forfeit:'Gegner hat aufgegeben – ',c4_win_msg:'Gewonnen! +25 ✦',
+  race_title:'Meteoriten-Rennen',race_pad_label:'🛷 RENNEN',
+  race_waiting:'Trete dem Rennen bei…',race_lobby:'Warte auf Mitfahrer… {n}/{need}',
+  race_busy:'Gerade läuft ein Rennen – gleich nochmal versuchen!',race_cancel:'Zu wenig Mitfahrer – Rennen abgesagt.',
+  race_get_ready:'Fertig machen!',race_go:'LOS! Weich den Meteoriten aus!',race_finish:'ZIEL',
+  race_controls:'Ziehen oder ← → zum Lenken',
+  race_you_finished:'Im Ziel – Platz {place}!',race_result_you:'Platz {place} · +{coins} Sternenstaub',
+  race_won_title:'Rennen gewonnen!',sys_race_win:'🛷 {name} gewinnt das Meteoriten-Rennen auf Verdiania!',
  },
  ja:{
   auth_sub:'ドッキングするにはログインしてね',tab_login:'ログイン',tab_register:'新規登録',
@@ -992,6 +1017,13 @@ const I18N={
   slot_good_luck:'幸運を祈って…',slot_no_luck:'残念 – もう一回？🍀',bj_hit_or_stand:'ヒットする？スタンドする？',canvas_table_prefix:'テーブル ',canvas_flight_capsule:'フライトカプセル',msg_going_to_capsule:'フライトカプセルへ向かっているよ…',
   bj_more_players:'+{n} 人のプレイヤー',holo_explore:'探検する →',holo_locked:'🔒 レベル{level}から',label_vip_bet:'💎 VIPベット',
   c4_tie:'引き分け！',c4_opp_forfeit:'相手が降参した – ',c4_win_msg:'勝利！+25 ✦',
+  race_title:'メテオレース',race_pad_label:'🛷 レース',
+  race_waiting:'レースに参加中…',race_lobby:'参加者を待っています… {n}/{need}',
+  race_busy:'今レース中です – 少し待ってからもう一度！',race_cancel:'参加者が足りません – レース中止。',
+  race_get_ready:'準備して！',race_go:'スタート！隕石をよけろ！',race_finish:'ゴール',
+  race_controls:'ドラッグ または ← → で操作',
+  race_you_finished:'ゴール – {place}位！',race_result_you:'{place}位 · +{coins} スターダスト',
+  race_won_title:'レース優勝！',sys_race_win:'🛷 {name}がヴェルディアニアのメテオレースで優勝！',
  }
 };
 function t(key,params){let s=(I18N[LANG]&&I18N[LANG][key])!=null?I18N[LANG][key]:(I18N.de[key]!=null?I18N.de[key]:key);
@@ -1145,6 +1177,24 @@ function wireSocket(){
   socket.on('casino-leaderboard-data',d=>{casinoTop=d.rows||[];casinoFeed=d.feed||[];if($('clb').style.display!=='none')renderCasinoBoard();});
   socket.on('casino-best',d=>{myCasinoBest=d.best||0;myCasinoGame=d.game||null;});
   socket.on('casino-feed',d=>{casinoFeed=d.rows||[];if($('clb').style.display!=='none')renderCasinoBoard();});
+  socket.on('race-joined',d=>{$('racemsg').textContent=t('race_waiting');});
+  socket.on('race-lobby',s=>{raceState=s;
+    $('racemsg').textContent=t('race_lobby',{n:s.players.length,need:3});
+    $('racefoot').textContent=s.players.map(p=>p.name).join(' · ');});
+  socket.on('race-busy',()=>{$('racemsg').textContent=t('race_busy');
+    setTimeout(()=>{if($('race').style.display!=='none')closeRace();},2400);});
+  socket.on('race-cancel',()=>{$('racemsg').textContent=t('race_cancel');
+    setTimeout(()=>{if($('race').style.display!=='none')closeRace();},2400);});
+  socket.on('race-start',d=>{raceTrack=d.track;raceState=d.state;raceGoAt=Date.now()+d.countdown;
+    raceMyX=RACE_W/2;$('racemsg').textContent=t('race_get_ready');$('racefoot').textContent=t('race_controls');});
+  socket.on('race-go',d=>{raceState=d.state;$('racemsg').textContent=t('race_go');});
+  socket.on('race-state',s=>{raceState=s;});
+  socket.on('race-finished',d=>{if(d.id===myId)$('racemsg').textContent=t('race_you_finished',{place:d.place});});
+  socket.on('race-result',d=>{raceResults=d.results;
+    const mine=d.results.find(r=>r.id===myId);
+    if(mine){$('racemsg').textContent=t('race_result_you',{place:mine.place,coins:mine.coins});
+      if(mine.place===1)showPopup('🏆',t('race_won_title'),t('amount_stardust',{amount:mine.coins}),'gold');}
+    $('racefoot').innerHTML=d.results.map(r=>'<div class="racerow"><span style="color:'+(r.color||'#333')+'">#'+r.place+' '+esc(r.name)+'</span><span>+'+r.coins+' ✦</span></div>').join('');});
   socket.on('roul-state',s=>{const prev=rouState;rouState=s;
     if(!prev||prev.round!==s.round){rouMyBets=[];renderRouMine();}
     if(s.phase==='bet'&&$('roul').style.display!=='none'&&(!prev||prev.phase!=='bet'))$('roulmsg').textContent='Neue Runde – setze deine Chips!';
@@ -1246,6 +1296,7 @@ cv.addEventListener('pointermove',e=>{
     if(!h&&bjTableHit(VIP_BJ,p))h={kind:'bjtable',obj:VIP_BJ};}
   if(!h&&ROOMS[rid]){const dd=ROOMS[rid].deco.find(d=>Math.hypot(d.x-p.x,d.y-p.y)<36);if(dd)h={kind:'deco',obj:dd};}
   if(!h&&PLANETS[rid]&&planetScene){if(Math.hypot(planetScene.portal.x-p.x,planetScene.portal.y-p.y)<42)h={kind:'portal'};
+    if(!h&&planetScene.racePad&&Math.abs(p.x-planetScene.racePad.x)<70&&Math.abs(p.y-planetScene.racePad.y)<58)h={kind:'racepad'};
     else{const c=planetScene.crystals.find(c=>!c.got&&Math.hypot(c.x-p.x,c.y-p.y)<28);if(c)h={kind:'crystal',obj:c};}}
   if(!h){const q=Object.values(players).filter(q=>q.room===rid&&q.id!==myId).find(q=>Math.hypot(q.x-p.x,q.y-p.y)<26);if(q)h={kind:'player',obj:q};}
   hover=h;cv.style.cursor=h?'pointer':'default';
@@ -1275,7 +1326,9 @@ function update(dt,now){
     for(const o of orbs){o.t+=dt*3;if(me.room==='deck'&&Math.hypot(me.x-o.x,me.y-o.y)<38){socket&&socket.emit('collect');Object.assign(o,randOrb());}}
     if(PLANETS[me.room]&&planetScene){
       for(const c of planetScene.crystals){c.t+=dt*3;if(!c.got&&Math.hypot(me.x-c.x,me.y-c.y)<34){c.got=true;socket&&socket.emit('crystal');}}
-      const pt=planetScene.portal;if(Math.hypot(me.x-pt.x,me.y-pt.y)<42)goToRoom('deck');}
+      const pt=planetScene.portal;if(Math.hypot(me.x-pt.x,me.y-pt.y)<42)goToRoom('deck');
+      const rp=planetScene.racePad;
+      if(rp&&$('race').style.display==='none'&&Math.abs(me.x-rp.x)<58&&Math.abs(me.y-rp.y)<40)openRace();}
     if(now-lastSent>66){socket&&socket.emit('move',{x:me.x,y:me.y,face:me.face});lastSent=now;}}
   for(const id in players){const e=players[id];
     if(e.bubbleT>0){e.bubbleT-=dt;if(e.bubbleT<=0)e.bubble=null;}
@@ -1324,7 +1377,7 @@ function render(){const r=cv.parentElement.getBoundingClientRect();ctx.clearRect
 
 /* ---------------- PLANETEN ---------------- */
 let planetStars=null;
-function genPlanet(id){const pl=PLANETS[id];planetScene={scenery:[],crystals:[],portal:{x:pl.w/2,y:pl.h-80}};
+function genPlanet(id){const pl=PLANETS[id];planetScene={scenery:[],crystals:[],portal:{x:pl.w/2,y:pl.h-80},racePad:id==='verdiania'?{x:pl.w*0.22,y:pl.h-150}:null};
   const gy=pl.h*0.5;
   for(let i=0;i<44;i++)planetScene.scenery.push({x:50+Math.random()*(pl.w-100),y:gy+20+Math.random()*(pl.h-gy-60),t:Math.random()<0.5?'rock':'flora',s:0.7+Math.random()*0.9});
   planetScene.scenery.sort((a,b)=>a.y-b.y);
@@ -1344,7 +1397,8 @@ function renderPlanet(id){const pl=PLANETS[id],gy=pl.h*0.5;
   ctx.fillStyle=pl.ground2;for(let x=40;x<pl.w;x+=90)for(let y=gy+80;y<pl.h-20;y+=80){ctx.beginPath();ctx.arc(x,y,4,0,7);ctx.fill();}
   if(planetScene){for(const s of planetScene.scenery)drawPlanetProp(s,pl);
     for(const c of planetScene.crystals)if(!c.got){if(hoveredIs('crystal',c))drawHovered(c.x,c.y,()=>drawCrystal(c));else drawCrystal(c);}
-    if(hoveredIs('portal'))drawHovered(planetScene.portal.x,planetScene.portal.y,()=>drawPortal(planetScene.portal));else drawPortal(planetScene.portal);}
+    if(hoveredIs('portal'))drawHovered(planetScene.portal.x,planetScene.portal.y,()=>drawPortal(planetScene.portal));else drawPortal(planetScene.portal);
+    if(planetScene.racePad){const rp=planetScene.racePad;if(hoveredIs('racepad'))drawHovered(rp.x,rp.y,()=>drawRacePad(rp));else drawRacePad(rp);}}
 }
 function drawPlanetProp(s,pl){const x=s.x,y=s.y,sc=s.s;ctx.strokeStyle=INK;ctx.lineWidth=3;
   if(s.t==='rock'){ctx.fillStyle='#5b5570';ctx.beginPath();ctx.ellipse(x,y,16*sc,11*sc,0,0,7);ctx.fill();ctx.stroke();
@@ -1827,6 +1881,152 @@ function drawHallBoard(x,y){const now=performance.now();
   ctx.textAlign='center';ctx.fillStyle='#ffd166';ctx.font='700 8px Fredoka';ctx.fillText(t('canvas_click_details'),x,y+36);
 }
 
+/* ---------------- METEORITEN-RENNEN ---------------- */
+const RACE_W=900;
+let raceState=null,raceTrack=null,raceG=null,raceRAF=null,raceMyX=RACE_W/2,raceResults=null,raceCam=0,raceGoAt=0;
+function drawRacePad(o){const now=performance.now();
+  // Schattenfläche
+  ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.ellipse(o.x,o.y+30,72,20,0,0,7);ctx.fill();
+  // Rampe
+  ctx.fillStyle='#2b1b52';ctx.strokeStyle='#7be0b0';ctx.lineWidth=4;
+  roundRect(o.x-64,o.y-14,128,44,12);ctx.fill();ctx.stroke();
+  // Streifen
+  for(let i=0;i<6;i++){ctx.fillStyle=i%2?'#7be0b0':'#0f4d33';ctx.fillRect(o.x-58+i*19,o.y-8,17,32);}
+  // Bogen
+  ctx.strokeStyle='#7be0b0';ctx.lineWidth=6;ctx.beginPath();ctx.arc(o.x,o.y-14,58,Math.PI,0);ctx.stroke();
+  for(let i=0;i<7;i++){const a=Math.PI+i*(Math.PI/6);
+    ctx.fillStyle=Math.sin(now/220+i)>0?'#d8fff0':'#3aa87a';
+    ctx.beginPath();ctx.arc(o.x+Math.cos(a)*58,o.y-14+Math.sin(a)*58,3.4,0,7);ctx.fill();}
+  // Schild
+  ctx.font='800 13px Fredoka';ctx.textAlign='center';
+  const lbl=t('race_pad_label'),tw=ctx.measureText(lbl).width;
+  ctx.fillStyle='#08201a';ctx.strokeStyle='#7be0b0';ctx.lineWidth=3;roundRect(o.x-tw/2-10,o.y-92,tw+20,24,10);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#7be0b0';ctx.fillText(lbl,o.x,o.y-75);
+  // Meteor-Deko
+  const mt=(now/1600)%1;
+  ctx.fillStyle='#ff9e64';ctx.globalAlpha=1-mt*0.6;
+  ctx.beginPath();ctx.arc(o.x+40-mt*70,o.y-120+mt*60,5,0,7);ctx.fill();ctx.globalAlpha=1;
+}
+function openRace(){$('race').style.display='flex';locked=true;
+  const c=$('raceCanvas'),dpr=Math.min(devicePixelRatio||1,3);
+  c.width=360*dpr;c.height=440*dpr;raceG=c.getContext('2d');raceG.setTransform(dpr,0,0,dpr,0,0);
+  raceResults=null;raceState=null;raceTrack=null;raceCam=0;
+  $('racemsg').textContent=t('race_waiting');$('racefoot').textContent='';
+  socket&&socket.emit('race-join');
+  if(!raceRAF)raceLoop();}
+function closeRace(){socket&&socket.emit('race-leave');$('race').style.display='none';
+  if(raceRAF)cancelAnimationFrame(raceRAF);raceRAF=null;locked=false;raceState=null;raceResults=null;}
+$('raceclose').onclick=closeRace;
+$('race').onclick=e=>{if(e.target.id==='race')closeRace();};
+$('raceinfo').onclick=e=>{e.stopPropagation();openHelp('race');};
+// Steuerung: Ziehen/Tippen auf dem Canvas bestimmt die Zielspur
+function raceSteer(clientX){
+  const c=$('raceCanvas'),r=c.getBoundingClientRect();
+  const rel=(clientX-r.left)/r.width;           // 0..1
+  raceMyX=Math.max(30,Math.min(RACE_W-30,rel*RACE_W));
+  socket&&socket.emit('race-move',{x:raceMyX});
+}
+(function(){const c=$('raceCanvas');let down=false;
+  c.addEventListener('pointerdown',e=>{down=true;raceSteer(e.clientX);e.preventDefault();});
+  c.addEventListener('pointermove',e=>{if(down)raceSteer(e.clientX);});
+  addEventListener('pointerup',()=>{down=false;});
+  addEventListener('keydown',e=>{
+    if($('race').style.display==='none')return;
+    if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A'){raceMyX=Math.max(30,raceMyX-70);socket&&socket.emit('race-move',{x:raceMyX});}
+    if(e.key==='ArrowRight'||e.key==='d'||e.key==='D'){raceMyX=Math.min(RACE_W-30,raceMyX+70);socket&&socket.emit('race-move',{x:raceMyX});}
+  });
+})();
+function drawRaceCanvas(){const g=raceG;if(!g)return;
+  const CW2=360,CH2=440,sc=CW2/RACE_W;   // Bahn auf Canvas-Breite skalieren
+  g.clearRect(0,0,CW2,CH2);
+  // Hintergrund (Weltraum über dem Planeten)
+  const bg=g.createLinearGradient(0,0,0,CH2);bg.addColorStop(0,'#0c3322');bg.addColorStop(1,'#04120d');
+  g.fillStyle=bg;g.fillRect(0,0,CW2,CH2);
+  const meP=raceState&&raceState.players.find(p=>p.id===myId);
+  const myY=meP?meP.y:0;
+  raceCam+=((myY-140/sc)-raceCam)*0.25;   // Kamera folgt weich
+  const camY=raceCam;
+  const toY=wy=>(wy-camY)*sc;
+  // Sterne
+  for(let i=0;i<40;i++){const sy=((i*137+ (camY*0.3))%CH2);
+    g.fillStyle='rgba(200,255,230,'+(0.2+0.3*Math.sin(i))+')';g.fillRect((i*97)%CW2,CH2-sy,1.6,1.6);}
+  // Bahnränder
+  g.strokeStyle='rgba(123,224,176,.35)';g.lineWidth=3;
+  g.beginPath();g.moveTo(2,0);g.lineTo(2,CH2);g.moveTo(CW2-2,0);g.lineTo(CW2-2,CH2);g.stroke();
+  // Ziellinie
+  if(raceState){const fy=toY(raceState.len);
+    if(fy>-20&&fy<CH2+20){for(let i=0;i<12;i++){g.fillStyle=i%2?'#fff':'#2b1b52';g.fillRect(i*30,fy-8,30,16);}
+      g.fillStyle='#7be0b0';g.font='800 13px Fredoka';g.textAlign='center';g.fillText(t('race_finish'),CW2/2,fy-16);}}
+  // Boosts
+  if(raceTrack)for(const b of raceTrack.boosts){const by=toY(b.y);if(by<-30||by>CH2+30)continue;
+    const pulse=0.7+0.3*Math.sin(performance.now()/180+b.x);
+    const R=b.r*sc;
+    // Glühen
+    g.fillStyle='rgba(123,224,176,'+(0.28*pulse)+')';g.beginPath();g.arc(b.x*sc,by,R*2.1,0,7);g.fill();
+    // Ring (offen, damit man durchfliegt)
+    g.strokeStyle='#7be0b0';g.lineWidth=4;g.beginPath();g.arc(b.x*sc,by,R,0,7);g.stroke();
+    g.strokeStyle='rgba(255,255,255,'+(0.5*pulse)+')';g.lineWidth=1.5;g.beginPath();g.arc(b.x*sc,by,R-3,0,7);g.stroke();
+    // Pfeil nach oben
+    g.fillStyle='#d8fff0';g.beginPath();
+    g.moveTo(b.x*sc,by-R*0.5);g.lineTo(b.x*sc-R*0.42,by+R*0.18);g.lineTo(b.x*sc-R*0.16,by+R*0.18);
+    g.lineTo(b.x*sc-R*0.16,by+R*0.5);g.lineTo(b.x*sc+R*0.16,by+R*0.5);g.lineTo(b.x*sc+R*0.16,by+R*0.18);
+    g.lineTo(b.x*sc+R*0.42,by+R*0.18);g.closePath();g.fill();}
+  // Meteoriten
+  if(raceTrack)for(const o of raceTrack.obstacles){const oy=toY(o.y);if(oy<-40||oy>CH2+40)continue;
+    const rr=o.r*sc;
+    g.fillStyle='#5a3a2a';g.strokeStyle='#2b1b52';g.lineWidth=2.5;
+    g.beginPath();g.arc(o.x*sc,oy,rr,0,7);g.fill();g.stroke();
+    g.fillStyle='#7a5240';g.beginPath();g.arc(o.x*sc-rr*0.25,oy-rr*0.25,rr*0.45,0,7);g.fill();
+    g.fillStyle='#3f2718';g.beginPath();g.arc(o.x*sc+rr*0.3,oy+rr*0.2,rr*0.22,0,7);g.fill();}
+  // Spieler
+  if(raceState)for(const p of raceState.players){
+    const py=toY(p.y),px=p.x*sc;
+    if(py<-40||py>CH2+40)continue;
+    const own=p.id===myId;
+    // Boost-Flamme (hinten = unten, da wir nach oben fliegen)
+    if(p.boost){const fl=14+Math.random()*10;
+      g.fillStyle='rgba(255,209,102,.85)';g.beginPath();
+      g.moveTo(px-7,py+11);g.lineTo(px+7,py+11);g.lineTo(px,py+11+fl);g.closePath();g.fill();
+      g.fillStyle='rgba(255,120,60,.7)';g.beginPath();
+      g.moveTo(px-4,py+11);g.lineTo(px+4,py+11);g.lineTo(px,py+11+fl*0.6);g.closePath();g.fill();}
+    // Kapsel – Spitze nach oben (Fahrtrichtung)
+    g.fillStyle=p.color||'#4dd0ff';g.strokeStyle=own?'#fff':'#2b1b52';g.lineWidth=own?3:2.5;
+    g.beginPath();
+    g.moveTo(px,py-16);
+    g.quadraticCurveTo(px+11,py-4,px+9,py+12);
+    g.lineTo(px-9,py+12);
+    g.quadraticCurveTo(px-11,py-4,px,py-16);
+    g.closePath();g.fill();g.stroke();
+    // Flügel
+    g.fillStyle=own?'#fff':'#2b1b52';
+    g.beginPath();g.moveTo(px-9,py+4);g.lineTo(px-14,py+13);g.lineTo(px-9,py+12);g.closePath();g.fill();
+    g.beginPath();g.moveTo(px+9,py+4);g.lineTo(px+14,py+13);g.lineTo(px+9,py+12);g.closePath();g.fill();
+    // Kuppel
+    g.fillStyle='rgba(255,255,255,.6)';g.beginPath();g.ellipse(px,py-4,5.5,6,0,0,7);g.fill();
+    // Treffer-Blitz
+    if(p.hit){g.strokeStyle='#ff5ea8';g.lineWidth=2.5;g.beginPath();g.arc(px,py,20,0,7);g.stroke();}
+    // Name
+    g.font='700 10px Fredoka';g.textAlign='center';
+    g.fillStyle=own?'#ffd166':'#cfe6ff';g.fillText((p.name||'').slice(0,9),px,py-20);
+    if(p.done){g.fillStyle='#7be0b0';g.font='800 10px Fredoka';g.fillText('#'+p.place,px,py+30);}
+  }
+  // Fortschrittsleiste rechts
+  if(raceState){const bx=CW2-12;
+    g.fillStyle='rgba(255,255,255,.15)';g.fillRect(bx-3,20,6,CH2-40);
+    for(const p of raceState.players){const frac=Math.min(1,p.y/raceState.len);
+      const yy=20+(CH2-40)*frac;
+      g.fillStyle=p.color||'#4dd0ff';g.strokeStyle=p.id===myId?'#fff':'#2b1b52';g.lineWidth=1.5;
+      g.beginPath();g.arc(bx,yy,4.5,0,7);g.fill();g.stroke();}}
+  // Countdown
+  if(raceState&&raceState.phase==='countdown'){
+    const left=Math.max(0,Math.ceil((raceGoAt-Date.now())/1000));
+    g.fillStyle='rgba(0,0,0,.45)';g.fillRect(0,0,CW2,CH2);
+    g.fillStyle='#ffd166';g.font='800 64px Fredoka';g.textAlign='center';
+    g.fillText(left>0?String(left):'GO!',CW2/2,CH2/2+20);}
+}
+function raceLoop(){if($('race').style.display==='none'){raceRAF=null;return;}
+  drawRaceCanvas();raceRAF=requestAnimationFrame(raceLoop);}
+
 /* ---------------- SPIELANLEITUNGEN ---------------- */
 const HELP={
  slot:{
@@ -2040,6 +2240,62 @@ const HELP={
     <div class="helpsec"><h3>報酬</h3>
     <p>勝つと<b>25スターダスト</b>と<b>40 XP</b>がもらえます。勝利数はランキングに記録されます。</p></div>
     <div class="helptip">💡 相手が途中で退出した場合も、あなたの勝ちになります。</div>`}
+ },
+ race:{
+  de:{title:'🛷 Meteoriten-Rennen – Anleitung',body:`
+    <div class="helpsec"><h3>Worum geht's</h3>
+    <p>Bis zu <b>drei Spieler</b> rasen gleichzeitig durch einen Meteoritenschauer. Wer zuerst im Ziel ist, gewinnt. Ein Rennen dauert nur etwa <b>25 Sekunden</b>.</p></div>
+    <div class="helpsec"><h3>So startest du</h3>
+    <ul class="helplist">
+      <li>Geh auf dem grünen Planeten <b>Verdiania</b> zur Startrampe 🛷</li>
+      <li>Sobald drei Spieler warten, geht es sofort los</li>
+      <li>Sind nach 20 Sekunden erst zwei da, startet das Rennen trotzdem</li>
+    </ul></div>
+    <div class="helpsec"><h3>Steuerung</h3>
+    <ul class="helplist">
+      <li><b>Am Handy:</b> tippe und zieh nach links oder rechts</li>
+      <li><b>Am Computer:</b> Pfeiltasten ← → oder A und D</li>
+    </ul>
+    <p>Deine Kapsel fliegt von allein vorwärts – du lenkst nur zur Seite.</p></div>
+    <div class="helpsec"><h3>Auf der Strecke</h3>
+    <ul class="helplist">
+      <li>🪨 <b>Meteoriten</b> – triffst du einen, wirst du kurz stark ausgebremst</li>
+      <li>💚 <b>Boost-Ringe</b> – fliegst du hindurch, wirst du deutlich schneller</li>
+    </ul></div>
+    <div class="helpsec"><h3>Belohnung</h3>
+    <table class="helppay">
+      <tr><td>🥇 1. Platz</td><td>120 ✦ · 45 XP</td></tr>
+      <tr><td>🥈 2. Platz</td><td>60 ✦ · 25 XP</td></tr>
+      <tr><td>🥉 3. Platz</td><td>30 ✦ · 15 XP</td></tr>
+    </table></div>
+    <div class="helptip">💡 Rechts siehst du eine Leiste, die zeigt, wie weit alle sind. Die Boost-Ringe liegen oft neben Meteoriten – trau dich!</div>`},
+  ja:{title:'🛷 メテオレース – 遊び方',body:`
+    <div class="helpsec"><h3>どんなゲーム？</h3>
+    <p>最大<b>3人</b>が同時に隕石群を駆け抜けます。先にゴールした人が勝ち。1レースは約<b>25秒</b>です。</p></div>
+    <div class="helpsec"><h3>参加のしかた</h3>
+    <ul class="helplist">
+      <li>緑の惑星<b>ヴェルディアニア</b>のスタートランプ 🛷 へ行こう</li>
+      <li>3人そろえばすぐスタート</li>
+      <li>20秒たって2人だけでも、レースは始まります</li>
+    </ul></div>
+    <div class="helpsec"><h3>操作</h3>
+    <ul class="helplist">
+      <li><b>スマホ：</b>画面を左右にドラッグ</li>
+      <li><b>パソコン：</b>矢印キー ← → または A・D</li>
+    </ul>
+    <p>カプセルは自動で前に進みます。あなたは左右の操作だけ。</p></div>
+    <div class="helpsec"><h3>コース上のもの</h3>
+    <ul class="helplist">
+      <li>🪨 <b>隕石</b> – ぶつかると大きく減速します</li>
+      <li>💚 <b>ブーストリング</b> – くぐるとぐんと加速します</li>
+    </ul></div>
+    <div class="helpsec"><h3>報酬</h3>
+    <table class="helppay">
+      <tr><td>🥇 1位</td><td>120 ✦ · 45 XP</td></tr>
+      <tr><td>🥈 2位</td><td>60 ✦ · 25 XP</td></tr>
+      <tr><td>🥉 3位</td><td>30 ✦ · 15 XP</td></tr>
+    </table></div>
+    <div class="helptip">💡 右側のバーで全員の進み具合が見られます。ブーストリングは隕石のそばにあることが多い – 思い切って行こう！</div>`}
  },
  space:{
   de:{title:'🚀 Flug-Kapsel – Anleitung',body:`
