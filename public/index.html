@@ -38,7 +38,11 @@
   #chatin::placeholder{color:#9d8bd0}
   #send{background:var(--sky)}
   .overlay{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;overflow:auto;background:radial-gradient(1000px 560px at 50% 30%,#2a1e6b,var(--bg2) 75%)}
-  .card{width:min(360px,90vw);background:var(--cream);border:4px solid var(--ink);border-radius:26px;padding:22px;text-align:center;box-shadow:0 10px 0 var(--ink);margin:16px}
+  .card{width:min(360px,90vw);background:var(--cream);border:4px solid var(--ink);border-radius:26px;padding:22px;text-align:center;box-shadow:0 10px 0 var(--ink);margin:16px;position:relative}
+  .langsw{position:absolute;top:-14px;right:14px;display:flex;gap:6px;z-index:5}
+  .flagbtn{width:36px;height:36px;border-radius:50%;border:3px solid var(--ink);cursor:pointer;background:#fff;font-size:17px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 0 var(--ink);opacity:.55;transition:transform .12s,opacity .12s}
+  .flagbtn.on{opacity:1;transform:translateY(-2px);box-shadow:0 5px 0 var(--ink)}
+  .flagbtn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
   .card h1{font-size:28px;margin:0;color:var(--grape)}.card h1 b{color:var(--bubble)}
   .card p{color:#8a76c4;font-size:13px;margin:2px 0 16px;font-weight:500}
   .card label{display:block;text-align:left;font-size:13px;color:#8a76c4;margin:0 0 6px;font-weight:600}
@@ -223,12 +227,12 @@
     <div class="pill"><span class="orb-ico"></span><span id="orbs">0</span></div>
     <div class="pill" title="Level"><span id="lvl">Lv 1</span></div>
     <div class="pill"><span id="dot"></span><span id="online">0</span></div>
-    <button class="btn" id="shopBtn" title="Shop">🛒</button>
-    <button class="btn" id="mapBtn" title="Karte">🗺️</button>
-    <button class="btn" id="friendsBtn" title="Freunde" style="position:relative">👥<span id="freqbadge" class="freqbadge" style="display:none">0</span></button>
-    <button class="btn" id="meBtn" title="Mein Profil">🙂</button>
-    <button class="btn acc" id="accBtn" title="Accessoire">🎩</button>
-    <button class="btn" id="outBtn" title="Abmelden">⎋</button>
+    <button class="btn" id="shopBtn" title="Shop" data-i18n-title="title_shop">🛒</button>
+    <button class="btn" id="mapBtn" title="Karte" data-i18n-title="title_map">🗺️</button>
+    <button class="btn" id="friendsBtn" title="Freunde" data-i18n-title="title_friends" style="position:relative">👥<span id="freqbadge" class="freqbadge" style="display:none">0</span></button>
+    <button class="btn" id="meBtn" title="Mein Profil" data-i18n-title="title_profile">🙂</button>
+    <button class="btn acc" id="accBtn" title="Accessoire" data-i18n-title="title_acc">🎩</button>
+    <button class="btn" id="outBtn" title="Abmelden" data-i18n-title="title_logout">⎋</button>
   </div>
   <div id="stage">
     <canvas id="cv"></canvas>
@@ -238,38 +242,42 @@
   </div>
   <div id="emotes"></div>
   <div id="bar">
-    <input id="chatin" maxlength="120" placeholder="Sag was Nettes…" autocomplete="off">
-    <button class="btn" id="send">Senden</button>
+    <input id="chatin" maxlength="120" placeholder="Sag was Nettes…" data-i18n-ph="ph_chat" autocomplete="off">
+    <button class="btn" id="send" data-i18n="btn_send">Senden</button>
   </div>
 </div>
 
 <!-- Login / Registrieren -->
 <div id="auth" class="overlay" style="display:none">
   <div class="card">
-    <h1>Nebula<b>·</b>Station</h1>
-    <p id="authsub">Melde dich an, um anzudocken</p>
-    <div class="tabs">
-      <button id="tabLogin" class="tab on">Einloggen</button>
-      <button id="tabReg" class="tab">Registrieren</button>
+    <div class="langsw">
+      <button class="flagbtn" id="flagde" title="Deutsch">🇩🇪</button>
+      <button class="flagbtn" id="flagja" title="日本語">🇯🇵</button>
     </div>
-    <input id="email" class="inp" type="email" placeholder="E-Mail" autocomplete="email">
-    <input id="pass" class="inp" type="password" placeholder="Passwort (min. 6 Zeichen)" autocomplete="current-password">
-    <input id="uname" class="inp" placeholder="Spielername" maxlength="14" style="display:none">
+    <h1>Nebula<b>·</b>Station</h1>
+    <p id="authsub" data-i18n="auth_sub">Melde dich an, um anzudocken</p>
+    <div class="tabs">
+      <button id="tabLogin" class="tab on" data-i18n="tab_login">Einloggen</button>
+      <button id="tabReg" class="tab" data-i18n="tab_register">Registrieren</button>
+    </div>
+    <input id="email" class="inp" type="email" placeholder="E-Mail" data-i18n-ph="ph_email" autocomplete="email">
+    <input id="pass" class="inp" type="password" placeholder="Passwort (min. 6 Zeichen)" data-i18n-ph="ph_pass" autocomplete="current-password">
+    <input id="uname" class="inp" placeholder="Spielername" data-i18n-ph="ph_username" maxlength="14" style="display:none">
     <div id="autherr" class="err"></div>
-    <button id="authBtn" class="btn go">Einloggen</button>
+    <button id="authBtn" class="btn go" data-i18n="auth_btn_login">Einloggen</button>
   </div>
 </div>
 
 <!-- Alien-Auswahl (nur beim ersten Login) -->
 <div id="intro" class="overlay" style="display:none">
   <div class="card">
-    <h1>Willkommen!</h1>
-    <p id="introsub">Wähl dein Alien</p>
-    <label>Spezies</label>
+    <h1 data-i18n="welcome_title">Willkommen!</h1>
+    <p id="introsub" data-i18n="intro_sub">Wähl dein Alien</p>
+    <label data-i18n="label_species">Spezies</label>
     <div class="species" id="spc"></div>
-    <label>Farbe</label>
+    <label data-i18n="label_color">Farbe</label>
     <div class="swatches" id="sw"></div>
-    <button class="btn go" id="enter">Andocken</button>
+    <button class="btn go" id="enter" data-i18n="btn_enter">Andocken</button>
   </div>
 </div>
 
@@ -287,8 +295,8 @@
         <div class="pcoins"><span class="coinico"></span><span id="pcoins">0</span></div>
       </div>
     </div>
-    <button class="invtoggle" id="invtoggle"><span>Inventar öffnen</span><span class="invarrow" id="invarrow">▸</span></button>
-    <button class="invtoggle" id="pfriend" style="display:none;justify-content:center">➕ Freund hinzufügen</button>
+    <button class="invtoggle" id="invtoggle"><span data-i18n="inv_open">Inventar öffnen</span><span class="invarrow" id="invarrow">▸</span></button>
+    <button class="invtoggle" id="pfriend" style="display:none;justify-content:center" data-i18n="btn_add_friend">➕ Freund hinzufügen</button>
     <div class="pinv" id="pinv" style="display:none"></div>
   </div>
 </div>
@@ -297,8 +305,8 @@
 <div id="map" class="overlay" style="display:none">
   <div class="card mcard">
     <button class="pclose" id="mclose">✕</button>
-    <h1>Karte</h1>
-    <p>Wohin möchtest du?</p>
+    <h1 data-i18n="map_title">Karte</h1>
+    <p data-i18n="map_sub">Wohin möchtest du?</p>
     <div class="rooms" id="rooms"></div>
   </div>
 </div>
@@ -307,14 +315,14 @@
 <div id="friends" class="pmodal" style="display:none">
   <div class="pcard fcard">
     <button class="pclose" id="fclose">✕</button>
-    <h2 class="fh">👥 Freunde</h2>
+    <h2 class="fh" data-i18n="friends_title">👥 Freunde</h2>
     <div class="faddrow">
-      <input id="faddinput" class="finp" placeholder="Spielername…" maxlength="14" autocomplete="off">
-      <button class="btn" id="faddbtn">Anfrage</button>
+      <input id="faddinput" class="finp" placeholder="Spielername…" data-i18n-ph="ph_friend_name" maxlength="14" autocomplete="off">
+      <button class="btn" id="faddbtn" data-i18n="btn_request">Anfrage</button>
     </div>
     <div id="fmsg" class="fmsg"></div>
-    <div id="freqwrap" style="display:none"><div class="fsec">Anfragen</div><div id="freqs"></div></div>
-    <div class="fsec">Deine Freunde</div>
+    <div id="freqwrap" style="display:none"><div class="fsec" data-i18n="sec_requests">Anfragen</div><div id="freqs"></div></div>
+    <div class="fsec" data-i18n="sec_your_friends">Deine Freunde</div>
     <div id="flist"></div>
   </div>
 </div>
@@ -326,7 +334,7 @@
     <div class="dmhead" id="dmhead">Chat</div>
     <div class="dmlog" id="dmlog"></div>
     <div class="dmbar">
-      <input id="dminput" class="finp" placeholder="Nachricht…" maxlength="300" autocomplete="off">
+      <input id="dminput" class="finp" placeholder="Nachricht…" data-i18n-ph="ph_message" maxlength="300" autocomplete="off">
       <button class="btn" id="dmsend">➤</button>
     </div>
   </div>
@@ -346,9 +354,9 @@
 <div id="tele" class="pmodal" style="display:none">
   <div class="pcard telecard">
     <button class="pclose" id="teleclose">✕</button>
-    <div class="teletitle">🔭 Teleskop</div>
+    <div class="teletitle" data-i18n="tele_title">🔭 Teleskop</div>
     <canvas id="teleCanvas" width="320" height="220"></canvas>
-    <div class="teletext">Zieh mit der Maus, um den Himmel abzusuchen…</div>
+    <div class="teletext" data-i18n="tele_hint">Zieh mit der Maus, um den Himmel abzusuchen…</div>
   </div>
 </div>
 
@@ -356,12 +364,12 @@
 <div id="shop" class="pmodal" style="display:none">
   <div class="pcard shopcard">
     <button class="pclose" id="shopclose">✕</button>
-    <h2>🛒 Shop</h2>
-    <div class="shopsub"><span class="coinico"></span> <span id="shopcoins">0</span> Sternenstaub</div>
+    <h2 data-i18n="shop_title">🛒 Shop</h2>
+    <div class="shopsub"><span class="coinico"></span> <span id="shopcoins">0</span> <span data-i18n="shop_currency_suffix">Sternenstaub</span></div>
     <div class="shoptabs">
-      <button class="shoptab on" id="shoptabacc">Accessoires</button>
-      <button class="shoptab" id="shoptabemote">Emotes</button>
-      <button class="shoptab" id="shoptabbg">Hintergründe</button>
+      <button class="shoptab on" id="shoptabacc" data-i18n="tab_acc">Accessoires</button>
+      <button class="shoptab" id="shoptabemote" data-i18n="tab_emotes">Emotes</button>
+      <button class="shoptab" id="shoptabbg" data-i18n="tab_bg">Hintergründe</button>
     </div>
     <div class="shoplist" id="shoplist"></div>
   </div>
@@ -371,8 +379,8 @@
 <div id="holo" class="pmodal" style="display:none">
   <div class="pcard holocard">
     <button class="pclose" id="holoclose" style="border-color:var(--sky);color:var(--sky)">✕</button>
-    <h2>🌌 Sternkarte</h2>
-    <div class="holosub">Wähl einen Planeten zum Erkunden</div>
+    <h2 data-i18n="starmap_title">🌌 Sternkarte</h2>
+    <div class="holosub" data-i18n="starmap_sub">Wähl einen Planeten zum Erkunden</div>
     <div id="hololist"></div>
   </div>
 </div>
@@ -382,7 +390,7 @@
   <div class="spacewrap">
     <button class="pclose" id="spaceclose" style="top:0;right:0">✕</button>
     <canvas id="spaceCanvas" width="420" height="470"></canvas>
-    <div class="spacefoot" id="spacefoot">WASD / Pfeile zum Steuern</div>
+    <div class="spacefoot" id="spacefoot" data-i18n="space_controls">WASD / Pfeile zum Steuern</div>
   </div>
 </div>
 
@@ -394,13 +402,13 @@
     <div class="slotctrl">
       <div class="slotbal"><span class="coinico"></span> <span id="slotbal">0</span></div>
       <div class="slotbets" id="slotbets">
-        <span style="color:#8a76c4;font-weight:600;font-size:12px">Einsatz</span>
+        <span style="color:#8a76c4;font-weight:600;font-size:12px" data-i18n="label_bet">Einsatz</span>
         <button class="betb" data-bet="100">100</button>
         <button class="betb on" data-bet="500">500</button>
         <button class="betb" data-bet="1000">1000</button>
       </div>
     </div>
-    <div class="slotmsg" id="slotmsg">Zieh am Hebel! 🍒🍋🍊</div>
+    <div class="slotmsg" id="slotmsg" data-i18n="slot_default_msg">Zieh am Hebel! 🍒🍋🍊</div>
   </div>
 </div>
 
@@ -408,10 +416,10 @@
 <div id="c4menu" class="pmodal" style="display:none">
   <div class="pcard menucard">
     <button class="pclose" id="c4mclose">✕</button>
-    <h2>4 Gewinnt</h2>
+    <h2 data-i18n="c4_title">4 Gewinnt</h2>
     <div class="menusub" id="c4mtable">Tisch 1</div>
-    <button class="btn go" id="c4mplay">🎮 Spiel suchen</button>
-    <button class="btn go" id="c4mlb" style="background:var(--sun)">🏆 Bestenliste</button>
+    <button class="btn go" id="c4mplay" data-i18n="c4_find_game">🎮 Spiel suchen</button>
+    <button class="btn go" id="c4mlb" style="background:var(--sun)" data-i18n="c4_leaderboard">🏆 Bestenliste</button>
   </div>
 </div>
 
@@ -419,7 +427,7 @@
 <div id="lb" class="pmodal" style="display:none">
   <div class="pcard lbcard">
     <button class="pclose" id="lbclose">✕</button>
-    <h2>🏆 Bestenliste</h2>
+    <h2 data-i18n="lb_title">🏆 Bestenliste</h2>
     <div id="lblist"></div>
   </div>
 </div>
@@ -428,7 +436,7 @@
 <div id="sblb" class="pmodal" style="display:none">
   <div class="pcard lbcard">
     <button class="pclose" id="sblbclose">✕</button>
-    <h2>🚀 Flug-Rekorde</h2>
+    <h2 data-i18n="sblb_title">🚀 Flug-Rekorde</h2>
     <div id="sblblist"></div>
   </div>
 </div>
@@ -437,12 +445,12 @@
 <div id="wheel" class="pmodal" style="display:none">
   <div class="pcard" style="width:300px;max-width:94vw;display:flex;flex-direction:column;align-items:center;text-align:center">
     <button class="pclose" id="wheelclose">✕</button>
-    <h2 style="margin:0 0 4px;color:var(--grape);font-size:20px">🎡 Lucky Wheel</h2>
+    <h2 style="margin:0 0 4px;color:var(--grape);font-size:20px" data-i18n="wheel_title">🎡 Lucky Wheel</h2>
     <div id="wheelmsg" style="font-weight:600;color:var(--ink);margin:0 0 10px;min-height:20px">…</div>
     <div style="width:240px;height:256px;position:relative;flex:none">
       <canvas id="wheelCanvas" width="300" height="320" style="width:100%;height:100%;display:block"></canvas>
     </div>
-    <button class="btn go" id="wheelspin" style="background:var(--sun);margin-top:14px">🎡 Drehen</button>
+    <button class="btn go" id="wheelspin" style="background:var(--sun);margin-top:14px" data-i18n="wheel_spin_btn">🎡 Drehen</button>
   </div>
 </div>
 
@@ -450,22 +458,22 @@
 <div id="bj" class="pmodal" style="display:none">
   <div class="pcard" style="width:370px;max-width:95vw;display:flex;flex-direction:column;align-items:center;text-align:center">
     <button class="pclose" id="bjclose">✕</button>
-    <h2 style="margin:0 0 6px;color:var(--grape);font-size:20px">♠ Blackjack ♥</h2>
-    <div class="bjrow"><span class="bjlab">Dealer <b id="bjdval"></b></span><div id="bjdealer" class="bjcards"></div></div>
-    <div class="bjrow"><span class="bjlab">Du <b id="bjpval"></b></span><div id="bjplayer" class="bjcards"></div></div>
-    <div id="bjmsg" class="bjmsg">Setze deinen Einsatz und gib die Karten!</div>
+    <h2 style="margin:0 0 6px;color:var(--grape);font-size:20px" data-i18n="bj_title">♠ Blackjack ♥</h2>
+    <div class="bjrow"><span class="bjlab" data-i18n="bj_dealer">Dealer</span> <b id="bjdval"></b><div id="bjdealer" class="bjcards"></div></div>
+    <div class="bjrow"><span class="bjlab" data-i18n="bj_you">Du</span> <b id="bjpval"></b><div id="bjplayer" class="bjcards"></div></div>
+    <div id="bjmsg" class="bjmsg" data-i18n="bj_default_msg">Setze deinen Einsatz und gib die Karten!</div>
     <div class="bjbal"><span class="coinico"></span> <span id="bjbal">0</span></div>
     <div id="bjbets" class="slotbets">
-      <span style="color:#8a76c4;font-weight:600;font-size:12px">Einsatz</span>
+      <span style="color:#8a76c4;font-weight:600;font-size:12px" data-i18n="label_bet">Einsatz</span>
       <button class="bjbet on" data-bet="100">100</button>
       <button class="bjbet" data-bet="500">500</button>
       <button class="bjbet" data-bet="1000">1000</button>
     </div>
     <div class="bjbtns">
-      <button class="btn" id="bjdeal" style="background:var(--sun)">Karten geben</button>
-      <button class="btn" id="bjhit" style="background:var(--mint);display:none">Karte</button>
-      <button class="btn" id="bjstand" style="background:#ff9e64;display:none">Halten</button>
-      <button class="btn" id="bjdouble" style="background:#b18cff;display:none">Verdoppeln</button>
+      <button class="btn" id="bjdeal" style="background:var(--sun)" data-i18n="bj_deal">Karten geben</button>
+      <button class="btn" id="bjhit" style="background:var(--mint);display:none" data-i18n="bj_hit">Karte</button>
+      <button class="btn" id="bjstand" style="background:#ff9e64;display:none" data-i18n="bj_stand">Halten</button>
+      <button class="btn" id="bjdouble" style="background:#b18cff;display:none" data-i18n="bj_double">Verdoppeln</button>
     </div>
   </div>
 </div>
@@ -474,19 +482,19 @@
 <div id="plinko" class="pmodal" style="display:none">
   <div class="pcard" style="width:360px;max-width:95vw;display:flex;flex-direction:column;align-items:center;text-align:center">
     <button class="pclose" id="plclose">✕</button>
-    <h2 style="margin:0 0 4px;color:var(--grape);font-size:20px">🔴 Plinko</h2>
-    <div id="plmsg" class="bjmsg" style="margin:0 0 6px">Wirf die Kugel und triff die Ränder!</div>
+    <h2 style="margin:0 0 4px;color:var(--grape);font-size:20px" data-i18n="plinko_title">🔴 Plinko</h2>
+    <div id="plmsg" class="bjmsg" style="margin:0 0 6px" data-i18n="plinko_default_msg">Wirf die Kugel und triff die Ränder!</div>
     <div style="width:320px;max-width:88vw;height:340px;position:relative;flex:none">
       <canvas id="plCanvas" width="320" height="340" style="width:100%;height:100%;display:block"></canvas>
     </div>
     <div class="bjbal" style="margin-top:8px"><span class="coinico"></span> <span id="plbal">0</span></div>
     <div class="slotbets">
-      <span style="color:#8a76c4;font-weight:600;font-size:12px">Einsatz</span>
+      <span style="color:#8a76c4;font-weight:600;font-size:12px" data-i18n="label_bet">Einsatz</span>
       <button class="plbet on" data-bet="100">100</button>
       <button class="plbet" data-bet="500">500</button>
       <button class="plbet" data-bet="1000">1000</button>
     </div>
-    <button class="btn go" id="pldrop" style="background:var(--sun);margin-top:8px">🔴 Kugel werfen</button>
+    <button class="btn go" id="pldrop" style="background:var(--sun);margin-top:8px" data-i18n="plinko_drop">🔴 Kugel werfen</button>
   </div>
 </div>
 
@@ -494,10 +502,10 @@
 <div id="clb" class="pmodal" style="display:none">
   <div class="pcard lbcard">
     <button class="pclose" id="clbclose">✕</button>
-    <h2>🏆 Casino-Rekorde</h2>
+    <h2 data-i18n="clb_title">🏆 Casino-Rekorde</h2>
     <div id="clbmine" class="clbmine"></div>
     <div id="clblist"></div>
-    <div class="clbhl">🔥 Letzte große Gewinne</div>
+    <div class="clbhl" data-i18n="clb_recent">🔥 Letzte große Gewinne</div>
     <div id="clbfeed" class="clbfeed"></div>
   </div>
 </div>
@@ -506,47 +514,47 @@
 <div id="roul" class="pmodal" style="display:none">
   <div class="pcard" style="width:430px;max-width:96vw;display:flex;flex-direction:column;align-items:center;text-align:center">
     <button class="pclose" id="roulclose">✕</button>
-    <h2 style="margin:0 0 2px;color:var(--grape);font-size:20px">🎯 Roulette</h2>
-    <div id="roulphase" class="roulphase">Einsätze offen…</div>
+    <h2 style="margin:0 0 2px;color:var(--grape);font-size:20px" data-i18n="roul_title">🎯 Roulette</h2>
+    <div id="roulphase" class="roulphase" data-i18n="roul_open">Einsätze offen…</div>
     <div style="display:flex;gap:10px;align-items:center;width:100%;justify-content:center">
       <div style="width:150px;height:150px;flex:none;position:relative">
         <canvas id="roulCanvas" width="150" height="150" style="width:100%;height:100%;display:block"></canvas>
       </div>
       <div style="flex:1;min-width:0;text-align:left">
-        <div class="roulhl">Letzte Zahlen</div>
+        <div class="roulhl" data-i18n="roul_last_numbers">Letzte Zahlen</div>
         <div id="roulhist" class="roulhist"></div>
-        <div class="roulhl" style="margin-top:6px">Am Tisch</div>
+        <div class="roulhl" style="margin-top:6px" data-i18n="roul_at_table">Am Tisch</div>
         <div id="roulplayers" class="roulplayers"></div>
       </div>
     </div>
     <div id="roulmsg" class="bjmsg" style="margin:6px 0 2px">…</div>
     <div class="slotbets" style="margin-bottom:4px">
-      <span style="color:#8a76c4;font-weight:600;font-size:12px">Chip</span>
+      <span style="color:#8a76c4;font-weight:600;font-size:12px" data-i18n="label_chip">Chip</span>
       <button class="roubet on" data-chip="100">100</button>
       <button class="roubet" data-chip="500">500</button>
       <button class="roubet" data-chip="1000">1000</button>
     </div>
     <div class="rounums" id="rounums"></div>
     <div class="rouout">
-      <button class="roub" data-t="red" style="background:#e0396b;color:#fff">Rot</button>
-      <button class="roub" data-t="black" style="background:#2b1b52;color:#fff">Schwarz</button>
-      <button class="roub" data-t="even">Gerade</button>
-      <button class="roub" data-t="odd">Ungerade</button>
-      <button class="roub" data-t="low">1–18</button>
-      <button class="roub" data-t="high">19–36</button>
-      <button class="roub" data-t="dozen" data-v="1">1. Dutzend</button>
-      <button class="roub" data-t="dozen" data-v="2">2. Dutzend</button>
-      <button class="roub" data-t="dozen" data-v="3">3. Dutzend</button>
+      <button class="roub" data-t="red" style="background:#e0396b;color:#fff" data-i18n="roul_red">Rot</button>
+      <button class="roub" data-t="black" style="background:#2b1b52;color:#fff" data-i18n="roul_black">Schwarz</button>
+      <button class="roub" data-t="even" data-i18n="roul_even">Gerade</button>
+      <button class="roub" data-t="odd" data-i18n="roul_odd">Ungerade</button>
+      <button class="roub" data-t="low" data-i18n="roul_low">1–18</button>
+      <button class="roub" data-t="high" data-i18n="roul_high">19–36</button>
+      <button class="roub" data-t="dozen" data-v="1" data-i18n="roul_dozen1">1. Dutzend</button>
+      <button class="roub" data-t="dozen" data-v="2" data-i18n="roul_dozen2">2. Dutzend</button>
+      <button class="roub" data-t="dozen" data-v="3" data-i18n="roul_dozen3">3. Dutzend</button>
     </div>
-    <div id="roulmine" class="roulmine">Keine Einsätze</div>
-    <button class="btn" id="roulclear" style="background:#ff9e64;margin-top:6px">↩ Einsätze zurücknehmen</button>
+    <div id="roulmine" class="roulmine" data-i18n="roul_no_bets">Keine Einsätze</div>
+    <button class="btn" id="roulclear" style="background:#ff9e64;margin-top:6px" data-i18n="roul_clear">↩ Einsätze zurücknehmen</button>
   </div>
 </div>
 
 <!-- 4 Gewinnt: Warte-Banner -->
 <div id="c4wait" class="c4wait" style="display:none">
-  <span>Warte auf Gegenspieler…</span>
-  <button id="c4cancel">Abbrechen</button>
+  <span data-i18n="c4_waiting">Warte auf Gegenspieler…</span>
+  <button id="c4cancel" data-i18n="c4_cancel">Abbrechen</button>
 </div>
 
 <!-- 4 Gewinnt: Spielansicht -->
@@ -621,21 +629,22 @@ function sendEmote(name){if(!emoteOwned(name))return;const e=EMOTE_LIST.find(x=>
 const CW=2000; // Breite des Casino-Decks (Scroll-Raum)
 const CRUG=800; // Mittelpunkt von Teppich + Casino-Schild (beim Lucky Wheel)
 const ROOMS={
-  deck:{name:'Hauptdeck',accent:'#4dd0ff',wall1:'#4a3aa0',wall2:'#382a80',floor1:'#efe4ff',floor2:'#ddceff',
-    door:{x:970,y:360,to:'obs',label:'Aussichtsdeck →'},
-    door2:{x:70,y:470,to:'casino',label:'🎰 Casino →'},
+  deck:{id:'deck',accent:'#4dd0ff',wall1:'#4a3aa0',wall2:'#382a80',floor1:'#efe4ff',floor2:'#ddceff',
+    door:{x:970,y:360,to:'obs',dirRight:true},
+    door2:{x:70,y:470,to:'casino',dirRight:true,icon:'🎰'},
     deco:[{t:'console',x:160,y:250},{t:'crate',x:262,y:262},{t:'crate',x:238,y:290},{t:'holo',x:520,y:250},{t:'vending',x:735,y:236},{t:'plant',x:905,y:272},{t:'plant',x:70,y:330}]},
-  obs:{name:'Aussichtsdeck',accent:'#ff5ea8',wall1:'#5a3a95',wall2:'#402872',floor1:'#ffe9f4',floor2:'#ffd3ea',
-    door:{x:70,y:360,to:'deck',label:'← Hauptdeck'},
+  obs:{id:'obs',accent:'#ff5ea8',wall1:'#5a3a95',wall2:'#402872',floor1:'#ffe9f4',floor2:'#ffd3ea',
+    door:{x:70,y:360,to:'deck',dirRight:false},
     deco:[{t:'telescope',x:210,y:262},{t:'bench',x:470,y:300},{t:'bench',x:640,y:300},{t:'plant',x:900,y:284},{t:'holo',x:820,y:246}]},
-  casino:{name:'Casino-Deck',accent:'#ffd166',wall1:'#7a1233',wall2:'#43091d',floor1:'#efe7d6',floor2:'#e2d6bd',w:CW,
-    door:{x:70,y:360,to:'deck',label:'← Hauptdeck'},
-    door2:{x:1900,y:360,to:'vip',label:'💎 VIP →'},
+  casino:{id:'casino',accent:'#ffd166',wall1:'#7a1233',wall2:'#43091d',floor1:'#efe7d6',floor2:'#e2d6bd',w:CW,
+    door:{x:70,y:360,to:'deck',dirRight:false},
+    door2:{x:1900,y:360,to:'vip',dirRight:true,icon:'💎'},
     deco:[]},
-  vip:{name:'VIP-Lounge',accent:'#ffd166',wall1:'#2a2440',wall2:'#12101f',floor1:'#1b1730',floor2:'#141126',
-    door:{x:70,y:360,to:'casino',label:'← Casino'},
+  vip:{id:'vip',accent:'#ffd166',wall1:'#2a2440',wall2:'#12101f',floor1:'#1b1730',floor2:'#141126',
+    door:{x:70,y:360,to:'casino',dirRight:false},
     deco:[]}
 };
+function doorLabel(d){const name=t('room_'+d.to);return d.dirRight?((d.icon?d.icon+' ':'')+name+' →'):('← '+name);}
 const VIP_LEVEL=10;
 const VIP_SLOTS=[{x:300,y:300},{x:470,y:300},{x:800,y:300}];
 const VIP_BJ={x:520,y:470};
@@ -647,7 +656,8 @@ const PLINKO_OBJ={x:950,y:300,r:58};
 const ROU_OBJ={x:1750,y:430,r:110};
 const HALL_OBJ={x:1580,y:330,r:62};
 let casinoTop=[],casinoFeed=[],myCasinoBest=0,myCasinoGame=null;
-const GAME_NAMES={slot:'Slots',wheel:'Lucky Wheel',blackjack:'Blackjack',plinko:'Plinko',roulette:'Roulette'};
+const GAME_NAMES={de:{slot:'Slots',wheel:'Lucky Wheel',blackjack:'Blackjack',plinko:'Plinko',roulette:'Roulette'},
+  ja:{slot:'スロット',wheel:'ラッキーホイール',blackjack:'ブラックジャック',plinko:'プリンコ',roulette:'ルーレット'}};
 const GAME_ICONS={slot:'🎰',wheel:'🎡',blackjack:'♠',plinko:'🔴',roulette:'🎯'};
 const ROU_RED=new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
 const ROU_ORDER=[0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
@@ -702,6 +712,12 @@ const SHOP=[
   {id:'bg_matrix',type:'bg',name:'Matrix',price:30000,minLevel:10,ico:'🟢'},
   {id:'bg_rainbow',type:'bg',name:'Regenbogen',price:45000,minLevel:13,ico:'🌈'}
 ];
+const ITEM_NAME_JA={cap:'キャップ',glasses:'メガネ',shades:'サングラス',bow:'リボン',flower:'お花',beanie:'ニット帽',
+  phones:'ヘッドホン',party:'パーティーハット',monocle:'モノクル',cowboy:'カウボーイハット',horns:'ツノ',star:'スター',
+  propeller:'プロペラ帽',tophat:'シルクハット',wizard:'魔法使いの帽子',halo:'天使の輪',crown:'王冠',
+  bg_grid:'ネオングリッド',bg_mint:'ミント',bg_candy:'キャンディ',bg_deep:'深海',bg_aurora:'オーロラ',
+  bg_sunset:'夕焼け',bg_stars:'星空',bg_nebula:'星雲',bg_gold:'ゴールド',bg_matrix:'マトリックス',bg_rainbow:'虹'};
+function itemName(it){if(LANG==='ja'){if(it.id==='space')return'デフォルト';return ITEM_NAME_JA[it.id]||it.name;}return it.name;}
 const pref={color:COLORS[0],species:'blobbi'};
 
 function addPlayer(p){if(players[p.id]){Object.assign(players[p.id],p);return;}
@@ -712,10 +728,204 @@ function updateOnline(){document.getElementById('online').textContent=Object.val
 /* ---------------- LOGIN / SUPABASE ---------------- */
 let supabase=null, socket=null;
 const $=id=>document.getElementById(id);
+
+/* ============================================================
+   I18N — Sprachsystem (Deutsch / Japanisch)
+   ============================================================ */
+let LANG=localStorage.getItem('ns_lang')||'de';
+const I18N={
+ de:{
+  auth_sub:'Melde dich an, um anzudocken',tab_login:'Einloggen',tab_register:'Registrieren',
+  ph_email:'E-Mail',ph_pass:'Passwort (min. 6 Zeichen)',ph_username:'Spielername',
+  auth_btn_login:'Einloggen',auth_btn_register:'Konto erstellen',
+  err_need_email_pass:'Bitte E-Mail und Passwort eingeben.',
+  err_no_supabase:'Server ist noch nicht mit Supabase verbunden (Umgebungsvariablen fehlen).',
+  err_conn_failed:'Verbindung zum Server fehlgeschlagen.',
+  msg_confirm_email:'Fast fertig! Bestätige die E-Mail und logg dich dann ein.',
+  err_auth_failed:'Anmeldung fehlgeschlagen.',
+  welcome_title:'Willkommen!',intro_sub:'Wähl dein Alien',label_species:'Spezies',label_color:'Farbe',btn_enter:'Andocken',
+  title_shop:'Shop',title_map:'Karte',title_friends:'Freunde',title_profile:'Mein Profil',title_acc:'Accessoire',title_logout:'Abmelden',title_level:'Level',
+  ph_chat:'Sag was Nettes…',btn_send:'Senden',
+  inv_open:'Inventar öffnen',btn_add_friend:'➕ Freund hinzufügen',
+  map_title:'Karte',map_sub:'Wohin möchtest du?',
+  friends_title:'👥 Freunde',ph_friend_name:'Spielername…',btn_request:'Anfrage',sec_requests:'Anfragen',sec_your_friends:'Deine Freunde',
+  ph_message:'Nachricht…',deco_default_name:'Objekt',
+  tele_title:'🔭 Teleskop',tele_hint:'Zieh mit der Maus, um den Himmel abzusuchen…',
+  shop_title:'🛒 Shop',shop_currency_suffix:'Sternenstaub',tab_acc:'Accessoires',tab_emotes:'Emotes',tab_bg:'Hintergründe',
+  item_owned:'im Inventar',item_equipped:'angelegt',item_equip:'anlegen',item_show:'▶ zeigen',item_locked_prefix:'🔒 Lv ',
+  slot_default_msg:'Zieh am Hebel! 🍒🍋🍊',slot_vip_msg:'💎 High-Roller-Automat – zieh am Hebel!',label_bet:'Einsatz',
+  c4_title:'4 Gewinnt',c4_table_prefix:'Tisch ',c4_find_game:'🎮 Spiel suchen',c4_leaderboard:'🏆 Bestenliste',
+  c4_waiting:'Warte auf Gegenspieler…',c4_cancel:'Abbrechen',c4_vs:'4 GEWINNT',
+  c4_your_turn:'Du bist dran – wähl eine Spalte!',c4_opp_turn:'Gegner ist am Zug…',
+  lb_title:'🏆 Bestenliste',sblb_title:'🚀 Flug-Rekorde',
+  wheel_title:'🎡 Lucky Wheel',wheel_spin_btn:'🎡 Drehen',
+  bj_title:'♠ Blackjack ♥',bj_dealer:'Dealer',bj_you:'Du',bj_default_msg:'Setze deinen Einsatz und gib die Karten!',
+  bj_deal:'Karten geben',bj_hit:'Karte',bj_stand:'Halten',bj_double:'Verdoppeln',
+  plinko_title:'🔴 Plinko',plinko_default_msg:'Wirf die Kugel und triff die Ränder!',plinko_drop:'🔴 Kugel werfen',
+  clb_title:'🏆 Casino-Rekorde',clb_recent:'🔥 Letzte große Gewinne',clb_no_record:'Noch kein Rekord – hol dir deinen ersten großen Gewinn! ✨',clb_no_wins:'Noch keine großen Gewinne…',clb_empty:'Noch keine Gewinne – sei der Erste! 🎰',clb_your_record:'Dein Rekord:',
+  roul_title:'🎯 Roulette',roul_open:'Einsätze offen…',roul_last_numbers:'Letzte Zahlen',roul_at_table:'Am Tisch',label_chip:'Chip',
+  roul_red:'Rot',roul_black:'Schwarz',roul_even:'Gerade',roul_odd:'Ungerade',roul_low:'1–18',roul_high:'19–36',
+  roul_dozen1:'1. Dutzend',roul_dozen2:'2. Dutzend',roul_dozen3:'3. Dutzend',roul_no_bets:'Keine Einsätze',roul_clear:'↩ Einsätze zurücknehmen',
+  roul_no_bets_yet:'Noch keine Einsätze',roul_bets_open:'🟢 Einsätze offen — ',roul_ball_rolling:'🎯 Kugel rollt…',roul_result_prefix:'✔ Ergebnis: ',roul_next_round:' — nächste Runde in ',
+  sys_docked:'{name} ist angedockt.',sys_left:'{name} hat die Station verlassen.',
+  sys_levelup:'{name} ist jetzt Level {level} ({rank})!',
+  sys_roulette_win:'{name} gewinnt {amount} Sternenstaub am Roulette (Zahl {number})!',
+  sys_plinko_win:'{name} gewinnt {amount} Sternenstaub bei Plinko ({mult}x)!',
+  sys_record:'🏆 {name} stellt mit {amount} Sternenstaub bei {game} einen neuen Rekord auf!',
+  err_unknown_item:'Unbekannter Artikel.',err_already_owned:'Schon im Inventar.',err_min_level:'Erst ab Level {level}.',
+  err_funds:'Zu wenig Sternenstaub.',msg_bought:'{name} gekauft!',err_bet:'Ungültiger Einsatz.',
+  err_double_funds:'Zu wenig zum Verdoppeln.',err_roul_closed:'Einsätze sind geschlossen!',err_roul_max:'Maximal 12 Einsätze pro Runde.',
+  err_friend_notfound:'Spieler nicht gefunden.',err_friend_exists:'Ihr seid schon verbunden oder eine Anfrage läuft.',msg_friend_sent:'Anfrage an {name} gesendet!',
+  popup_levelup_title:'Level {level}!',popup_new_rank:'Neuer Rang: {rank}',
+  popup_planet_title:'Planet freigeschaltet!',popup_planet_sub:'Reise nach {name}',
+  popup_bought_title:'Gekauft!',popup_won_title:'Gewonnen!',popup_c4_sub:'+25 Sternenstaub · +40 XP',
+  popup_bj_title:'Blackjack',popup_roulette_title:'Roulette',popup_secret_title:'Geheimnis entdeckt!',
+  msg_secret_none:'Hier gibt es gerade nichts Neues zu entdecken.',
+  popup_fountain_title:'Wunschbrunnen',popup_fountain_sub:'Du wirfst eine Münze hinein und wünschst dir Glück ✨',
+  popup_vip_title:'VIP-Lounge',popup_vip_sub:'Zutritt erst ab Level {level}. Du bist Level {mylevel}.',
+  popup_jackpot:'JACKPOT!',popup_wheel_title:'Lucky Wheel',popup_slot_title:'Automat-Gewinn!',
+  popup_plinko_title:'Plinko',popup_plinko_jackpot:'PLINKO JACKPOT!',popup_crash_title:'Bruchlandung!',
+  amount_stardust:'+{amount} Sternenstaub',amount_stardust_bare:'{amount} Sternenstaub',
+  vip_locked_sys:'🔒 Die VIP-Lounge ist erst ab Level {level} erreichbar.',
+  planet_locked_sys:'🔒 Dieser Planet ist erst ab Level {level} erreichbar.',
+  slot_win_flash:'🎉 Gewinn: +{amount} Sternenstaub!',
+  room_deck:'Hauptdeck',room_obs:'Aussichtsdeck',room_casino:'Casino-Deck',room_vip:'VIP-Lounge',
+  species_blobbi:'Blobbi',species_knuffo:'Knuffo',species_slink:'Slink',species_zacki:'Zacki',species_nebli:'Nebli',
+  rank_cadet:'Kadett',rank_pilot:'Pilot',rank_navigator:'Navigator',rank_commander:'Kommandant',rank_captain:'Captain',rank_admiral:'Sternenadmiral',
+  game_slot:'Slots',game_wheel:'Lucky Wheel',game_blackjack:'Blackjack',game_plinko:'Plinko',game_roulette:'Roulette',
+  emote_wave:'Winken',emote_dance:'Tanzen',emote_cheer:'Jubeln',emote_jump:'Hüpfen',emote_clap:'Applaus',
+  emote_wobble:'Wackelpudding',emote_spin:'Drehung',emote_heart:'Herzchen',emote_angry:'Wütend',emote_laugh:'Lachanfall',
+  emote_cry:'Heulen',emote_facepalm:'Facepalm',emote_sit:'Hinsetzen',emote_sleep:'Schlafen',emote_roll:'Purzeln',
+  emote_moonwalk:'Moonwalk',emote_backflip:'Salto',emote_disco:'Disco-Fieber',emote_bow:'Verbeugung',emote_shrug:'Schulterzucken',
+  emote_think:'Grübeln',emote_salute:'Salutieren',emote_float:'Schweben',emote_teleport:'Teleport',emote_breakdance:'Breakdance',emote_rage:'Weltraum-Wut',
+  canvas_lucky_wheel:'LUCKY WHEEL',canvas_free_spin:'★ GRATIS-DREH ★',canvas_casino_sign:'★ CASINO ★',
+  canvas_blackjack:'BLACKJACK',canvas_pays32:'zahlt 3 : 2',canvas_plinko:'PLINKO',canvas_up_to_25x:'bis 25x',
+  canvas_vip_lounge:'💎 VIP LOUNGE',canvas_champagne:'CHAMPAGNER',canvas_top_wins:'TOP-GEWINNE',canvas_click_details:'Klick für Details',
+  canvas_roulette:'ROULETTE',canvas_bj_blackjack:'BLACKJACK',canvas_bj_win:'GEWONNEN',canvas_bj_lose:'VERLOREN',canvas_bj_bust:'BUST',canvas_bj_push:'PUSH',
+  starmap_title:'🌌 Sternkarte',starmap_sub:'Wähl einen Planeten zum Erkunden',space_controls:'WASD / Pfeile zum Steuern',
+  friend_status_friends:'✓ Befreundet',friend_status_incoming:'Anfrage offen – in 👥 annehmen',friend_status_pending:'Anfrage gesendet ⏳',
+  fbtn_yes:'Ja',fbtn_no:'Nein',msg_friend_req_sent:'Freundschaftsanfrage an {name} gesendet.',
+  roul_green:'grün',msg_new_dm:'📩 Neue private Nachricht – öffne 👥 Freunde',
+  bj_out_blackjack:'BLACKJACK! 🎉',bj_out_win:'Gewonnen! 🎉',bj_out_lose:'Verloren 😢',bj_out_bust:'Überkauft! 💥',bj_out_push:'Push – unentschieden 🤝',
+  wheel_spinning:'🎡 Dreht…',wheel_spin_msg:'Viel Glück! ✨',wheel_ready_msg:'Dein täglicher Gratis-Dreh wartet!',wheel_wait_msg:'Nächster Gratis-Dreh in {wait}.',
+  plinko_dropping:'Die Kugel fällt…',
+  inv_close:'Inventar schließen',
+  roul_bets_open_short:'EINSÄTZE OFFEN — ',
+  c4_no_wins:'Noch keine Siege – sei der Erste! 🏆',space_no_flights:'Noch keine Flüge – heb ab und setz den Rekord! 🚀',
+  loading:'Lade…',no_friends_yet:'Noch keine Freunde – füg jemanden hinzu!',
+  c4_lose_msg:'Verloren – nächstes Mal! 🙃',
+  slot_good_luck:'Viel Glück…',slot_no_luck:'Kein Glück – nochmal? 🍀',bj_hit_or_stand:'Ziehen oder halten?',canvas_table_prefix:'TISCH ',canvas_flight_capsule:'FLUG-KAPSEL',msg_going_to_capsule:'Du gehst zur Flug-Kapsel…',
+  bj_more_players:'+{n} weitere Spieler',holo_explore:'erkunden →',holo_locked:'🔒 ab Level {level}',label_vip_bet:'💎 VIP-Einsatz',
+  c4_tie:'Unentschieden!',c4_opp_forfeit:'Gegner hat aufgegeben – ',c4_win_msg:'Gewonnen! +25 ✦',
+ },
+ ja:{
+  auth_sub:'ドッキングするにはログインしてね',tab_login:'ログイン',tab_register:'新規登録',
+  ph_email:'メールアドレス',ph_pass:'パスワード（6文字以上）',ph_username:'プレイヤー名',
+  auth_btn_login:'ログイン',auth_btn_register:'アカウント作成',
+  err_need_email_pass:'メールアドレスとパスワードを入力してね。',
+  err_no_supabase:'サーバーがまだSupabaseに接続されていません（環境変数が未設定）。',
+  err_conn_failed:'サーバーへの接続に失敗しました。',
+  msg_confirm_email:'もう少し！確認メールをチェックしてからログインしてね。',
+  err_auth_failed:'ログインに失敗しました。',
+  welcome_title:'ようこそ！',intro_sub:'エイリアンを選んでね',label_species:'種族',label_color:'色',btn_enter:'ドッキングする',
+  title_shop:'ショップ',title_map:'マップ',title_friends:'フレンド',title_profile:'マイプロフィール',title_acc:'アクセサリー',title_logout:'ログアウト',title_level:'レベル',
+  ph_chat:'なにか話しかけてみよう…',btn_send:'送信',
+  inv_open:'インベントリを開く',btn_add_friend:'➕ フレンド追加',
+  map_title:'マップ',map_sub:'どこに行く？',
+  friends_title:'👥 フレンド',ph_friend_name:'プレイヤー名…',btn_request:'リクエスト',sec_requests:'リクエスト',sec_your_friends:'あなたのフレンド',
+  ph_message:'メッセージ…',deco_default_name:'オブジェクト',
+  tele_title:'🔭 望遠鏡',tele_hint:'マウスでドラッグして空を探索しよう…',
+  shop_title:'🛒 ショップ',shop_currency_suffix:'スターダスト',tab_acc:'アクセサリー',tab_emotes:'エモート',tab_bg:'背景',
+  item_owned:'所持済み',item_equipped:'装備中',item_equip:'装備する',item_show:'▶ 見せる',item_locked_prefix:'🔒 Lv ',
+  slot_default_msg:'レバーを引こう！🍒🍋🍊',slot_vip_msg:'💎 ハイローラー・マシン – レバーを引こう！',label_bet:'ベット額',
+  c4_title:'コネクト4',c4_table_prefix:'テーブル ',c4_find_game:'🎮 対戦相手を探す',c4_leaderboard:'🏆 ランキング',
+  c4_waiting:'対戦相手を待っています…',c4_cancel:'キャンセル',c4_vs:'コネクト4',
+  c4_your_turn:'あなたの番！列を選んでね',c4_opp_turn:'相手の番です…',
+  lb_title:'🏆 ランキング',sblb_title:'🚀 飛行記録',
+  wheel_title:'🎡 ラッキーホイール',wheel_spin_btn:'🎡 回す',
+  bj_title:'♠ ブラックジャック ♥',bj_dealer:'ディーラー',bj_you:'あなた',bj_default_msg:'ベットしてカードを配ろう！',
+  bj_deal:'カードを配る',bj_hit:'ヒット',bj_stand:'スタンド',bj_double:'ダブルダウン',
+  plinko_title:'🔴 プリンコ',plinko_default_msg:'ボールを落として枠に当てよう！',plinko_drop:'🔴 ボールを落とす',
+  clb_title:'🏆 カジノ記録',clb_recent:'🔥 最近の大勝利',clb_no_record:'まだ記録がないよ – 最初の大勝利をつかもう！✨',clb_no_wins:'まだ大きな勝利はありません…',clb_empty:'まだ勝利記録がないよ – 一番乗りしよう！🎰',clb_your_record:'あなたの記録：',
+  roul_title:'🎯 ルーレット',roul_open:'ベット受付中…',roul_last_numbers:'最近の数字',roul_at_table:'テーブルの様子',label_chip:'チップ',
+  roul_red:'赤',roul_black:'黒',roul_even:'偶数',roul_odd:'奇数',roul_low:'1–18',roul_high:'19–36',
+  roul_dozen1:'第1ダズン',roul_dozen2:'第2ダズン',roul_dozen3:'第3ダズン',roul_no_bets:'ベットなし',roul_clear:'↩ ベットを取り消す',
+  roul_no_bets_yet:'まだベットがありません',roul_bets_open:'🟢 ベット受付中 — ',roul_ball_rolling:'🎯 ボールが回転中…',roul_result_prefix:'✔ 結果： ',roul_next_round:' — 次のラウンドまで ',
+  sys_docked:'{name}がドッキングしました。',sys_left:'{name}がステーションを離れました。',
+  sys_levelup:'{name}はレベル{level}（{rank}）になりました！',
+  sys_roulette_win:'{name}がルーレットで{amount}スターダストを獲得！（数字{number}）',
+  sys_plinko_win:'{name}がプリンコで{amount}スターダストを獲得！（{mult}倍）',
+  sys_record:'🏆 {name}が{game}で{amount}スターダストの新記録を達成！',
+  err_unknown_item:'不明なアイテムです。',err_already_owned:'すでに所持しています。',err_min_level:'レベル{level}から利用可能です。',
+  err_funds:'スターダストが足りません。',msg_bought:'{name}を購入しました！',err_bet:'無効なベットです。',
+  err_double_funds:'ダブルダウンするにはスターダストが足りません。',err_roul_closed:'ベット受付は終了しました！',err_roul_max:'1ラウンドにつき最大12ベットまでです。',
+  err_friend_notfound:'プレイヤーが見つかりません。',err_friend_exists:'すでにフレンドか、リクエスト送信済みです。',msg_friend_sent:'{name}にリクエストを送りました！',
+  popup_levelup_title:'レベル{level}！',popup_new_rank:'新しい称号：{rank}',
+  popup_planet_title:'惑星が解放されました！',popup_planet_sub:'{name}へ旅立とう',
+  popup_bought_title:'購入完了！',popup_won_title:'勝利！',popup_c4_sub:'+25 スターダスト・+40 XP',
+  popup_bj_title:'ブラックジャック',popup_roulette_title:'ルーレット',popup_secret_title:'秘密を発見！',
+  msg_secret_none:'今のところ新しい発見はないみたい。',
+  popup_fountain_title:'願いの泉',popup_fountain_sub:'コインを投げ入れて幸運を願おう ✨',
+  popup_vip_title:'VIPラウンジ',popup_vip_sub:'レベル{level}から入場可能です。あなたはレベル{mylevel}です。',
+  popup_jackpot:'ジャックポット！',popup_wheel_title:'ラッキーホイール',popup_slot_title:'スロット大当たり！',
+  popup_plinko_title:'プリンコ',popup_plinko_jackpot:'プリンコ・ジャックポット！',popup_crash_title:'不時着！',
+  amount_stardust:'+{amount} スターダスト',amount_stardust_bare:'{amount} スターダスト',
+  vip_locked_sys:'🔒 VIPラウンジはレベル{level}から入場できます。',
+  planet_locked_sys:'🔒 この惑星はレベル{level}から到達できます。',
+  slot_win_flash:'🎉 大当たり：+{amount} スターダスト！',
+  room_deck:'メインデッキ',room_obs:'展望デッキ',room_casino:'カジノデッキ',room_vip:'VIPラウンジ',
+  species_blobbi:'ブロビ',species_knuffo:'クヌッフォ',species_slink:'スリンク',species_zacki:'ザッキ',species_nebli:'ネブリ',
+  rank_cadet:'カデット',rank_pilot:'パイロット',rank_navigator:'ナビゲーター',rank_commander:'コマンダー',rank_captain:'キャプテン',rank_admiral:'スターアドミラル',
+  game_slot:'スロット',game_wheel:'ラッキーホイール',game_blackjack:'ブラックジャック',game_plinko:'プリンコ',game_roulette:'ルーレット',
+  emote_wave:'手を振る',emote_dance:'ダンス',emote_cheer:'歓声',emote_jump:'ジャンプ',emote_clap:'拍手',
+  emote_wobble:'ぷるぷる',emote_spin:'回転',emote_heart:'ハート',emote_angry:'怒り',emote_laugh:'大笑い',
+  emote_cry:'号泣',emote_facepalm:'フェイスパーム',emote_sit:'座る',emote_sleep:'睡眠',emote_roll:'でんぐり返し',
+  emote_moonwalk:'ムーンウォーク',emote_backflip:'バク宙',emote_disco:'ディスコ熱',emote_bow:'お辞儀',emote_shrug:'肩すくめ',
+  emote_think:'考え中',emote_salute:'敬礼',emote_float:'浮遊',emote_teleport:'テレポート',emote_breakdance:'ブレイクダンス',emote_rage:'宇宙の怒り',
+  canvas_lucky_wheel:'ラッキーホイール',canvas_free_spin:'★ 無料スピン ★',canvas_casino_sign:'★ カジノ ★',
+  canvas_blackjack:'ブラックジャック',canvas_pays32:'配当 3：2',canvas_plinko:'プリンコ',canvas_up_to_25x:'最大25倍',
+  canvas_vip_lounge:'💎 VIPラウンジ',canvas_champagne:'シャンパン',canvas_top_wins:'トップ勝利',canvas_click_details:'クリックで詳細',
+  canvas_roulette:'ルーレット',canvas_bj_blackjack:'ブラックジャック',canvas_bj_win:'勝利',canvas_bj_lose:'敗北',canvas_bj_bust:'バースト',canvas_bj_push:'引き分け',
+  starmap_title:'🌌 星図',starmap_sub:'探検する惑星を選んでね',space_controls:'WASD / 矢印キーで操作',
+  friend_status_friends:'✓ フレンド済み',friend_status_incoming:'リクエスト受信中 – 👥 で承認しよう',friend_status_pending:'リクエスト送信済み ⏳',
+  fbtn_yes:'はい',fbtn_no:'いいえ',msg_friend_req_sent:'{name}にフレンドリクエストを送りました。',
+  roul_green:'緑',msg_new_dm:'📩 新しいプライベートメッセージ – 👥 フレンドを開いてね',
+  bj_out_blackjack:'ブラックジャック！🎉',bj_out_win:'勝利！🎉',bj_out_lose:'敗北 😢',bj_out_bust:'バースト！💥',bj_out_push:'引き分け 🤝',
+  wheel_spinning:'🎡 回転中…',wheel_spin_msg:'幸運を祈って！✨',wheel_ready_msg:'今日の無料スピンが待っているよ！',wheel_wait_msg:'次の無料スピンまで{wait}。',
+  plinko_dropping:'ボールが落下中…',
+  inv_close:'インベントリを閉じる',
+  roul_bets_open_short:'ベット受付中 — ',
+  c4_no_wins:'まだ勝利がないよ – 一番乗りしよう！🏆',space_no_flights:'まだ飛行記録がないよ – 飛び立って記録を作ろう！🚀',
+  loading:'読み込み中…',no_friends_yet:'まだフレンドがいないよ – 誰かを追加してみよう！',
+  c4_lose_msg:'負けちゃった – また挑戦しよう！🙃',
+  slot_good_luck:'幸運を祈って…',slot_no_luck:'残念 – もう一回？🍀',bj_hit_or_stand:'ヒットする？スタンドする？',canvas_table_prefix:'テーブル ',canvas_flight_capsule:'フライトカプセル',msg_going_to_capsule:'フライトカプセルへ向かっているよ…',
+  bj_more_players:'+{n} 人のプレイヤー',holo_explore:'探検する →',holo_locked:'🔒 レベル{level}から',label_vip_bet:'💎 VIPベット',
+  c4_tie:'引き分け！',c4_opp_forfeit:'相手が降参した – ',c4_win_msg:'勝利！+25 ✦',
+ }
+};
+function t(key,params){let s=(I18N[LANG]&&I18N[LANG][key])!=null?I18N[LANG][key]:(I18N.de[key]!=null?I18N.de[key]:key);
+  if(params)for(const k in params)s=s.split('{'+k+'}').join(params[k]);
+  return s;}
+function applyI18n(){
+  document.querySelectorAll('[data-i18n]').forEach(el=>{el.textContent=t(el.getAttribute('data-i18n'));});
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>{el.placeholder=t(el.getAttribute('data-i18n-ph'));});
+  document.querySelectorAll('[data-i18n-title]').forEach(el=>{el.title=t(el.getAttribute('data-i18n-title'));});
+  document.documentElement.lang=LANG;
+  const fl=$('flagde'),fj=$('flagja');if(fl&&fj){fl.classList.toggle('on',LANG==='de');fj.classList.toggle('on',LANG==='ja');}
+  if(mode)$('authBtn').textContent=t(mode==='reg'?'auth_btn_register':'auth_btn_login');
+  if(typeof renderShop==='function'&&$('shop')&&$('shop').style.display!=='none')renderShop();
+  if(typeof renderEmoteBar==='function')renderEmoteBar();
+  if(typeof buildMap==='function'&&$('rooms'))buildMap();
+  if(me&&$('room-name'))$('room-name').textContent=t('room_'+me.room);
+}
+function setLang(l){LANG=l;localStorage.setItem('ns_lang',l);applyI18n();}
+const RANK_KEY={Kadett:'rank_cadet',Pilot:'rank_pilot',Navigator:'rank_navigator',Kommandant:'rank_commander',Captain:'rank_captain',Sternenadmiral:'rank_admiral'};
+function rankLabel(rankDe){return t(RANK_KEY[rankDe]||'rank_cadet');}
+
 let mode='login';
 function showAuth(msg){$('auth').style.display='flex';$('intro').style.display='none';if(msg)$('autherr').textContent=msg;}
 function setMode(m){mode=m;$('tabLogin').classList.toggle('on',m==='login');$('tabReg').classList.toggle('on',m==='reg');
-  $('uname').style.display=m==='reg'?'block':'none';$('authBtn').textContent=m==='reg'?'Konto erstellen':'Einloggen';$('autherr').textContent='';}
+  $('uname').style.display=m==='reg'?'block':'none';$('authBtn').textContent=t(m==='reg'?'auth_btn_register':'auth_btn_login');$('autherr').textContent='';}
 $('tabLogin').onclick=()=>setMode('login');
 $('tabReg').onclick=()=>setMode('reg');
 $('authBtn').onclick=doAuth;
@@ -725,16 +935,16 @@ $('outBtn').onclick=async()=>{if(supabase)await supabase.auth.signOut();location
 async function initAuth(){
   try{
     const cfg=await fetch('/config').then(r=>r.json());
-    if(!cfg.url||!cfg.anonKey){showAuth('Server ist noch nicht mit Supabase verbunden (Umgebungsvariablen fehlen).');return;}
+    if(!cfg.url||!cfg.anonKey){showAuth(t('err_no_supabase'));return;}
     supabase=createClient(cfg.url,cfg.anonKey);
     const {data:{session}}=await supabase.auth.getSession();
     if(session){connectGame(session.access_token);} else {showAuth();}
-  }catch(e){showAuth('Verbindung zum Server fehlgeschlagen.');}
+  }catch(e){showAuth(t('err_conn_failed'));}
 }
 async function doAuth(){
   $('autherr').textContent='';
   const email=$('email').value.trim(),pass=$('pass').value;
-  if(!email||!pass){$('autherr').textContent='Bitte E-Mail und Passwort eingeben.';return;}
+  if(!email||!pass){$('autherr').textContent=t('err_need_email_pass');return;}
   $('authBtn').disabled=true;
   try{
     if(mode==='reg'){
@@ -742,13 +952,13 @@ async function doAuth(){
       const {data,error}=await supabase.auth.signUp({email,password:pass,options:{data:{username}}});
       if(error)throw error;
       if(data.session){connectGame(data.session.access_token);}
-      else{$('autherr').style.color='#7be0b0';$('autherr').textContent='Fast fertig! Bestätige die E-Mail und logg dich dann ein.';setMode('login');}
+      else{$('autherr').style.color='#7be0b0';$('autherr').textContent=t('msg_confirm_email');setMode('login');}
     }else{
       const {data,error}=await supabase.auth.signInWithPassword({email,password:pass});
       if(error)throw error;
       connectGame(data.session.access_token);
     }
-  }catch(err){$('autherr').style.color='#e0396b';$('autherr').textContent=(err&&err.message)||'Anmeldung fehlgeschlagen.';}
+  }catch(err){$('autherr').style.color='#e0396b';$('autherr').textContent=(err&&err.message)||t('err_auth_failed');}
   $('authBtn').disabled=false;
 }
 function connectGame(token){
@@ -770,14 +980,19 @@ function wireSocket(){
     addMsg('','','Willkommen an Bord, '+prof.name+'!  (Emotes = Tasten 1-6 · 🛒 Shop · Holo-Tisch = Planeten)','sys');});
   socket.on('progress',d=>{myXp=d.xp;myLevel=d.level;myRank=d.rank;myCurXp=d.curXp;myNextXp=d.nextXp;updateLvlChip();
     if(me){me.level=d.level;me.rank=d.rank;}
-    if(d.leveled){showPopup('⭐','Level '+d.level+'!','Neuer Rang: '+d.rank,'gold');
-      for(const pid of PLANET_ORDER)if(PLANETS[pid].minLevel===d.level)showPopup('🪐','Planet freigeschaltet!','Reise nach '+PLANETS[pid].name,'cyan');}
+    if(d.leveled){showPopup('⭐',t('popup_levelup_title',{level:d.level}),t('popup_new_rank',{rank:rankLabel(d.rank)}),'gold');
+      for(const pid of PLANET_ORDER)if(PLANETS[pid].minLevel===d.level)showPopup('🪐',t('popup_planet_title'),t('popup_planet_sub',{name:PLANETS[pid].name}),'cyan');}
     if($('holo').style.display!=='none')renderHolo();if($('shop').style.display!=='none')renderShop();});
   socket.on('player-bg',d=>{const p=players[d.id];if(p)p.bg=d.bg;if(d.id===myId)myBg=d.bg;});
-  socket.on('planet-locked',d=>{addMsg('','','🔒 Dieser Planet ist erst ab Level '+d.minLevel+' erreichbar.','sys');if(me)goToRoom('deck');});
-  socket.on('vip-locked',d=>{addMsg('','','🔒 Die VIP-Lounge ist erst ab Level '+d.minLevel+' erreichbar.','sys');if(me){me.room='casino';me.x=me.tx=1760;me.y=me.ty=360;}});
-  socket.on('shop-result',d=>{addMsg('','',d.text,'sys');
-    if(d.ok){myOwned=new Set((d.owned||'').split(',').filter(Boolean));renderShop();renderEmoteBar();showPopup('🛍️','Gekauft!',d.text.replace(' gekauft!',''),'pink');}});
+  socket.on('planet-locked',d=>{addMsg('','',t('planet_locked_sys',{level:d.minLevel}),'sys');if(me)goToRoom('deck');});
+  socket.on('vip-locked',d=>{addMsg('','',t('vip_locked_sys',{level:d.minLevel}),'sys');if(me){me.room='casino';me.x=me.tx=1760;me.y=me.ty=360;}});
+  socket.on('shop-result',d=>{
+    if(d.ok){myOwned=new Set((d.owned||'').split(',').filter(Boolean));renderShop();renderEmoteBar();
+      const boughtItem=SHOP.find(x=>x.id===d.id)||EMOTE_LIST.find(x=>x.item===d.id);
+      const dispName=d.id&&EMOTE_LIST.find(x=>x.item===d.id)?t('emote_'+EMOTE_LIST.find(x=>x.item===d.id).name):(boughtItem?itemName(boughtItem):d.text.replace(' gekauft!',''));
+      addMsg('','',t('msg_bought',{name:dispName}),'sys');
+      showPopup('🛍️',t('popup_bought_title'),dispName,'pink');
+    }else addMsg('','',d.code?t(d.code,d.params):d.text,'sys');});
   socket.on('stardust',d=>{document.getElementById('orbs').textContent=d.value;if(me)me.stardust=d.value;if($('shop').style.display!=='none')$('shopcoins').textContent=d.value;});
   socket.emit('friends-list');
   socket.on('world',all=>{for(const id in all)addPlayer(all[id]);me=players[myId]||me;updateOnline();});
@@ -789,10 +1004,13 @@ function wireSocket(){
   socket.on('player-emote',d=>{const p=players[d.id];if(p){p.emo=d.icon;p.emoT=2.4;p.expr=d.expr;p.exprT=2.4;
     if(d.name){p.emote=d.name;p.emoteT=EMOTE_DUR[d.name]||2.2;p.emote0=p.emoteT;}}});
   socket.on('chat',m=>{addMsg(m.name,m.color,m.text,m.id===myId?'me':'');const p=players[m.id];if(p){p.bubble=m.text;p.bubbleT=4;}});
-  socket.on('system',t=>addMsg('','',t,'sys'));
+  socket.on('system',d=>{if(typeof d==='string'){addMsg('','',d,'sys');return;}
+    const params=Object.assign({},d.params);if(params.rank)params.rank=rankLabel(params.rank);
+    if(params.game)params.game=(GAME_NAMES[LANG]&&GAME_NAMES[LANG][params.game])||GAME_NAMES.de[params.game]||params.game;
+    addMsg('','',t(d.code,params),'sys');});
   socket.on('c4-waiting',()=>{$('c4wait').style.display='flex';});
   socket.on('c4-busy',()=>{locked=false;sitTable=-1;addMsg('','','Dieser Tisch ist gerade besetzt.','sys');});
-  socket.on('c4-cancel',()=>{$('c4wait').style.display='none';cg=null;locked=false;sitTable=-1;addMsg('','','4-Gewinnt abgebrochen.','sys');});
+  socket.on('c4-cancel',()=>{$('c4wait').style.display='none';cg=null;locked=false;sitTable=-1;addMsg('','',(LANG==='ja'?'コネクト4をキャンセルしました。':'4-Gewinnt abgebrochen.'),'sys');});
   socket.on('c4-start',d=>{$('c4wait').style.display='none';
     cg={board:d.board,turn:d.turn,seat:d.seat,a:d.a,b:d.b,over:false};
     $('c4na').textContent=d.a.name;$('c4nb').textContent=d.b.name;
@@ -800,7 +1018,7 @@ function wireSocket(){
     buildC4();updateC4();$('c4modal').style.display='flex';});
   socket.on('c4-update',d=>{if(!cg)return;cg.board=d.board;cg.turn=d.turn;updateC4();});
   socket.on('c4-over',d=>{if(!cg)return;cg.board=d.board;cg.over=true;cg.turn=-1;updateC4();showC4Result(d);
-    if(d.winnerSeat===cg.seat)showPopup('🏆','Gewonnen!','+25 Sternenstaub · +40 XP','gold');
+    if(d.winnerSeat===cg.seat)showPopup('🏆',t('popup_won_title'),t('popup_c4_sub'),'gold');
     locked=false;sitTable=-1;});
   socket.on('player-sit',d=>{const p=players[d.id];if(p){if(d.sitting&&!p.sitting)p.sitAnim=1;p.sitting=d.sitting;}});
   socket.on('leaderboard-data',d=>{renderLeaderboard(d.rows||[]);});
@@ -813,22 +1031,22 @@ function wireSocket(){
     const seg=Math.PI/4,turns=5,targetCenter=-Math.PI/2-(d.index*seg+seg/2);let end=targetCenter;while(end<wheelAngle+turns*2*Math.PI)end+=2*Math.PI;
     wheelTarget={index:d.index,amount:d.amount,stardust:d.stardust};wheelAnim={start:wheelAngle,end,t0:performance.now(),dur:4200};});
   socket.on('bj-idle',()=>{bjCanDouble=false;$('bjdealer').innerHTML='';$('bjplayer').innerHTML='';$('bjdval').textContent='';$('bjpval').textContent='';$('bjmsg').textContent='Setze deinen Einsatz und gib die Karten!';bjButtons('pre');$('bjbal').textContent=(me&&me.stardust)||0;});
-  socket.on('bj-state',d=>{if(d.error){$('bjmsg').textContent=d.error;return;}
+  socket.on('bj-state',d=>{if(d.errorCode||d.error){$('bjmsg').textContent=d.errorCode?t(d.errorCode):d.error;return;}
     bjCards($('bjdealer'),d.dealer);bjCards($('bjplayer'),d.player);
     $('bjpval').textContent=d.pVal;$('bjdval').textContent=(d.reveal&&d.dVal!=null)?d.dVal:'?';
     bjCanDouble=!!d.canDouble;
-    if(d.done){bjButtons('over');}else{$('bjmsg').textContent='Ziehen oder halten?';bjButtons('play');}
+    if(d.done){bjButtons('over');}else{$('bjmsg').textContent=t('bj_hit_or_stand');bjButtons('play');}
     $('bjbal').textContent=(me&&me.stardust)||0;});
   socket.on('bj-result',d=>{
-    const t={blackjack:'BLACKJACK! 🎉',win:'Gewonnen! 🎉',lose:'Verloren 😢',bust:'Überkauft! 💥',push:'Push – unentschieden 🤝'}[d.outcome]||'';
-    const net=d.payout-d.bet;$('bjmsg').textContent=t+'  ('+(net>=0?'+':'')+net+')';
+    const outText={blackjack:t('bj_out_blackjack'),win:t('bj_out_win'),lose:t('bj_out_lose'),bust:t('bj_out_bust'),push:t('bj_out_push')}[d.outcome]||'';
+    const net=d.payout-d.bet;$('bjmsg').textContent=outText+'  ('+(net>=0?'+':'')+net+')';
     bjCanDouble=false;bjButtons('over');$('bjbal').textContent=(me&&me.stardust)||0;
-    if(d.outcome==='win'||d.outcome==='blackjack')showPopup('♠','Blackjack','+'+net+' Sternenstaub','gold');});
-  socket.on('bj-msg',d=>{$('bjmsg').textContent=d.text||'';});
+    if(d.outcome==='win'||d.outcome==='blackjack')showPopup('♠',t('popup_bj_title'),t('amount_stardust',{amount:net}),'gold');});
+  socket.on('bj-msg',d=>{$('bjmsg').textContent=d.code?t(d.code):(d.text||'');});
   socket.on('bj-live',d=>{if(d&&d.id)bjLive[d.id]=d;});
   socket.on('bj-live-clear',d=>{if(d&&d.id)delete bjLive[d.id];});
   socket.on('plinko-result',d=>{
-    if(!d.ok){plBusy=false;$('pldrop').disabled=false;$('plmsg').textContent=d.text||'Fehler';return;}
+    if(!d.ok){plBusy=false;$('pldrop').disabled=false;$('plmsg').textContent=d.code?t(d.code):(d.text||'Fehler');return;}
     plStartBall(d.path,d.slot,d.mult,d.win,d.bet);});
   socket.on('casino-leaderboard-data',d=>{casinoTop=d.rows||[];casinoFeed=d.feed||[];if($('clb').style.display!=='none')renderCasinoBoard();});
   socket.on('casino-best',d=>{myCasinoBest=d.best||0;myCasinoGame=d.game||null;});
@@ -838,7 +1056,7 @@ function wireSocket(){
     if(s.phase==='bet'&&$('roul').style.display!=='none'&&(!prev||prev.phase!=='bet'))$('roulmsg').textContent='Neue Runde – setze deine Chips!';
     if($('roul').style.display!=='none')renderRouPanel();});
   socket.on('roul-mybets',d=>{rouMyBets=d.list||[];renderRouMine();renderRouPanel();});
-  socket.on('roul-msg',d=>{$('roulmsg').textContent=d.text||'';});
+  socket.on('roul-msg',d=>{$('roulmsg').textContent=d.code?t(d.code):(d.text||'');});
   socket.on('roul-spin',d=>{
     if(rouState){rouState.phase='spin';rouState.number=d.number;rouState.endsAt=d.endsAt;}
     const idx=ROU_ORDER.indexOf(d.number),seg=2*Math.PI/37;
@@ -848,19 +1066,20 @@ function wireSocket(){
     rouAnim={start:rouAngle,end,t0:performance.now(),dur:7400};});
   socket.on('roul-win',d=>{
     rouLastWin=d;
-    const c=d.number===0?'grün':(ROU_RED.has(d.number)?'rot':'schwarz');
+    const c=d.number===0?t('roul_green'):(ROU_RED.has(d.number)?t('roul_red'):t('roul_black'));
+    const numLabel=(LANG==='ja'?'数字'+d.number:'Zahl '+d.number);
     if(d.staked>0){
-      $('roulmsg').textContent='Zahl '+d.number+' ('+c+') → '+(d.net>=0?'+':'')+d.net+' Sternenstaub';
-      if(d.net>0)showPopup('🎯','Roulette','Zahl '+d.number+' – +'+d.net+' Sternenstaub','gold');}
-    else $('roulmsg').textContent='Zahl '+d.number+' ('+c+')';
+      $('roulmsg').textContent=numLabel+' ('+c+') → '+(d.net>=0?'+':'')+d.net+' '+t('shop_currency_suffix');
+      if(d.net>0)showPopup('🎯',t('popup_roulette_title'),(LANG==='ja'?numLabel+' – ':numLabel+' – ')+t('amount_stardust',{amount:d.net}),'gold');}
+    else $('roulmsg').textContent=numLabel+' ('+c+')';
     rouMyBets=[];renderRouMine();});
-  socket.on('friend-msg',d=>{$('fmsg').style.color=d.ok?'#3aa06a':'#e0396b';$('fmsg').textContent=d.text;if(d.ok)socket.emit('friends-list');});
+  socket.on('friend-msg',d=>{$('fmsg').style.color=d.ok?'#3aa06a':'#e0396b';$('fmsg').textContent=d.code?t(d.code,d.params):d.text;if(d.ok)socket.emit('friends-list');});
   socket.on('friend-refresh',()=>{socket.emit('friends-list');});
   socket.on('friends-data',d=>{renderFriends(d);buildRel(d);});
-  socket.on('dm-in',d=>{if(dmWith&&dmWith.id===d.fromId)appendDM('them',d.text);else addMsg('','','📩 Neue private Nachricht – öffne 👥 Freunde','sys');});
+  socket.on('dm-in',d=>{if(dmWith&&dmWith.id===d.fromId)appendDM('them',d.text);else addMsg('','',t('msg_new_dm'),'sys');});
   socket.on('dm-history-data',d=>{if(dmWith&&dmWith.id===d.withId)renderDMHistory(d.messages);});
-  socket.on('secret-result',d=>{if(d.ok){addMsg('','','🌟 Geheimnis entdeckt! +'+d.amount+' ✦','sys');showPopup('🌟','Geheimnis entdeckt!','+'+d.amount+' Sternenstaub','gold');}else addMsg('','','Hier gibt es gerade nichts Neues zu entdecken.','sys');});
-  socket.on('slot-result',d=>{if(!d.ok){slotSpinning=false;if(slotReels)slotReels.forEach(r=>r.state='idle');$('slotmsg').textContent=d.text||'Fehler';return;}
+  socket.on('secret-result',d=>{if(d.ok){addMsg('','','🌟 '+t('popup_secret_title')+' +'+d.amount+' ✦','sys');showPopup('🌟',t('popup_secret_title'),t('amount_stardust',{amount:d.amount}),'gold');}else addMsg('','',t('msg_secret_none'),'sys');});
+  socket.on('slot-result',d=>{if(!d.ok){slotSpinning=false;if(slotReels)slotReels.forEach(r=>r.state='idle');$('slotmsg').textContent=d.code?t(d.code):(d.text||'Fehler');return;}
     slotPending={win:d.win,bet:d.bet,stardust:d.stardust};const now=performance.now();
     if(slotReels)slotReels.forEach((r,i)=>{r.target=d.reels[i];r.stopAt=now+700+i*450;});});
 }
@@ -877,9 +1096,9 @@ chatin.addEventListener('keydown',e=>{if(e.key==='Enter')sendChat();});
 const emoBar=document.getElementById('emotes');
 function renderEmoteBar(){emoBar.innerHTML='';
   const owned=EMOTE_LIST.filter(em=>emoteOwned(em.name));
-  owned.forEach((em,i)=>{const b=document.createElement('div');b.className='emo';b.textContent=em.icon;b.title=em.label+(i<9?' ('+(i+1)+')':'');
+  owned.forEach((em,i)=>{const b=document.createElement('div');b.className='emo';b.textContent=em.icon;b.title=t('emote_'+em.name)+(i<9?' ('+(i+1)+')':'');
     b.onclick=()=>sendEmote(em.name);emoBar.appendChild(b);});
-  const plus=document.createElement('div');plus.className='emo emoplus';plus.textContent='＋';plus.title='Mehr Emotes im Shop';
+  const plus=document.createElement('div');plus.className='emo emoplus';plus.textContent='＋';plus.title=(LANG==='ja'?'ショップでもっとエモートを見る':'Mehr Emotes im Shop');
   plus.onclick=()=>openShop&&openShop('emote');emoBar.appendChild(plus);}
 renderEmoteBar();
 addEventListener('keydown',e=>{if(document.activeElement===chatin)return;const n=parseInt(e.key);
@@ -907,7 +1126,7 @@ cv.addEventListener('pointerdown',e=>{if(!me)return;if(document.activeElement===
     if(Math.abs(p.x-HALL_OBJ.x)<60&&p.y>HALL_OBJ.y-76&&p.y<HALL_OBJ.y+70){openCasinoBoard();return;}
     if(CASINO_SLOTS.some(s=>Math.hypot(s.x-p.x,s.y-p.y)<54)){openSlot();return;}
     if(Math.hypot(WHEEL_OBJ.x-p.x,WHEEL_OBJ.y-p.y)<WHEEL_OBJ.r){openWheel();return;}
-    const fi=FOUNTAINS.find(f=>Math.hypot(f.x-p.x,f.y-p.y)<f.r);if(fi){tossCoin(fi);showPopup('🪙','Wunschbrunnen','Du wirfst eine Münze hinein und wünschst dir Glück ✨','gold');return;}}
+    const fi=FOUNTAINS.find(f=>Math.hypot(f.x-p.x,f.y-p.y)<f.r);if(fi){tossCoin(fi);showPopup('🪙',t('popup_fountain_title'),t('popup_fountain_sub'),'gold');return;}}
   if(rid==='vip'){
     if(bjTableHit(VIP_BJ,p)){openBj(2);return;}
     if(VIP_SLOTS.some(s=>Math.hypot(s.x-p.x,s.y-p.y)<54)){openSlot();return;}}
@@ -945,13 +1164,13 @@ function drawHovered(cx,cy,fn){const t=performance.now()/300,s=1.06+Math.sin(t)*
 function roomDoors(room){return [room.door,room.door2,room.door3].filter(Boolean);}
 function checkDoor(){if(!me||!ROOMS[me.room])return;for(const d of roomDoors(ROOMS[me.room])){if(Math.hypot(me.x-d.x,me.y-d.y)<52){goToRoom(d.to,me.room);return;}}}
 function goToRoom(room,fromRoom){if(!me||locked||room===me.room)return;
-  if(room==='vip'&&(myLevel||1)<VIP_LEVEL){showPopup('🔒','VIP-Lounge','Zutritt erst ab Level '+VIP_LEVEL+'. Du bist Level '+(myLevel||1)+'.','purple');return;}
+  if(room==='vip'&&(myLevel||1)<VIP_LEVEL){showPopup('🔒',t('popup_vip_title'),t('popup_vip_sub',{level:VIP_LEVEL,mylevel:myLevel||1}),'purple');return;}
   me.room=room;
   if(PLANETS[room]){const pl=PLANETS[room];me.x=me.tx=pl.w/2;me.y=me.ty=pl.h-130;genPlanet(room);document.getElementById('room-name').textContent=pl.name;}
-  else{const doors=roomDoors(ROOMS[room]);const nd=(fromRoom&&doors.find(d=>d.to===fromRoom))||doors[0];me.x=me.tx=nd.x>W/2?nd.x-140:nd.x+140;me.y=me.ty=nd.y;document.getElementById('room-name').textContent=ROOMS[room].name;}
+  else{const doors=roomDoors(ROOMS[room]);const nd=(fromRoom&&doors.find(d=>d.to===fromRoom))||doors[0];me.x=me.tx=nd.x>W/2?nd.x-140:nd.x+140;me.y=me.ty=nd.y;document.getElementById('room-name').textContent=t('room_'+room);}
   socket&&socket.emit('room',{room:me.room,x:me.x,y:me.y});
   bjLive={};if(room==='casino'){socket&&socket.emit('bj-watch');socket&&socket.emit('roul-sync');socket&&socket.emit('casino-leaderboard');}
-  addMsg('','','Du bist bei '+((PLANETS[room]&&PLANETS[room].name)||ROOMS[room].name)+'.','sys');updateOnline();}
+  addMsg('','',(LANG==='ja'?'今いる場所：':'Du bist bei ')+((PLANETS[room]&&PLANETS[room].name)||t('room_'+room))+(LANG==='ja'?'':'.'),'sys');updateOnline();}
 
 let last=performance.now(),lastSent=0;
 function update(dt,now){
@@ -1050,8 +1269,8 @@ function drawWall(room){const g=ctx.createLinearGradient(0,0,0,200);g.addColorSt
   if(room===ROOMS.deck)drawViewport(W/2-210,44,420,150,room.accent);else drawViewport(80,44,W-160,150,room.accent);
   drawWallScreen(80,66,room.accent);drawWallScreen(W-180,66,room.accent);drawLamp(300,0);drawLamp(760,0);
   drawWallExtras(room);
-  ctx.font='700 15px Fredoka';ctx.textAlign='center';const t=room.name.toUpperCase(),tw=ctx.measureText(t).width;
-  ctx.fillStyle=room.accent;ctx.strokeStyle=INK;ctx.lineWidth=3;roundRect(W/2-tw/2-14,198,tw+28,22,11);ctx.fill();ctx.stroke();ctx.fillStyle=INK;ctx.fillText(t,W/2,213);}
+  ctx.font='700 15px Fredoka';ctx.textAlign='center';const txt=t('room_'+room.id).toUpperCase(),tw=ctx.measureText(txt).width;
+  ctx.fillStyle=room.accent;ctx.strokeStyle=INK;ctx.lineWidth=3;roundRect(W/2-tw/2-14,198,tw+28,22,11);ctx.fill();ctx.stroke();ctx.fillStyle=INK;ctx.fillText(txt,W/2,213);}
 
 function drawWallExtras(room){const now=performance.now();
   // Ventile auf dem oberen Rohr
@@ -1140,11 +1359,11 @@ function drawWheelCabinet(x,y){const now=performance.now();
   // Zeiger oben
   ctx.fillStyle='#fff';ctx.strokeStyle=INK;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,y-R-11);ctx.lineTo(x-7,y-R+5);ctx.lineTo(x+7,y-R+5);ctx.closePath();ctx.fill();ctx.stroke();
   // Schild
-  ctx.font='700 12px Fredoka';ctx.textAlign='center';const t='LUCKY WHEEL',tw=ctx.measureText(t).width;
+  ctx.font='700 12px Fredoka';ctx.textAlign='center';const lw=t('canvas_lucky_wheel'),tw=ctx.measureText(lw).width;
   ctx.fillStyle='#43091d';ctx.strokeStyle='#ffd166';ctx.lineWidth=2;roundRect(x-tw/2-9,y-R-36,tw+18,19,9);ctx.fill();ctx.stroke();
-  ctx.fillStyle='#ffd166';ctx.fillText(t,x,y-R-22);
+  ctx.fillStyle='#ffd166';ctx.fillText(lw,x,y-R-22);
   // Daily-Hinweis
-  if(wheelReady){const p=.55+.45*Math.sin(now/280);ctx.globalAlpha=p;ctx.fillStyle='#7be0b0';ctx.font='800 13px Fredoka';ctx.fillText('★ GRATIS-DREH ★',x,y+78);ctx.globalAlpha=1;}
+  if(wheelReady){const p=.55+.45*Math.sin(now/280);ctx.globalAlpha=p;ctx.fillStyle='#7be0b0';ctx.font='800 13px Fredoka';ctx.fillText(t('canvas_free_spin'),x,y+78);ctx.globalAlpha=1;}
 }
 function drawColumn(x,by){const h=150,top=by-h,w=28;
   ctx.fillStyle='rgba(43,27,82,.15)';ctx.beginPath();ctx.ellipse(x,by+6,w+10,8,0,0,7);ctx.fill();
@@ -1194,10 +1413,10 @@ function drawCasinoExtras(){const now=performance.now();
   // Kronleuchter über die Breite
   drawChandelier(300,88,now);drawChandelier(800,92,now+400);drawChandelier(1300,88,now+800);drawChandelier(1750,88,now+1200);
   // Casino-Leuchtschild (Marquee), über dem Lucky Wheel
-  ctx.font='800 32px Fredoka';ctx.textAlign='center';const t='★ CASINO ★',tw=ctx.measureText(t).width,cx=CRUG;
+  ctx.font='800 32px Fredoka';ctx.textAlign='center';const cs=t('canvas_casino_sign'),tw=ctx.measureText(cs).width,cx=CRUG;
   ctx.fillStyle='#43091d';ctx.strokeStyle='#ffd166';ctx.lineWidth=4;roundRect(cx-tw/2-26,138,tw+52,42,12);ctx.fill();ctx.stroke();
   for(let i=0;i<Math.floor((tw+52)/16);i++){const bx=cx-tw/2-18+i*16;ctx.fillStyle=Math.sin(now/220+i)>0?'#fff2c0':'#d99a1f';ctx.beginPath();ctx.arc(bx,138,2.6,0,7);ctx.fill();ctx.beginPath();ctx.arc(bx,180,2.6,0,7);ctx.fill();}
-  const gg=ctx.createLinearGradient(0,144,0,176);gg.addColorStop(0,'#fff2c0');gg.addColorStop(.5,'#ffd166');gg.addColorStop(1,'#d99a1f');ctx.fillStyle=gg;ctx.fillText(t,cx,170);
+  const gg=ctx.createLinearGradient(0,144,0,176);gg.addColorStop(0,'#fff2c0');gg.addColorStop(.5,'#ffd166');gg.addColorStop(1,'#d99a1f');ctx.fillStyle=gg;ctx.fillText(cs,cx,170);
   // Säulen (rahmen den Raum, ohne Automaten/Wheel zu überdecken)
   [[120,300],[560,300],[1040,300],[1480,300]].forEach(([px,py])=>drawColumn(px,py));
   // Samtkordeln
@@ -1209,9 +1428,9 @@ function drawCasinoExtras(){const now=performance.now();
 /* ---------------- LUCKY WHEEL ---------------- */
 function fmtWait(ms){const s=Math.max(0,Math.ceil(ms/1000)),h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h+'h '+m+'m';}
 function updateWheelBtn(){const b=$('wheelspin'),msg=$('wheelmsg');if(!b)return;
-  if(wheelSpinning){b.disabled=true;b.textContent='🎡 Dreht…';msg.textContent='Viel Glück! ✨';return;}
-  if(wheelReady){b.disabled=false;b.textContent='🎡 Drehen';msg.textContent='Dein täglicher Gratis-Dreh wartet!';}
-  else{b.disabled=true;b.textContent='⏳ '+fmtWait(wheelWait);msg.textContent='Nächster Gratis-Dreh in '+fmtWait(wheelWait)+'.';}}
+  if(wheelSpinning){b.disabled=true;b.textContent=t('wheel_spinning');msg.textContent=t('wheel_spin_msg');return;}
+  if(wheelReady){b.disabled=false;b.textContent=t('wheel_spin_btn');msg.textContent=t('wheel_ready_msg');}
+  else{b.disabled=true;b.textContent='⏳ '+fmtWait(wheelWait);msg.textContent=t('wheel_wait_msg',{wait:fmtWait(wheelWait)});}}
 function openWheel(){$('wheel').style.display='flex';locked=true;
   const c=$('wheelCanvas'),dpr=Math.min(devicePixelRatio||1,3);c.width=300*dpr;c.height=320*dpr;wheelG=c.getContext('2d');wheelG.setTransform(dpr,0,0,dpr,0,0);
   updateWheelBtn();if(!wheelRAF)wheelModalLoop();}
@@ -1232,7 +1451,7 @@ function wheelModalLoop(){if($('wheel').style.display==='none'){wheelRAF=null;re
     wheelAngle=wheelAnim.start+(wheelAnim.end-wheelAnim.start)*e;
     if(t>=1){wheelAngle=((wheelAnim.end%(2*Math.PI))+2*Math.PI)%(2*Math.PI);wheelAnim=null;wheelSpinning=false;wheelReady=false;wheelWait=24*3600*1000;
       const w=wheelTarget;wheelTarget=null;updateWheelBtn();
-      if(w)showPopup(w.amount>=2000?'🎉':'🎡',w.amount>=2000?'JACKPOT!':'Lucky Wheel','+'+w.amount+' Sternenstaub','gold');}}
+      if(w)showPopup(w.amount>=2000?'🎉':'🎡',w.amount>=2000?t('popup_jackpot'):t('popup_wheel_title'),t('amount_stardust',{amount:w.amount}),'gold');}}
   drawWheelModal();wheelRAF=requestAnimationFrame(wheelModalLoop);}
 $('wheelspin').onclick=spinWheel;
 $('wheelclose').onclick=closeWheel;
@@ -1268,8 +1487,8 @@ function drawBjTable(x,y){
   ctx.fillStyle='#ffd166';ctx.strokeStyle=INK;ctx.lineWidth=5;ctx.beginPath();ctx.ellipse(x,y,100,58,0,0,7);ctx.fill();ctx.stroke();
   const g=ctx.createRadialGradient(x,y-12,10,x,y,98);g.addColorStop(0,'#1aa661');g.addColorStop(1,'#0c6238');ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(x,y,88,48,0,0,7);ctx.fill();
   ctx.strokeStyle='rgba(255,255,255,.45)';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(x,y+8,64,30,0,Math.PI*0.1,Math.PI*0.9);ctx.stroke();
-  ctx.fillStyle='#fff';ctx.font='800 13px Fredoka';ctx.textAlign='center';ctx.fillText('BLACKJACK',x,y-14);
-  ctx.fillStyle='#ffe9a8';ctx.font='700 9px Fredoka';ctx.fillText('zahlt 3 : 2',x,y-2);
+  ctx.fillStyle='#fff';ctx.font='800 13px Fredoka';ctx.textAlign='center';ctx.fillText(t('canvas_blackjack'),x,y-14);
+  ctx.fillStyle='#ffe9a8';ctx.font='700 9px Fredoka';ctx.fillText(t('canvas_pays32'),x,y-2);
   [['#e0396b',-58],['#4dd0ff',-34],['#ffd166',58]].forEach(([col,dx])=>{for(let i=0;i<4;i++){ctx.fillStyle=col;ctx.strokeStyle=INK;ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(x+dx,y+16-i*3,11,5,0,0,7);ctx.fill();ctx.stroke();}});
   ctx.save();ctx.translate(x+16,y+12);ctx.rotate(0.16);ctx.fillStyle='#fff';ctx.strokeStyle=INK;ctx.lineWidth=2;roundRect(-10,-14,20,28,3);ctx.fill();ctx.stroke();ctx.fillStyle='#e0396b';ctx.font='800 11px Fredoka';ctx.fillText('A',0,3);ctx.restore();
   ctx.save();ctx.translate(x+30,y+10);ctx.rotate(0.3);ctx.fillStyle='#fff';ctx.strokeStyle=INK;ctx.lineWidth=2;roundRect(-10,-14,20,28,3);ctx.fill();ctx.stroke();ctx.fillStyle=INK;ctx.font='800 11px Fredoka';ctx.fillText('K',0,3);ctx.restore();
@@ -1292,7 +1511,7 @@ function drawBjLive(table,tx,ty){
   for(const e of shown){
     ctx.fillStyle=e.color||'#fff';ctx.font='700 11px Fredoka';ctx.textAlign='left';ctx.fillText((e.name||'?').slice(0,10),px+10,ry+9);
     let st='',stc='#ffd166';
-    if(e.done){st=({blackjack:'BLACKJACK',win:'GEWONNEN',lose:'VERLOREN',bust:'BUST',push:'PUSH'})[e.outcome]||'';stc=(e.outcome==='win'||e.outcome==='blackjack')?'#7be0b0':(e.outcome==='push'?'#ffd166':'#ff6b8a');}
+    if(e.done){st=({blackjack:t('canvas_bj_blackjack'),win:t('canvas_bj_win'),lose:t('canvas_bj_lose'),bust:t('canvas_bj_bust'),push:t('canvas_bj_push')})[e.outcome]||'';stc=(e.outcome==='win'||e.outcome==='blackjack')?'#7be0b0':(e.outcome==='push'?'#ffd166':'#ff6b8a');}
     else if(e.active)st='spielt…';else st='setzt…';
     ctx.fillStyle=stc;ctx.font='700 9px Fredoka';ctx.textAlign='right';ctx.fillText(st,px+w-10,ry+9);
     const cy=ry+13;let cx=px+10;
@@ -1303,7 +1522,7 @@ function drawBjLive(table,tx,ty){
     for(const c of (e.player||[]).slice(0,5)){bjMiniCard(cx,cy,c);cx+=13;}
     if(e.player&&e.player.length){ctx.fillStyle='#8fe3ff';ctx.font='800 11px Fredoka';ctx.fillText(String(e.pVal),cx+2,cy+15);}
     ry+=rowH;}
-  if(list.length>2){ctx.fillStyle='#cbb3ff';ctx.font='600 9px Fredoka';ctx.textAlign='center';ctx.fillText('+'+(list.length-2)+' weitere Spieler',tx,py+h-6);}
+  if(list.length>2){ctx.fillStyle='#cbb3ff';ctx.font='600 9px Fredoka';ctx.textAlign='center';ctx.fillText(t('bj_more_players',{n:list.length-2}),tx,py+h-6);}
 }
 
 /* ---------------- PLINKO ---------------- */
@@ -1317,7 +1536,7 @@ function openPlinko(){$('plinko').style.display='flex';locked=true;$('plbal').te
   if(!plRAF)plLoop();}
 function closePlinko(){$('plinko').style.display='none';if(plRAF)cancelAnimationFrame(plRAF);plRAF=null;plBalls=[];plBusy=false;locked=false;}
 function plDrop(){if(plBusy)return;if(((me&&me.stardust)||0)<plBet){$('plmsg').textContent='Zu wenig Sternenstaub!';return;}
-  plBusy=true;$('pldrop').disabled=true;$('plmsg').textContent='Die Kugel fällt…';socket&&socket.emit('plinko-drop',{bet:plBet});}
+  plBusy=true;$('pldrop').disabled=true;$('plmsg').textContent=t('plinko_dropping');socket&&socket.emit('plinko-drop',{bet:plBet});}
 function plStartBall(path,slot,mult,win,bet){
   plBalls.push({path,slot,mult,win,bet,t0:performance.now(),seg:0,done:false});}
 function plBallPos(b,now){
@@ -1370,7 +1589,7 @@ function plLoop(){if($('plinko').style.display==='none'){plRAF=null;return;}
       $('plmsg').textContent=plFmt(b.mult)+' → '+(net>=0?'+':'')+net+' Sternenstaub';
       $('plbal').textContent=(me&&me.stardust)||0;
       plBusy=false;$('pldrop').disabled=false;
-      if(b.mult>=5)showPopup('🔴',b.mult>=25?'PLINKO JACKPOT!':'Plinko',plFmt(b.mult)+' – +'+net+' Sternenstaub','gold');}}
+      if(b.mult>=5)showPopup('🔴',b.mult>=25?t('popup_plinko_jackpot'):t('popup_plinko_title'),plFmt(b.mult)+' – '+t('amount_stardust',{amount:net}),'gold');}}
   plBalls=plBalls.filter(b=>!b.settled||now-b.t0<3000);
   drawPlinkoModal();plRAF=requestAnimationFrame(plLoop);}
 $('pldrop').onclick=plDrop;
@@ -1393,12 +1612,12 @@ function drawPlinkoCabinet(x,y){const now=performance.now();
   const gl=ctx.createRadialGradient(bx,by,1,bx,by,9);gl.addColorStop(0,'rgba(255,120,160,.6)');gl.addColorStop(1,'transparent');ctx.fillStyle=gl;ctx.beginPath();ctx.arc(bx,by,9,0,7);ctx.fill();
   ctx.fillStyle='#e0396b';ctx.strokeStyle=INK;ctx.lineWidth=2;ctx.beginPath();ctx.arc(bx,by,4.5,0,7);ctx.fill();ctx.stroke();
   // Schild
-  ctx.font='800 13px Fredoka';ctx.textAlign='center';const t2='PLINKO',tw=ctx.measureText(t2).width;
+  ctx.font='800 13px Fredoka';ctx.textAlign='center';const t2=t('canvas_plinko'),tw=ctx.measureText(t2).width;
   ctx.fillStyle='#43091d';ctx.strokeStyle='#ffd166';ctx.lineWidth=3;roundRect(x-tw/2-11,y-120,tw+22,22,10);ctx.fill();ctx.stroke();
   for(let i=0;i<Math.floor((tw+22)/9);i++){ctx.fillStyle=Math.sin(now/200+i)>0?'#fff2c0':'#d99a1f';ctx.beginPath();ctx.arc(x-tw/2-6+i*9,y-120,1.8,0,7);ctx.fill();}
   ctx.fillStyle='#ffd166';ctx.fillText(t2,x,y-104);
   // 25x Hinweis
-  ctx.fillStyle='#7be0b0';ctx.font='800 10px Fredoka';ctx.fillText('bis 25x',x,y+34);
+  ctx.fillStyle='#7be0b0';ctx.font='800 10px Fredoka';ctx.fillText(t('canvas_up_to_25x'),x,y+34);
 }
 
 /* ---------------- VIP-LOUNGE ---------------- */
@@ -1440,10 +1659,10 @@ function drawVipFloor(){const top=196;
 function drawVipExtras(){const now=performance.now();
   drawChandelier(300,86,now);drawChandelier(740,86,now+500);
   // VIP-Schild
-  ctx.font='800 28px Fredoka';ctx.textAlign='center';const t='💎 VIP LOUNGE',tw=ctx.measureText(t).width,cx=W/2;
+  ctx.font='800 28px Fredoka';ctx.textAlign='center';const vl=t('canvas_vip_lounge'),tw=ctx.measureText(vl).width,cx=W/2;
   ctx.fillStyle='#12101f';ctx.strokeStyle='#ffd166';ctx.lineWidth=4;roundRect(cx-tw/2-24,138,tw+48,40,12);ctx.fill();ctx.stroke();
   for(let i=0;i<Math.floor((tw+48)/16);i++){const bx=cx-tw/2-16+i*16;ctx.fillStyle=Math.sin(now/220+i)>0?'#fff2c0':'#d99a1f';ctx.beginPath();ctx.arc(bx,138,2.6,0,7);ctx.fill();ctx.beginPath();ctx.arc(bx,178,2.6,0,7);ctx.fill();}
-  const gg=ctx.createLinearGradient(0,144,0,174);gg.addColorStop(0,'#fff2c0');gg.addColorStop(.5,'#ffd166');gg.addColorStop(1,'#d99a1f');ctx.fillStyle=gg;ctx.fillText(t,cx,168);
+  const gg=ctx.createLinearGradient(0,144,0,174);gg.addColorStop(0,'#fff2c0');gg.addColorStop(.5,'#ffd166');gg.addColorStop(1,'#d99a1f');ctx.fillStyle=gg;ctx.fillText(vl,cx,168);
   // Säulen
   [[190,300],[930,300]].forEach(([px,py])=>drawColumn(px,py));
   // Champagner-Bar rechts
@@ -1461,7 +1680,7 @@ function drawVipBar(x,y){const now=performance.now();
     ctx.fillStyle='rgba(255,225,120,.85)';ctx.beginPath();ctx.moveTo(gx-4.4,y-31);ctx.lineTo(gx-2,y-21);ctx.lineTo(gx+2,y-21);ctx.lineTo(gx+4.4,y-31);ctx.closePath();ctx.fill();
     ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(gx,y-20);ctx.lineTo(gx,y-15);ctx.stroke();
     for(let b=0;b<3;b++){const bt=((now/900)+b/3+i/5)%1;ctx.fillStyle='rgba(255,255,255,'+(1-bt)*.8+')';ctx.beginPath();ctx.arc(gx+Math.sin(b*2+i)*2,y-22-bt*8,1.1,0,7);ctx.fill();}}
-  ctx.fillStyle='#ffd166';ctx.font='700 10px Fredoka';ctx.textAlign='center';ctx.fillText('CHAMPAGNER',x,y+20);
+  ctx.fillStyle='#ffd166';ctx.font='700 10px Fredoka';ctx.textAlign='center';ctx.fillText(t('canvas_champagne'),x,y+20);
 }
 
 /* ---------------- CASINO-BESTENLISTE ---------------- */
@@ -1472,18 +1691,18 @@ $('clb').onclick=e=>{if(e.target.id==='clb')closeCasinoBoard();};
 function renderCasinoBoard(){
   const el=$('clblist');el.innerHTML='';
   $('clbmine').innerHTML=myCasinoBest>0
-    ? 'Dein Rekord: <b>'+myCasinoBest+'</b> ✦ <span class="clbgame">'+(GAME_ICONS[myCasinoGame]||'')+' '+(GAME_NAMES[myCasinoGame]||'')+'</span>'
-    : 'Noch kein Rekord – hol dir deinen ersten großen Gewinn! ✨';
-  if(!casinoTop.length){el.innerHTML='<div class="lbempty">Noch keine Gewinne – sei der Erste! 🎰</div>';}
+    ? t('clb_your_record')+' <b>'+myCasinoBest+'</b> ✦ <span class="clbgame">'+(GAME_ICONS[myCasinoGame]||'')+' '+(GAME_NAMES[LANG]&&GAME_NAMES[LANG][myCasinoGame]||GAME_NAMES.de[myCasinoGame]||'')+'</span>'
+    : t('clb_no_record');
+  if(!casinoTop.length){el.innerHTML='<div class="lbempty">'+t('clb_empty')+'</div>';}
   else casinoTop.forEach((r,i)=>{const row=document.createElement('div');row.className='lbrow';
     const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1);
     const g=r.casino_best_game;
-    row.innerHTML='<span class="lbrank">'+medal+'</span><span class="lbname">'+esc(r.username||'Alien')+'<br><span class="clbgame">'+(GAME_ICONS[g]||'')+' '+(GAME_NAMES[g]||'')+'</span></span><span class="lbwins">✦ '+(r.casino_best||0)+'</span>';
+    row.innerHTML='<span class="lbrank">'+medal+'</span><span class="lbname">'+esc(r.username||'Alien')+'<br><span class="clbgame">'+(GAME_ICONS[g]||'')+' '+(GAME_NAMES[LANG]&&GAME_NAMES[LANG][g]||GAME_NAMES.de[g]||'')+'</span></span><span class="lbwins">✦ '+(r.casino_best||0)+'</span>';
     el.appendChild(row);});
   const f=$('clbfeed');f.innerHTML='';
-  if(!casinoFeed.length)f.innerHTML='<div class="clbf" style="color:#8a76c4">Noch keine großen Gewinne…</div>';
+  if(!casinoFeed.length)f.innerHTML='<div class="clbf" style="color:#8a76c4">'+t('clb_no_wins')+'</div>';
   else casinoFeed.forEach(w=>{const d=document.createElement('div');d.className='clbf';
-    d.innerHTML='<span style="color:'+(w.color||'#333')+'">'+esc(w.name||'?')+'</span><span class="clbgame">'+(GAME_ICONS[w.game]||'')+' '+(GAME_NAMES[w.game]||'')+'</span><span style="color:#1aa661">+'+w.net+'</span>';
+    d.innerHTML='<span style="color:'+(w.color||'#333')+'">'+esc(w.name||'?')+'</span><span class="clbgame">'+(GAME_ICONS[w.game]||'')+' '+(GAME_NAMES[LANG]&&GAME_NAMES[LANG][w.game]||GAME_NAMES.de[w.game]||'')+'</span><span style="color:#1aa661">+'+w.net+'</span>';
     f.appendChild(d);});}
 function drawHallBoard(x,y){const now=performance.now();
   ctx.fillStyle='rgba(43,27,82,.2)';ctx.beginPath();ctx.ellipse(x,y+70,46,11,0,0,7);ctx.fill();
@@ -1497,7 +1716,7 @@ function drawHallBoard(x,y){const now=performance.now();
   for(let i=0;i<8;i++){const bx=x-48+i*13.7;ctx.fillStyle=Math.sin(now/230+i)>0?'#fff2c0':'#d99a1f';ctx.beginPath();ctx.arc(bx,y-72,2.4,0,7);ctx.fill();ctx.beginPath();ctx.arc(bx,y+44,2.4,0,7);ctx.fill();}
   // Pokal
   ctx.font='700 22px Fredoka';ctx.textAlign='center';ctx.fillText('🏆',x,y-42);
-  ctx.fillStyle='#ffd166';ctx.font='800 11px Fredoka';ctx.fillText('TOP-GEWINNE',x,y-24);
+  ctx.fillStyle='#ffd166';ctx.font='800 11px Fredoka';ctx.fillText(t('canvas_top_wins'),x,y-24);
   // Top 3
   const top=casinoTop.slice(0,3);
   if(!top.length){ctx.fillStyle='#cbb3ff';ctx.font='600 9px Fredoka';ctx.fillText('noch leer…',x,y-2);}
@@ -1505,13 +1724,13 @@ function drawHallBoard(x,y){const now=performance.now();
     ctx.textAlign='left';ctx.fillStyle=['#ffd166','#dfe4ee','#e0a878'][i];ctx.font='800 9px Fredoka';ctx.fillText(['🥇','🥈','🥉'][i],x-46,ry);
     ctx.fillStyle='#fff';ctx.font='700 9px Fredoka';ctx.fillText((r.username||'?').slice(0,8),x-30,ry);
     ctx.textAlign='right';ctx.fillStyle='#7be0b0';ctx.fillText(String(r.casino_best||0),x+46,ry);});
-  ctx.textAlign='center';ctx.fillStyle='#ffd166';ctx.font='700 8px Fredoka';ctx.fillText('Klick für Details',x,y+36);
+  ctx.textAlign='center';ctx.fillStyle='#ffd166';ctx.font='700 8px Fredoka';ctx.fillText(t('canvas_click_details'),x,y+36);
 }
 
 /* ---------------- ROULETTE ---------------- */
-function rouLabel(b){const m={red:'Rot',black:'Schwarz',even:'Gerade',odd:'Ungerade',low:'1–18',high:'19–36'};
-  if(b.type==='number')return 'Zahl '+b.value;
-  if(b.type==='dozen')return b.value+'. Dutzend';
+function rouLabel(b){const m={red:t('roul_red'),black:t('roul_black'),even:t('roul_even'),odd:t('roul_odd'),low:t('roul_low'),high:t('roul_high')};
+  if(b.type==='number')return (LANG==='ja'?'数字 ':'Zahl ')+b.value;
+  if(b.type==='dozen')return t('roul_dozen'+b.value);
   return m[b.type]||b.type;}
 function openRoul(){$('roul').style.display='flex';locked=true;
   const c=$('roulCanvas'),dpr=Math.min(devicePixelRatio||1,3);c.width=150*dpr;c.height=150*dpr;rouG=c.getContext('2d');rouG.setTransform(dpr,0,0,dpr,0,0);
@@ -1521,26 +1740,26 @@ function buildRouNums(){const g=$('rounums');if(g.dataset.built)return;g.dataset
   for(let n=0;n<=36;n++){const b=document.createElement('button');b.className='roun';b.textContent=n;
     b.style.background=rouCol(n);b.onclick=()=>rouPlace('number',n);g.appendChild(b);}}
 function rouPlace(type,value){
-  if(!rouState||rouState.phase!=='bet'){$('roulmsg').textContent='Einsätze sind geschlossen!';return;}
-  if(((me&&me.stardust)||0)<rouChip){$('roulmsg').textContent='Zu wenig Sternenstaub!';return;}
+  if(!rouState||rouState.phase!=='bet'){$('roulmsg').textContent=t('err_roul_closed');return;}
+  if(((me&&me.stardust)||0)<rouChip){$('roulmsg').textContent=t('err_funds');return;}
   socket&&socket.emit('roul-bet',{type,value,amount:rouChip});}
 function renderRouMine(){
-  if(!rouMyBets.length){$('roulmine').textContent='Keine Einsätze';return;}
+  if(!rouMyBets.length){$('roulmine').textContent=t('roul_no_bets');return;}
   const tot=rouMyBets.reduce((s,b)=>s+b.amount,0);
-  $('roulmine').innerHTML='<b>Dein Einsatz: '+tot+'</b> — '+rouMyBets.map(b=>rouLabel(b)+' ('+b.amount+')').join(', ');}
+  $('roulmine').innerHTML='<b>'+(LANG==='ja'?'あなたの合計ベット: '+tot:'Dein Einsatz: '+tot)+'</b> — '+rouMyBets.map(b=>rouLabel(b)+' ('+b.amount+')').join(', ');}
 function renderRouPanel(){
   const s=rouState;if(!s)return;
   $('roulhist').innerHTML=(s.history||[]).map(h=>'<div class="rouh" style="background:'+rouCol(h.n)+'">'+h.n+'</div>').join('');
   const ps=(s.players||[]);
-  $('roulplayers').innerHTML=ps.length?ps.map(p=>'<div class="roulp"><span style="color:'+(p.color||'#333')+'">'+p.name+'</span><span>'+p.total+'</span></div>').join(''):'<div class="roulp" style="color:#8a76c4">Noch keine Einsätze</div>';
+  $('roulplayers').innerHTML=ps.length?ps.map(p=>'<div class="roulp"><span style="color:'+(p.color||'#333')+'">'+p.name+'</span><span>'+p.total+'</span></div>').join(''):'<div class="roulp" style="color:#8a76c4">'+t('roul_no_bets_yet')+'</div>';
   // Zahlen markieren
   document.querySelectorAll('.roun').forEach((el,n)=>{el.classList.toggle('sel',rouMyBets.some(b=>b.type==='number'&&b.value===n));});}
 function rouPhaseText(){
   const s=rouState;if(!s)return '…';
   const left=Math.max(0,Math.ceil((s.endsAt-Date.now()-rouSkew)/1000));
-  if(s.phase==='bet')return '🟢 Einsätze offen — '+left+'s';
-  if(s.phase==='spin')return '🎯 Kugel rollt…';
-  return '✔ Ergebnis: '+(s.number!=null?s.number:'?')+' — nächste Runde in '+left+'s';}
+  if(s.phase==='bet')return t('roul_bets_open')+left+'s';
+  if(s.phase==='spin')return t('roul_ball_rolling');
+  return t('roul_result_prefix')+(s.number!=null?s.number:'?')+t('roul_next_round')+left+'s';}
 let rouSkew=0;
 function drawRouWheel(){const g=rouG;if(!g)return;const cx=75,cy=75,R=64,N=37,seg=2*Math.PI/N;
   g.clearRect(0,0,150,150);
@@ -1587,7 +1806,7 @@ function drawRouTable(x,y){const now=performance.now();
   // Setzfeld rechts
   const bx=x+14,by=y-20;
   for(let r=0;r<3;r++)for(let c=0;c<6;c++){const n=1+c*3+r;ctx.fillStyle=rouCol(n);ctx.strokeStyle='rgba(255,255,255,.4)';ctx.lineWidth=1;ctx.fillRect(bx+c*11,by+r*11,10,10);ctx.strokeRect(bx+c*11,by+r*11,10,10);}
-  ctx.fillStyle='#fff';ctx.font='800 12px Fredoka';ctx.textAlign='center';ctx.fillText('ROULETTE',x+8,y+34);
+  ctx.fillStyle='#fff';ctx.font='800 12px Fredoka';ctx.textAlign='center';ctx.fillText(t('canvas_roulette'),x+8,y+34);
   // Chips
   [['#e0396b',-88],['#4dd0ff',88]].forEach(([col,dx])=>{for(let i=0;i<4;i++){ctx.fillStyle=col;ctx.strokeStyle=INK;ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(x+dx,y+22-i*3,11,5,0,0,7);ctx.fill();ctx.stroke();}});
 }
@@ -1600,7 +1819,7 @@ function drawRouLive(x,y){
   ctx.fillStyle='rgba(28,17,58,.93)';ctx.beginPath();ctx.moveTo(x-9,py+h-1);ctx.lineTo(x+9,py+h-1);ctx.lineTo(x,py+h+11);ctx.closePath();ctx.fill();
   const left=Math.max(0,Math.ceil((s.endsAt-Date.now())/1000));
   ctx.textAlign='center';ctx.font='800 11px Fredoka';
-  if(s.phase==='bet'){ctx.fillStyle='#7be0b0';ctx.fillText('EINSÄTZE OFFEN — '+left+'s',x,py+16);}
+  if(s.phase==='bet'){ctx.fillStyle='#7be0b0';ctx.fillText(t('roul_bets_open_short')+left+'s',x,py+16);}
   else if(s.phase==='spin'){ctx.fillStyle='#ffd166';ctx.fillText('KUGEL ROLLT…',x,py+16);}
   else{ctx.fillStyle='#fff';ctx.fillText('ERGEBNIS: '+(s.number!=null?s.number:'?'),x,py+16);}
   let ry=py+30;
@@ -1700,7 +1919,7 @@ const DECO={
 function drawDoor(d,accent){ctx.fillStyle='#fff';ctx.strokeStyle=INK;ctx.lineWidth=5;roundRect(d.x-32,d.y-60,64,120,18);ctx.fill();ctx.stroke();
   ctx.fillStyle=accent;roundRect(d.x-22,d.y-48,44,96,12);ctx.fill();ctx.strokeStyle=INK;ctx.lineWidth=4;roundRect(d.x-22,d.y-48,44,96,12);ctx.stroke();
   const p=.5+.5*Math.sin(performance.now()/350);ctx.fillStyle=`rgba(255,255,255,${.4+.5*p})`;ctx.font='700 24px Fredoka';ctx.textAlign='center';ctx.fillText('⇄',d.x,d.y+9);
-  ctx.font='600 13px Fredoka';const w2=ctx.measureText(d.label).width;ctx.fillStyle='#fff';ctx.strokeStyle=INK;ctx.lineWidth=3;roundRect(d.x-w2/2-10,d.y-90,w2+20,22,11);ctx.fill();ctx.stroke();ctx.fillStyle=INK;ctx.fillText(d.label,d.x,d.y-75);}
+  ctx.font='600 13px Fredoka';const dlabel=doorLabel(d),w2=ctx.measureText(dlabel).width;ctx.fillStyle='#fff';ctx.strokeStyle=INK;ctx.lineWidth=3;roundRect(d.x-w2/2-10,d.y-90,w2+20,22,11);ctx.fill();ctx.stroke();ctx.fillStyle=INK;ctx.fillText(dlabel,d.x,d.y-75);}
 function drawOrb(o){const y=o.y+Math.sin(o.t)*5;ctx.strokeStyle=INK;ctx.lineWidth=4;ctx.fillStyle='#ffe15e';ctx.beginPath();
   for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?5:13;const px=o.x+Math.cos(a)*rr,py=y+Math.sin(a)*rr;i?ctx.lineTo(px,py):ctx.moveTo(px,py);}
   ctx.closePath();ctx.fill();ctx.stroke();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(o.x-3,y-3,2.5,0,7);ctx.fill();}
@@ -1879,21 +2098,21 @@ function openProfile(pl){
   const own=pl.id===myId;profileName=pl.name;
   $('pname').textContent=pl.name||'Alien';
   $('pcoins').textContent=(own?(me&&me.stardust)||0:(pl.stardust||0));
-  $('pbadge').textContent=(own?myRank:(pl.rank||'Kadett')).toUpperCase();
-  $('plevel').textContent='Level '+(own?myLevel:(pl.level||1));
+  $('pbadge').textContent=rankLabel(own?myRank:(pl.rank||'Kadett')).toUpperCase();
+  $('plevel').textContent=t('title_level')+' '+(own?myLevel:(pl.level||1));
   if(own){const span=Math.max(1,myNextXp-myCurXp);$('pxpfill').style.width=Math.max(0,Math.min(100,(myXp-myCurXp)/span*100))+'%';$('pxpwrap').style.display='block';}
   else $('pxpwrap').style.display='none';
   $('pinv').style.display='none';
   $('invarrow').classList.remove('open');
-  $('invtoggle').firstElementChild.textContent='Inventar öffnen';
+  $('invtoggle').firstElementChild.textContent=t('inv_open');
   $('invtoggle').style.display=own?'flex':'none';
   const fb=$('pfriend');
   if(own){fb.style.display='none';}
   else{fb.style.display='flex';const st=rel[(pl.name||'').toLowerCase()];
-    if(st==='friend'){fb.textContent='✓ Befreundet';fb.dataset.can='0';}
-    else if(st==='incoming'){fb.textContent='Anfrage offen – in 👥 annehmen';fb.dataset.can='0';}
-    else if(st==='pending'){fb.textContent='Anfrage gesendet ⏳';fb.dataset.can='0';}
-    else{fb.textContent='➕ Freund hinzufügen';fb.dataset.can='1';}
+    if(st==='friend'){fb.textContent=t('friend_status_friends');fb.dataset.can='0';}
+    else if(st==='incoming'){fb.textContent=t('friend_status_incoming');fb.dataset.can='0';}
+    else if(st==='pending'){fb.textContent=t('friend_status_pending');fb.dataset.can='0';}
+    else{fb.textContent=t('btn_add_friend');fb.dataset.can='1';}
     fb.style.opacity=fb.dataset.can==='1'?'1':'.6';}
   renderPreview(pl);if(own)buildInventory(pl);
   $('profile').style.display='flex';
@@ -1935,7 +2154,8 @@ function buildInventory(pl){
   const inv=$('pinv');inv.innerHTML='';const own=pl.id===myId;
   for(const it of INV_ITEMS){const cell=document.createElement('div');
     const has=it.id==='none'||myOwned.has(it.id);
-    cell.className='invcell'+(pl.acc===it.id?' on':'')+(has?'':' lock');cell.textContent=has?ITEM_ICON[it.id]:'🔒';cell.title=it.label;
+    cell.className='invcell'+(pl.acc===it.id?' on':'')+(has?'':' lock');cell.textContent=has?ITEM_ICON[it.id]:'🔒';
+    cell.title=it.id==='none'?(LANG==='ja'?'なし':'Nichts'):(ITEM_NAME_JA&&LANG==='ja'?(ITEM_NAME_JA[it.id]||it.label):(SHOP.find(s=>s.id===it.id)||{}).name||it.label);
     if(own&&has){cell.onclick=()=>{socket&&socket.emit('acc',{acc:it.id});pl.acc=it.id;buildInventory(pl);renderPreview(pl);};}
     inv.appendChild(cell);}
 }
@@ -1945,14 +2165,14 @@ $('meBtn').onclick=()=>{if(me)openProfile(me);};
 $('invtoggle').onclick=()=>{const inv=$('pinv');const open=inv.style.display==='none';
   inv.style.display=open?'grid':'none';
   $('invarrow').classList.toggle('open',open);
-  $('invtoggle').firstElementChild.textContent=open?'Inventar schließen':'Inventar öffnen';};
+  $('invtoggle').firstElementChild.textContent=open?t('inv_close'):t('inv_open');};
 
 /* ---------------- KARTE ---------------- */
-const ROOM_LIST=[{id:'deck',name:'Hauptdeck'},{id:'obs',name:'Aussichtsdeck'},{id:'casino',name:'Casino-Deck'},{id:'vip',name:'VIP-Lounge'}];
+const ROOM_LIST=[{id:'deck'},{id:'obs'},{id:'casino'},{id:'vip'}];
 function buildMap(){const r=$('rooms');r.innerHTML='';
   ROOM_LIST.forEach(rm=>{const b=document.createElement('div');b.className='roombtn';
     const dot=document.createElement('div');dot.className='roomdot';dot.style.background=ROOMS[rm.id].accent;
-    const lab=document.createElement('span');lab.textContent=rm.name+(me&&me.room===rm.id?'  •  (du bist hier)':'');
+    const lab=document.createElement('span');lab.textContent=t('room_'+rm.id)+(me&&me.room===rm.id?(LANG==='ja'?'　•　（ここにいるよ）':'  •  (du bist hier)'):'');
     b.appendChild(dot);b.appendChild(lab);
     b.onclick=()=>{goToRoom(rm.id);$('map').style.display='none';};r.appendChild(b);});}
 $('mapBtn').onclick=()=>{buildMap();$('map').style.display='flex';};
@@ -1976,12 +2196,12 @@ function requestSit(ti){if(!me)return;const t=C4_TABLES[ti];sitTable=ti;locked=t
   addMsg('','','Du gehst zu Tisch '+(ti+1)+'…','sys');}
 function openC4Menu(ti){menuTable=ti;$('c4mtable').textContent='Tisch '+(ti+1);$('c4menu').style.display='flex';}
 function renderLeaderboard(rows){const el=$('lblist');el.innerHTML='';
-  if(!rows.length){el.innerHTML='<div class="lbempty">Noch keine Siege – sei der Erste! 🏆</div>';return;}
+  if(!rows.length){el.innerHTML='<div class="lbempty">'+t('c4_no_wins')+'</div>';return;}
   rows.forEach((r,i)=>{const row=document.createElement('div');row.className='lbrow';
     row.innerHTML='<span class="lbrank">'+(i+1)+'</span><span class="lbname">'+esc(r.username||'Alien')+'</span><span class="lbwins">🏆 '+(r.wins||0)+'</span><span class="lbstar">✦ '+(r.game_stardust||0)+'</span>';
     el.appendChild(row);});}
 function renderSpaceBoard(rows){const el=$('sblblist');el.innerHTML='';
-  if(!rows.length){el.innerHTML='<div class="lbempty">Noch keine Flüge – heb ab und setz den Rekord! 🚀</div>';return;}
+  if(!rows.length){el.innerHTML='<div class="lbempty">'+t('space_no_flights')+'</div>';return;}
   rows.forEach((r,i)=>{const row=document.createElement('div');row.className='lbrow';
     const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1);
     row.innerHTML='<span class="lbrank">'+medal+'</span><span class="lbname">'+esc(r.username||'Alien')+'</span><span class="lbwins">🚀 '+(r.space_best||0)+' m</span>';
@@ -1996,12 +2216,12 @@ function updateC4(){if(!cg)return;const cells=$('c4board').children;
   $('c4pa').classList.toggle('turn',cg.turn===0);
   $('c4pb').classList.toggle('turn',cg.turn===1);
   $('c4board').classList.toggle('locked',cg.over||cg.turn!==cg.seat);
-  if(!cg.over)$('c4status').textContent = cg.turn===cg.seat?'Du bist dran – wähl eine Spalte!':'Gegner ist am Zug…';}
+  if(!cg.over)$('c4status').textContent = cg.turn===cg.seat?t('c4_your_turn'):t('c4_opp_turn');}
 function showC4Result(d){
   let msg;
-  if(d.winnerSeat===-1)msg='Unentschieden!';
-  else if(d.winnerSeat===cg.seat)msg=(d.reason==='forfeit'?'Gegner hat aufgegeben – ':'')+'Gewonnen! +25 ✦';
-  else msg='Verloren – nächstes Mal! 🙃';
+  if(d.winnerSeat===-1)msg=t('c4_tie');
+  else if(d.winnerSeat===cg.seat)msg=(d.reason==='forfeit'?t('c4_opp_forfeit'):'')+t('c4_win_msg');
+  else msg=t('c4_lose_msg');
   $('c4status').textContent=msg;}
 function c4CloseView(){if(cg&&!cg.over)socket&&socket.emit('c4-leave');$('c4modal').style.display='none';cg=null;locked=false;sitTable=-1;}
 $('c4close').onclick=c4CloseView;
@@ -2009,18 +2229,18 @@ $('c4cancel').onclick=()=>{socket&&socket.emit('c4-leave');$('c4wait').style.dis
 $('c4mclose').onclick=()=>$('c4menu').style.display='none';
 $('c4menu').onclick=e=>{if(e.target.id==='c4menu')$('c4menu').style.display='none';};
 $('c4mplay').onclick=()=>{$('c4menu').style.display='none';requestSit(menuTable);};
-$('c4mlb').onclick=()=>{$('c4menu').style.display='none';socket&&socket.emit('leaderboard');$('lblist').innerHTML='<div class="lbempty">Lade…</div>';$('lb').style.display='flex';};
+$('c4mlb').onclick=()=>{$('c4menu').style.display='none';socket&&socket.emit('leaderboard');$('lblist').innerHTML='<div class="lbempty">'+t('loading')+'</div>';$('lb').style.display='flex';};
 $('lbclose').onclick=()=>$('lb').style.display='none';
 $('lb').onclick=e=>{if(e.target.id==='lb')$('lb').style.display='none';};
 $('sblbclose').onclick=()=>$('sblb').style.display='none';
 $('sblb').onclick=e=>{if(e.target.id==='sblb')$('sblb').style.display='none';};
-function openSpaceBoard(){socket&&socket.emit('space-leaderboard');$('sblblist').innerHTML='<div class="lbempty">Lade…</div>';$('sblb').style.display='flex';}
+function openSpaceBoard(){socket&&socket.emit('space-leaderboard');$('sblblist').innerHTML='<div class="lbempty">'+t('loading')+'</div>';$('sblb').style.display='flex';}
 
 function drawC4Table(x,y,i){
   // Schild
-  ctx.font='700 12px Fredoka';ctx.textAlign='center';const t='TISCH '+(i+1),tw=ctx.measureText(t).width;
+  ctx.font='700 12px Fredoka';ctx.textAlign='center';const tblLabel=t('canvas_table_prefix')+(i+1),tw=ctx.measureText(tblLabel).width;
   ctx.fillStyle='#ffd166';ctx.strokeStyle=INK;ctx.lineWidth=3;roundRect(x-tw/2-10,y-72,tw+20,22,11);ctx.fill();ctx.stroke();
-  ctx.fillStyle=INK;ctx.fillText(t,x,y-57);
+  ctx.fillStyle=INK;ctx.fillText(tblLabel,x,y-57);
   // Beine
   ctx.strokeStyle=INK;ctx.lineWidth=5;ctx.lineCap='round';
   ctx.beginPath();ctx.moveTo(x-30,y-6);ctx.lineTo(x-38,y+28);ctx.moveTo(x+30,y-6);ctx.lineTo(x+38,y+28);ctx.stroke();
@@ -2045,12 +2265,12 @@ function renderFriends(d){
   const rq=$('freqs');rq.innerHTML='';
   if(d.incoming&&d.incoming.length){d.incoming.forEach(f=>{const row=elc('frow');
     const nm=elc('fname');nm.textContent=f.username;row.appendChild(nm);
-    row.appendChild(mkbtn('fbtn ok','Ja',()=>socket.emit('friend-accept',{fromId:f.id})));
-    row.appendChild(mkbtn('fbtn no','Nein',()=>socket.emit('friend-decline',{fromId:f.id})));
+    row.appendChild(mkbtn('fbtn ok',t('fbtn_yes'),()=>socket.emit('friend-accept',{fromId:f.id})));
+    row.appendChild(mkbtn('fbtn no',t('fbtn_no'),()=>socket.emit('friend-decline',{fromId:f.id})));
     rq.appendChild(row);});$('freqwrap').style.display='block';}
   else $('freqwrap').style.display='none';
   const fl=$('flist');fl.innerHTML='';
-  if(!d.friends||!d.friends.length)fl.innerHTML='<div class="fempty">Noch keine Freunde – füg jemanden hinzu!</div>';
+  if(!d.friends||!d.friends.length)fl.innerHTML='<div class="fempty">'+t('no_friends_yet')+'</div>';
   else d.friends.forEach(f=>{const row=elc('frow');
     const dot=document.createElement('span');dot.className='fon';dot.style.background=f.online?'#3ef08a':'#c9bce8';
     const nm=elc('fname');nm.textContent=f.username;
@@ -2072,18 +2292,28 @@ $('dmclose').onclick=()=>{$('dm').style.display='none';dmWith=null;};
 $('dm').onclick=e=>{if(e.target.id==='dm'){$('dm').style.display='none';dmWith=null;}};
 $('dmsend').onclick=sendDM;
 $('dminput').addEventListener('keydown',e=>{if(e.key==='Enter')sendDM();});
-$('pfriend').onclick=()=>{if(!profileName||!socket||$('pfriend').dataset.can!=='1')return;socket.emit('friend-add',{username:profileName});addMsg('','','Freundschaftsanfrage an '+profileName+' gesendet.','sys');$('profile').style.display='none';};
+$('pfriend').onclick=()=>{if(!profileName||!socket||$('pfriend').dataset.can!=='1')return;socket.emit('friend-add',{username:profileName});addMsg('','',t('msg_friend_req_sent',{name:profileName}),'sys');$('profile').style.display='none';};
 
 /* ---------------- DEKO-DETAIL & TELESKOP ---------------- */
 const DECO_INFO={
-  crate:['Frachtkiste','Voll mit Ersatzteilen und Snacks für lange Missionen.'],
-  plant:['Sternenfarn','Eine genügsame Pflanze, die im Vakuum leise leuchtet.'],
-  console:['Steuerkonsole','Von hier wird die Station überwacht – blinkt gern wichtig.'],
-  holo:['Holo-Tisch','Projiziert Planeten und Flugrouten als Hologramm.'],
-  vending:['Snack-Automat','Zieht Sternenstaub, wirft Weltraum-Snacks aus.'],
-  bench:['Lounge-Bank','Zum Ausruhen mit Blick auf die Sterne.']
+  de:{
+    crate:['Frachtkiste','Voll mit Ersatzteilen und Snacks für lange Missionen.'],
+    plant:['Sternenfarn','Eine genügsame Pflanze, die im Vakuum leise leuchtet.'],
+    console:['Steuerkonsole','Von hier wird die Station überwacht – blinkt gern wichtig.'],
+    holo:['Holo-Tisch','Projiziert Planeten und Flugrouten als Hologramm.'],
+    vending:['Snack-Automat','Zieht Sternenstaub, wirft Weltraum-Snacks aus.'],
+    bench:['Lounge-Bank','Zum Ausruhen mit Blick auf die Sterne.']
+  },
+  ja:{
+    crate:['貨物ボックス','長期ミッション用の部品とおやつでいっぱい。'],
+    plant:['星のシダ','真空でもそっと光る、手のかからない植物。'],
+    console:['操縦コンソール','ここからステーションを監視——なんだか偉そうに点滅する。'],
+    holo:['ホロテーブル','惑星や航路をホログラムで映し出す。'],
+    vending:['スナック自販機','スターダストを入れると宇宙おやつが出てくる。'],
+    bench:['ラウンジベンチ','星を眺めながらひと休み。']
+  }
 };
-function openDecoDetail(type){const info=DECO_INFO[type]||['Objekt',''];
+function openDecoDetail(type){const info=(DECO_INFO[LANG]&&DECO_INFO[LANG][type])||DECO_INFO.de[type]||[t('deco_default_name'),''];
   $('deconame').textContent=info[0];$('decotext').textContent=info[1];
   const c=$('decoCanvas'),S=1.6,dpr=Math.min(devicePixelRatio||1,3);
   c.width=170*dpr;c.height=170*dpr;const g=c.getContext('2d');const main=ctx;ctx=g;
@@ -2136,28 +2366,29 @@ function renderShop(){$('shopcoins').textContent=(me&&me.stardust)||0;const list
   let items=SHOP.filter(s=>s.type===shopTab);
   if(shopTab==='bg')items=[{id:'space',type:'bg',name:'Standard',price:0,minLevel:1,ico:'🪐',free:true}].concat(items);
   if(shopTab==='emote'){
-    items=EMOTE_LIST.filter(e=>e.free).map(e=>({id:'free_'+e.name,type:'emote',emote:e.name,name:e.label,price:0,minLevel:1,ico:e.icon,free:true}))
-      .concat(EMOTE_LIST.filter(e=>!e.free).map(e=>({id:e.item,type:'emote',emote:e.name,name:e.label,ico:e.icon,price:(EMOTE_META[e.item]||{}).price||0,minLevel:(EMOTE_META[e.item]||{}).minLevel||1})));}
+    items=EMOTE_LIST.filter(e=>e.free).map(e=>({id:'free_'+e.name,type:'emote',emote:e.name,name:t('emote_'+e.name),price:0,minLevel:1,ico:e.icon,free:true}))
+      .concat(EMOTE_LIST.filter(e=>!e.free).map(e=>({id:e.item,type:'emote',emote:e.name,name:t('emote_'+e.name),ico:e.icon,price:(EMOTE_META[e.item]||{}).price||0,minLevel:(EMOTE_META[e.item]||{}).minLevel||1})));}
   items.forEach(it=>{const row=document.createElement('div');row.className='shopitem';
     const owned=it.free||myOwned.has(it.id);
     const equipped=(it.type==='acc'?(me&&me.acc===it.id):it.type==='bg'?myBg===it.id:false);
     const locked=!owned&&myLevel<it.minLevel;
+    const dispName=it.type==='emote'?it.name:itemName(it);
     let btn;
     if(it.type==='emote'){
-      if(owned)btn='<button class="shopbtn eq" data-emo="'+it.emote+'">▶ zeigen</button>';
-      else if(locked)btn='<button class="shopbtn lock" disabled>🔒 Lv '+it.minLevel+'</button>';
+      if(owned)btn='<button class="shopbtn eq" data-emo="'+it.emote+'">'+t('item_show')+'</button>';
+      else if(locked)btn='<button class="shopbtn lock" disabled>'+t('item_locked_prefix')+it.minLevel+'</button>';
       else btn='<button class="shopbtn buy" data-buy="'+it.id+'">'+it.price+' ✦</button>';}
-    else if(equipped)btn='<button class="shopbtn on" disabled>angelegt</button>';
-    else if(owned)btn='<button class="shopbtn eq" data-eq="'+it.id+'" data-t="'+it.type+'">anlegen</button>';
-    else if(locked)btn='<button class="shopbtn lock" disabled>🔒 Lv '+it.minLevel+'</button>';
+    else if(equipped)btn='<button class="shopbtn on" disabled>'+t('item_equipped')+'</button>';
+    else if(owned)btn='<button class="shopbtn eq" data-eq="'+it.id+'" data-t="'+it.type+'">'+t('item_equip')+'</button>';
+    else if(locked)btn='<button class="shopbtn lock" disabled>'+t('item_locked_prefix')+it.minLevel+'</button>';
     else btn='<button class="shopbtn buy" data-buy="'+it.id+'">'+it.price+' ✦</button>';
-    const sub=owned?(it.type==='emote'?'im Inventar':'im Inventar'):(it.price+' Sternenstaub'+(locked?' · ab Lv '+it.minLevel:''));
-    row.innerHTML='<div class="shopico">'+it.ico+'</div><div class="shopinfo"><div class="shopname">'+it.name+'</div><div class="shopprice">'+sub+'</div></div>'+btn;
+    const sub=owned?t('item_owned'):(it.price+' '+t('shop_currency_suffix')+(locked?' · '+t('item_locked_prefix')+it.minLevel:''));
+    row.innerHTML='<div class="shopico">'+it.ico+'</div><div class="shopinfo"><div class="shopname">'+dispName+'</div><div class="shopprice">'+sub+'</div></div>'+btn;
     list.appendChild(row);});
   list.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>socket&&socket.emit('shop-buy',{id:b.dataset.buy}));
   list.querySelectorAll('[data-emo]').forEach(b=>b.onclick=()=>sendEmote(b.dataset.emo));
-  list.querySelectorAll('[data-eq]').forEach(b=>b.onclick=()=>{const id=b.dataset.eq,t=b.dataset.t;
-    if(t==='acc'){socket&&socket.emit('acc',{acc:id});if(me)me.acc=id;}else{socket&&socket.emit('equip-bg',{bg:id});myBg=id;}renderShop();});}
+  list.querySelectorAll('[data-eq]').forEach(b=>b.onclick=()=>{const id=b.dataset.eq,typ=b.dataset.t;
+    if(typ==='acc'){socket&&socket.emit('acc',{acc:id});if(me)me.acc=id;}else{socket&&socket.emit('equip-bg',{bg:id});myBg=id;}renderShop();});}
 $('shopBtn').onclick=()=>openShop();
 $('shopclose').onclick=()=>$('shop').style.display='none';
 $('shop').onclick=e=>{if(e.target.id==='shop')$('shop').style.display='none';};
@@ -2172,7 +2403,7 @@ function renderHolo(){const list=$('hololist');list.innerHTML='';
     const row=document.createElement('div');row.className='holoitem'+(unlocked?'':' locked');
     const dot=document.createElement('div');dot.className='holoplanet';dot.style.background=pl.dot;
     const nm=document.createElement('div');nm.className='holoname';nm.textContent=pl.name;
-    const st=document.createElement('div');st.className='holostat'+(unlocked?'':' lock');st.textContent=unlocked?'erkunden →':'🔒 ab Level '+pl.minLevel;
+    const st=document.createElement('div');st.className='holostat'+(unlocked?'':' lock');st.textContent=unlocked?t('holo_explore'):t('holo_locked',{level:pl.minLevel});
     row.appendChild(dot);row.appendChild(nm);row.appendChild(st);
     if(unlocked)row.onclick=()=>{$('holo').style.display='none';goToRoom(id);};
     list.appendChild(row);});}
@@ -2189,7 +2420,7 @@ function openSlot(){$('slotbal').textContent=(me&&me.stardust)||0;$('slotmsg').t
   $('slot').style.display='flex';slotLast=performance.now();if(!slotRAF)slotLoop();}
 function closeSlot(){$('slot').style.display='none';if(slotRAF)cancelAnimationFrame(slotRAF);slotRAF=null;}
 function slotPull(){if(slotSpinning||!me)return;if((me.stardust||0)<slotBet){$('slotmsg').textContent='Zu wenig Sternenstaub!';return;}
-  slotSpinning=true;slotWinFlash=0;$('slotmsg').textContent='Viel Glück…';
+  slotSpinning=true;slotWinFlash=0;$('slotmsg').textContent=t('slot_good_luck');
   slotLeverTarget=1;setTimeout(()=>{slotLeverTarget=0;},260);
   slotReels.forEach(r=>{r.state='spin';r.vel=26+Math.random()*4;r.stopAt=0;});
   socket&&socket.emit('slot-spin',{bet:slotBet});}
@@ -2203,8 +2434,8 @@ function slotLoop(){const now=performance.now();const dt=Math.min((now-slotLast)
     }
     if(slotSpinning&&allDone&&slotPending){slotSpinning=false;const p=slotPending;slotPending=null;
       $('slotbal').textContent=p.stardust;if(me)me.stardust=p.stardust;document.getElementById('orbs').textContent=p.stardust;
-      if(p.win>0){slotWinFlash=1.3;$('slotmsg').textContent='🎉 Gewinn: +'+p.win+' Sternenstaub!';showPopup('🎰','Automat-Gewinn!','+'+p.win+' Sternenstaub','gold');}
-      else $('slotmsg').textContent='Kein Glück – nochmal? 🍀';}}
+      if(p.win>0){slotWinFlash=1.3;$('slotmsg').textContent=t('slot_win_flash',{amount:p.win});showPopup('🎰',t('popup_slot_title'),t('amount_stardust',{amount:p.win}),'gold');}
+      else $('slotmsg').textContent=t('slot_no_luck');}}
   if(slotWinFlash>0)slotWinFlash-=dt;
   drawSlotMachine();slotRAF=requestAnimationFrame(slotLoop);}
 function drawSlotMachine(){const g=slotG,now=performance.now();g.clearRect(0,0,360,480);
@@ -2255,7 +2486,7 @@ function buildBets(containerId,cls,vip,cur,setter){
   const el=$(containerId);if(!el)return cur;
   const list=vip?VIP_BETS:[100,500,1000];
   if(!list.includes(cur))cur=list[0];
-  el.innerHTML='<span style="color:'+(vip?'#d99a1f':'#8a76c4')+';font-weight:600;font-size:12px">'+(vip?'💎 VIP-Einsatz':'Einsatz')+'</span>';
+  el.innerHTML='<span style="color:'+(vip?'#d99a1f':'#8a76c4')+';font-weight:600;font-size:12px">'+(vip?t('label_vip_bet'):t('label_bet'))+'</span>';
   list.forEach(v=>{const b=document.createElement('button');b.className=cls+(v===cur?' on':'');b.dataset.bet=v;b.textContent=v;
     b.onclick=()=>{setter(v);el.querySelectorAll('.'+cls).forEach(x=>x.classList.remove('on'));b.classList.add('on');};
     el.appendChild(b);});
@@ -2272,16 +2503,16 @@ function drawShipParked(x,y){const now=performance.now();
   ctx.fillStyle='rgba(20,26,61,.75)';ctx.beginPath();ctx.ellipse(x,y-27,18,13,0,0,7);ctx.fill();ctx.stroke();
   ctx.fillStyle='rgba(255,255,255,.4)';ctx.beginPath();ctx.ellipse(x-5,y-31,7,4,-.4,0,7);ctx.fill();
   ctx.fillStyle=Math.sin(now/300)>0?'#ff5ea8':'#7a2b45';ctx.beginPath();ctx.arc(x,y-46,4,0,7);ctx.fill();ctx.strokeStyle=INK;ctx.lineWidth=2;ctx.stroke();
-  ctx.font='700 11px Fredoka';ctx.textAlign='center';const t='FLUG-KAPSEL',tw=ctx.measureText(t).width;
-  ctx.fillStyle='#ffd166';ctx.strokeStyle=INK;ctx.lineWidth=3;roundRect(x-tw/2-8,y-72,tw+16,18,9);ctx.fill();ctx.stroke();ctx.fillStyle=INK;ctx.fillText(t,x,y-59);}
-function requestBoard(){if(!me)return;locked=true;me.tx=clamp(SHIP_OBJ.x,80,W-80);me.ty=clamp(SHIP_OBJ.y+64,250,H-40);pendingBoard=true;addMsg('','','Du gehst zur Flug-Kapsel…','sys');}
+  ctx.font='700 11px Fredoka';ctx.textAlign='center';const capLabel=t('canvas_flight_capsule'),tw=ctx.measureText(capLabel).width;
+  ctx.fillStyle='#ffd166';ctx.strokeStyle=INK;ctx.lineWidth=3;roundRect(x-tw/2-8,y-72,tw+16,18,9);ctx.fill();ctx.stroke();ctx.fillStyle=INK;ctx.fillText(capLabel,x,y-59);}
+function requestBoard(){if(!me)return;locked=true;me.tx=clamp(SHIP_OBJ.x,80,W-80);me.ty=clamp(SHIP_OBJ.y+64,250,H-40);pendingBoard=true;addMsg('','',t('msg_going_to_capsule'),'sys');}
 function openSpace(){const c=$('spaceCanvas'),dpr=Math.min(devicePixelRatio||1,2);c.width=420*dpr;c.height=470*dpr;spaceG=c.getContext('2d');spaceG.setTransform(dpr,0,0,dpr,0,0);
   spacePhase='boarding';spaceT=0;spaceStars=[];for(let i=0;i<70;i++)spaceStars.push({a:Math.random()*6.28,r:Math.random()*300,sp:40+Math.random()*140});
   $('spacefoot').textContent='Einsteigen…';$('space').style.display='flex';locked=true;spaceLast=performance.now();if(!spaceRAF)spaceLoop();}
 function closeSpace(){$('space').style.display='none';if(spaceRAF)cancelAnimationFrame(spaceRAF);spaceRAF=null;locked=false;}
-function spaceStart(){spacePhase='play';ship={x:210,y:350};aster=[];dust=[];spSpeed=1;spDist=0;spColl=0;spSpawn=0.6;spDustSpawn=0.4;$('spacefoot').textContent='WASD / Pfeile zum Steuern';}
+function spaceStart(){spacePhase='play';ship={x:210,y:350};aster=[];dust=[];spSpeed=1;spDist=0;spColl=0;spSpawn=0.6;spDustSpawn=0.4;$('spacefoot').textContent=t('space_controls');}
 function spaceGameOver(){spacePhase='over';spaceNewRecord=false;socket&&socket.emit('space-score',{collected:spColl,dist:spDist});
-  showPopup('🛸','Bruchlandung!','+'+spColl+' Sternenstaub','gold');
+  showPopup('🛸',t('popup_crash_title'),t('amount_stardust',{amount:spColl}),'gold');
   $('spacefoot').innerHTML='<button class="betb" id="spaceagain">🚀 Nochmal</button><button class="betb" id="spaceboard">🏆 Rekorde</button><button class="betb" id="spaceexit">Aussteigen</button>';
   const a=$('spaceagain'),x=$('spaceexit'),b=$('spaceboard');if(a)a.onclick=()=>{spacePhase='boarding';spaceT=0;$('spacefoot').textContent='Einsteigen…';};if(x)x.onclick=closeSpace;if(b)b.onclick=openSpaceBoard;}
 function spaceLoop(){const now=performance.now(),dt=Math.min((now-spaceLast)/1000,.05);spaceLast=now;
@@ -2360,7 +2591,7 @@ function loop(now){const dt=Math.min((now-last)/1000,.05);last=now;update(dt,now
 const shapeEls=[],spc=document.getElementById('spc');
 SPECIES.forEach((s,i)=>{const w=document.createElement('div');w.className='spc'+(i===0?' on':'');
   const sh=document.createElement('div');sh.className='shape sh-'+s;shapeEls.push(sh);
-  const lab=document.createElement('span');lab.textContent=SP_LABEL[s];w.appendChild(sh);w.appendChild(lab);
+  const lab=document.createElement('span');lab.textContent=t('species_'+s);w.appendChild(sh);w.appendChild(lab);
   w.onclick=()=>{document.querySelectorAll('.spc').forEach(n=>n.classList.remove('on'));w.classList.add('on');pref.species=s;};spc.appendChild(w);});
 const sw=document.getElementById('sw');
 function tintShapes(){shapeEls.forEach(sh=>sh.style.background=pref.color);}
@@ -2371,6 +2602,9 @@ document.getElementById('enter').onclick=()=>{if(socket)socket.emit('setup',{spe
 
 /* ---------------- START ---------------- */
 resize();seedOrbs();requestAnimationFrame(loop);
+$('flagde').onclick=()=>setLang('de');
+$('flagja').onclick=()=>setLang('ja');
+applyI18n();
 initAuth();
 </script>
 </body>
