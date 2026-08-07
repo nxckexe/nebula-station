@@ -673,7 +673,6 @@ function resize(){const r=cv.parentElement.getBoundingClientRect();const dpr=Mat
     scale=fitScale;
   }
   viewW=r.width/scale;viewH=r.height/scale;
-  offX=Math.max(0,(r.width-W*scale)/2);offY=Math.max(0,(r.height-H*scale)/2);
   ctx.setTransform(dpr,0,0,dpr,0,0);}
 addEventListener('resize',resize);
 addEventListener('orientationchange',()=>setTimeout(resize,120));
@@ -1292,6 +1291,9 @@ function render(){const r=cv.parentElement.getBoundingClientRect();ctx.clearRect
   const rid=myRoom();const pl=PLANETS[rid];
   const roomW=pl?pl.w:(rid==='casino'?ROOMS.casino.w:W);
   const roomH=pl?pl.h:H;
+  // Zentrierung an der ECHTEN Raumgröße ausrichten (Casino ist 2000 breit, nicht 1040)
+  offX=Math.max(0,(r.width-roomW*scale)/2);
+  offY=Math.max(0,(r.height-roomH*scale)/2);
   // Kamera folgt dem Spieler; bei kleinem Ausschnitt auch vertikal
   const halfW=Math.min(viewW,roomW)/2,halfH=Math.min(viewH,roomH)/2;
   cam.x=me?clamp(me.x-halfW,0,Math.max(0,roomW-Math.min(viewW,roomW))):0;
