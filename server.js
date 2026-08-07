@@ -213,7 +213,7 @@ function rouSettle(){
         recordWin(sock, me, 'roulette', payout - staked);
       }
       admin.from('profiles').update({ stardust: me.stardust }).eq('id', me.userId).then(()=>{},()=>{});
-      if (payout >= staked * 10 && staked > 0) io.emit('system', me.name + ' gewinnt ' + payout + ' Sternenstaub am Roulette (Zahl ' + n + ')!');
+      if (payout >= staked * 10 && staked > 0) io.emit('system', { code:'sys_roulette_win', params:{ name: me.name, amount: payout, number: n } });
     } else {
       const sock = io.sockets.sockets.get(id);
       if (sock) sock.emit('roul-win', { number: n, payout: 0, staked, net: -staked, stardust: me.stardust });
@@ -349,23 +349,23 @@ io.on('connection', (socket) => {
   socket.on('shop-buy', async (d) => {
     const me = players[socket.id]; if (!me) return;
     const item = SHOP.find(s => s.id === d.id);
-    if (!item) { socket.emit('shop-result', { ok:false, text:'Unbekannter Artikel.' }); return; }
+    if (!item) { socket.emit('shop-result', { ok:false, code:'err_unknown_item' }); return; }
     const owned = ownedSet(me.owned);
-    if (owned.has(item.id)) { socket.emit('shop-result', { ok:false, text:'Schon im Inventar.' }); return; }
-    if (xpLevel(me.xp) < item.minLevel) { socket.emit('shop-result', { ok:false, text:'Erst ab Level ' + item.minLevel + '.' }); return; }
-    if (me.stardust < item.price) { socket.emit('shop-result', { ok:false, text:'Zu wenig Sternenstaub.' }); return; }
+    if (owned.has(item.id)) { socket.emit('shop-result', { ok:false, code:'err_already_owned' }); return; }
+    if (xpLevel(me.xp) < item.minLevel) { socket.emit('shop-result', { ok:false, code:'err_min_level', params:{ level:item.minLevel } }); return; }
+    if (me.stardust < item.price) { socket.emit('shop-result', { ok:false, code:'err_funds' }); return; }
     me.stardust -= item.price; owned.add(item.id); me.owned = Array.from(owned).join(',');
     await admin.from('profiles').update({ stardust: me.stardust, owned: me.owned }).eq('id', socket.userId);
     socket.emit('stardust', { value: me.stardust });
-    socket.emit('shop-result', { ok:true, text:item.name + ' gekauft!', owned: me.owned });
+    socket.emit('shop-result', { ok:true, text:item.name + ' gekauft!', id:item.id, owned: me.owned });
   });
 
   socket.on('slot-spin', async (d) => {
     const me = players[socket.id]; if (!me) return;
     const bet = +d.bet;
     const slotOk = SLOT_BETS.includes(bet) || (SLOT_BETS_VIP.includes(bet) && isVip(me));
-    if (!slotOk) { socket.emit('slot-result', { ok:false, text:'Ungültiger Einsatz.' }); return; }
-    if (me.stardust < bet) { socket.emit('slot-result', { ok:false, text:'Zu wenig Sternenstaub.' }); return; }
+    if (!slotOk) { socket.emit('slot-result', { ok:false, code:'err_bet' }); return; }
+    if (me.stardust < bet) { socket.emit('slot-result', { ok:false, code:'err_funds' }); return; }
     const now = Date.now();
     if (now - (me.lastSlot || 0) < 1200) return; // Anti-Spam
     me.lastSlot = now;
@@ -448,8 +448,8 @@ io.on('connection', (socket) => {
     if (me.bj && !me.bj.done) return; // laufende Hand
     const bet = +(d && d.bet);
     const bjOk = BJ_BETS.includes(bet) || (BJ_BETS_VIP.includes(bet) && isVip(me));
-    if (!bjOk) { socket.emit('bj-state', { error: 'Ungültiger Einsatz.' }); return; }
-    if (me.stardust < bet) { socket.emit('bj-state', { error: 'Zu wenig Sternenstaub.' }); return; }
+    if (!bjOk) { socket.emit('bj-state', { errorCode:'err_bet' }); return; }
+    if (me.stardust < bet) { socket.emit('bj-state', { errorCode:'err_funds' }); return; }
     me.stardust -= bet;
     const deck = bjMakeDeck();
     const player = [deck.pop(), deck.pop()];
@@ -475,7 +475,7 @@ io.on('connection', (socket) => {
   socket.on('bj-double', () => {
     const me = players[socket.id]; if (!me || me.bjTable == null || !me.bj || me.bj.done) return;
     if (me.bj.player.length !== 2 || me.bj.doubled) return;
-    if (me.stardust < me.bj.bet) { socket.emit('bj-msg', { text: 'Zu wenig zum Verdoppeln.' }); return; }
+    if (me.stardust < me.bj.bet) { socket.emit('bj-msg', { code:'err_double_funds' }); return; }
     me.stardust -= me.bj.bet; me.bj.bet *= 2; me.bj.doubled = true;
     socket.emit('stardust', { value: me.stardust });
     me.bj.player.push(me.bj.deck.pop());
@@ -487,8 +487,8 @@ io.on('connection', (socket) => {
     const now = Date.now();
     if (now - (me.lastPlinko || 0) < 700) return; // Anti-Spam
     const bet = +(d && d.bet);
-    if (!PLINKO_BETS.includes(bet)) { socket.emit('plinko-result', { ok:false, text:'Ungültiger Einsatz.' }); return; }
-    if (me.stardust < bet) { socket.emit('plinko-result', { ok:false, text:'Zu wenig Sternenstaub.' }); return; }
+    if (!PLINKO_BETS.includes(bet)) { socket.emit('plinko-result', { ok:false, code:'err_bet' }); return; }
+    if (me.stardust < bet) { socket.emit('plinko-result', { ok:false, code:'err_funds' }); return; }
     me.lastPlinko = now;
     me.stardust -= bet;
     const { path, slot } = plinkoDrop();
@@ -500,7 +500,7 @@ io.on('connection', (socket) => {
     if (win > bet) grantXp(socket, me, 5);
     recordWin(socket, me, 'plinko', win - bet);
     admin.from('profiles').update({ stardust: me.stardust, xp: me.xp }).eq('id', me.userId).then(() => {}, () => {});
-    if (mult >= 10) io.emit('system', me.name + ' gewinnt ' + win + ' Sternenstaub bei Plinko (' + mult + 'x)!');
+    if (mult >= 10) io.emit('system', { code:'sys_plinko_win', params:{ name: me.name, amount: win, mult: mult } });
   });
 
   socket.on('roul-sync', () => { socket.emit('roul-state', rouPublic()); });
@@ -517,7 +517,7 @@ io.on('connection', (socket) => {
   socket.on('roul-bet', (d) => {
     const me = players[socket.id]; if (!me) return;
     if (me.room !== 'casino') return;
-    if (rou.phase !== 'bet') { socket.emit('roul-msg', { text: 'Einsätze sind geschlossen!' }); return; }
+    if (rou.phase !== 'bet') { socket.emit('roul-msg', { code:'err_roul_closed' }); return; }
     const amount = +(d && d.amount);
     if (!ROU_BETS.includes(amount)) return;
     const type = String(d && d.type || '');
@@ -527,9 +527,9 @@ io.on('connection', (socket) => {
     else if (type === 'dozen') { if (!(value >= 1 && value <= 3)) return; }
     else if (simple.includes(type)) { value = null; }
     else return;
-    if (me.stardust < amount) { socket.emit('roul-msg', { text: 'Zu wenig Sternenstaub.' }); return; }
+    if (me.stardust < amount) { socket.emit('roul-msg', { code:'err_funds' }); return; }
     const e = rou.bets[socket.id] || (rou.bets[socket.id] = { name: me.name, color: me.color, list: [], won: 0 });
-    if (e.list.length >= 12) { socket.emit('roul-msg', { text: 'Maximal 12 Einsätze pro Runde.' }); return; }
+    if (e.list.length >= 12) { socket.emit('roul-msg', { code:'err_roul_max' }); return; }
     me.stardust -= amount;
     e.list.push({ type, value, amount });
     socket.emit('stardust', { value: me.stardust });
@@ -630,13 +630,13 @@ io.on('connection', (socket) => {
   socket.on('friend-add', async (d) => {
     const uname = String(d.username || '').trim(); if (!uname) return;
     const { data: target } = await admin.from('profiles').select('id,username').ilike('username', uname).limit(1).maybeSingle();
-    if (!target || target.id === socket.userId) { socket.emit('friend-msg', { ok:false, text:'Spieler nicht gefunden.' }); return; }
+    if (!target || target.id === socket.userId) { socket.emit('friend-msg', { ok:false, code:'err_friend_notfound' }); return; }
     const { data: rows } = await admin.from('friendships').select('*').or(`requester.eq.${socket.userId},addressee.eq.${socket.userId}`);
     if ((rows || []).some(r => r.requester === target.id || r.addressee === target.id)) {
-      socket.emit('friend-msg', { ok:false, text:'Ihr seid schon verbunden oder eine Anfrage läuft.' }); return;
+      socket.emit('friend-msg', { ok:false, code:'err_friend_exists' }); return;
     }
     await admin.from('friendships').insert({ requester: socket.userId, addressee: target.id, status:'pending' });
-    socket.emit('friend-msg', { ok:true, text:'Anfrage an ' + target.username + ' gesendet!' });
+    socket.emit('friend-msg', { ok:true, code:'msg_friend_sent', params:{ name: target.username } });
     const ts = online[target.id]; if (ts) io.to(ts).emit('friend-refresh');
   });
   socket.on('friend-accept', async (d) => {
@@ -702,7 +702,7 @@ io.on('connection', (socket) => {
     c4LeaveHandler(socket.id);
     if (online[socket.userId] === socket.id) delete online[socket.userId];
     if (me) {
-      io.emit('system', me.name + ' hat die Station verlassen.');
+      io.emit('system', { code:'sys_left', params:{ name: me.name } });
       await admin.from('profiles').update({ stardust: me.stardust }).eq('id', socket.userId); // beim Verlassen sichern
     }
     delete players[socket.id];
@@ -740,7 +740,7 @@ function finalizeSpawn(socket, profile) {
   });
   socket.emit('world', players);
   socket.broadcast.emit('player-joined', me);
-  io.emit('system', me.name + ' ist angedockt.');
+  io.emit('system', { code:'sys_docked', params:{ name: me.name } });
   const wleft = WHEEL_DAY - (Date.now() - (me.lastWheel || 0));
   socket.emit('wheel-status', { ready: wleft <= 0, wait: Math.max(0, wleft) });
   socket.emit('casino-best', { best: me.casinoBest || 0, game: me.casinoBestGame });
@@ -752,7 +752,7 @@ function grantXp(socket, me, amt) {
   const after = xpLevel(me.xp);
   me.level = after; me.rank = rankName(after);
   socket.emit('progress', { xp: me.xp, level: after, rank: me.rank, leveled: after > before, nextXp: xpForLevel(after + 1), curXp: xpForLevel(after) });
-  if (after > before) io.emit('system', me.name + ' ist jetzt Level ' + after + ' (' + me.rank + ')!');
+  if (after > before) io.emit('system', { code:'sys_levelup', params:{ name: me.name, level: after, rank: me.rank } });
 }
 
 function bjEmitState(socket, me, reveal) {
@@ -807,7 +807,7 @@ function recordWin(socket, me, game, net) {
     socket.emit('casino-best', { best: net, game });
     admin.from('profiles').update({ casino_best: net }).eq('id', me.userId).then(() => {}, () => {});
     admin.from('profiles').update({ casino_best_game: game }).eq('id', me.userId).then(() => {}, () => {});
-    if (net >= 5000) io.emit('system', '🏆 ' + me.name + ' stellt mit ' + net + ' Sternenstaub bei ' + (GAME_NAMES[game] || game) + ' einen neuen Rekord auf!');
+    if (net >= 5000) io.emit('system', { code:'sys_record', params:{ name: me.name, amount: net, game: game } });
   }
 }
 
@@ -862,7 +862,7 @@ function c4End(g, seat, reason) {
       wp.level = after; wp.rank = rankName(after);
       io.to(win.id).emit('stardust', { value: wp.stardust });
       io.to(win.id).emit('progress', { xp: wp.xp, level: after, rank: wp.rank, leveled: after > before, nextXp: xpForLevel(after + 1), curXp: xpForLevel(after) });
-      if (after > before) io.emit('system', wp.name + ' ist jetzt Level ' + after + ' (' + wp.rank + ')!');
+      if (after > before) io.emit('system', { code:'sys_levelup', params:{ name: wp.name, level: after, rank: wp.rank } });
       admin.from('profiles').update({ stardust: wp.stardust, wins: wp.wins, game_stardust: wp.game_stardust, xp: wp.xp })
         .eq('id', wp.userId).then(() => {}, () => {});
     }
