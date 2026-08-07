@@ -933,6 +933,7 @@ const I18N={
   race_controls:'Ziehen oder ← → zum Lenken',
   race_you_finished:'Im Ziel – Platz {place}!',race_result_you:'Platz {place} · +{coins} Sternenstaub',
   race_won_title:'Rennen gewonnen!',sys_race_win:'🛷 {name} gewinnt das Meteoriten-Rennen auf Verdiania!',
+  sys_session_replaced:'⚠ Du wurdest in einem anderen Fenster angemeldet – diese Sitzung wurde beendet.',err_session_expired:'Sitzung abgelaufen, bitte neu einloggen.',
  },
  ja:{
   auth_sub:'ドッキングするにはログインしてね',tab_login:'ログイン',tab_register:'新規登録',
@@ -1024,6 +1025,7 @@ const I18N={
   race_controls:'ドラッグ または ← → で操作',
   race_you_finished:'ゴール – {place}位！',race_result_you:'{place}位 · +{coins} スターダスト',
   race_won_title:'レース優勝！',sys_race_win:'🛷 {name}がヴェルディアニアのメテオレースで優勝！',
+  sys_session_replaced:'⚠ 別のウィンドウでログインされました – このセッションは終了しました。',err_session_expired:'セッションが期限切れです。もう一度ログインしてください。',
  }
 };
 function t(key,params){let s=(I18N[LANG]&&I18N[LANG][key])!=null?I18N[LANG][key]:(I18N.de[key]!=null?I18N.de[key]:key);
@@ -1096,7 +1098,7 @@ function connectGame(token){
 /* ---------------- SOCKET ---------------- */
 function wireSocket(){
   socket.on('connect',()=>{myId=socket.id;});
-  socket.on('connect_error',err=>{showAuth('Sitzung abgelaufen, bitte neu einloggen.');});
+  socket.on('connect_error',err=>{showAuth(t('err_session_expired'));});
   socket.on('needs-setup',({username})=>{$('intro').style.display='flex';$('introsub').textContent='Hallo '+username+'! Wähl dein Alien';});
   socket.on('spawn',prof=>{$('auth').style.display='none';$('intro').style.display='none';spawned=true;
     document.getElementById('orbs').textContent=prof.stardust||0;
@@ -1121,7 +1123,14 @@ function wireSocket(){
     }else addMsg('','',d.code?t(d.code,d.params):d.text,'sys');});
   socket.on('stardust',d=>{document.getElementById('orbs').textContent=d.value;if(me)me.stardust=d.value;if($('shop').style.display!=='none')$('shopcoins').textContent=d.value;});
   socket.emit('friends-list');
-  socket.on('world',all=>{for(const id in all)addPlayer(all[id]);me=players[myId]||me;updateOnline();});
+  socket.on('world',all=>{
+    for(const id in all)addPlayer(all[id]);
+    // Karteileichen entfernen: alles, was der Server nicht mehr kennt
+    // (passiert nach Reconnect, weil man 'player-left' offline verpasst hat)
+    for(const id in players)if(!all[id])delete players[id];
+    me=players[myId]||me;updateOnline();});
+  socket.on('session-replaced',()=>{
+    addMsg('','',t('sys_session_replaced'),'sys');});
   socket.on('player-joined',p=>{addPlayer(p);updateOnline();});
   socket.on('player-left',id=>{delete players[id];updateOnline();});
   socket.on('player-moved',d=>{const p=players[d.id];if(p){p.tx=d.x;p.ty=d.y;p.face=d.face;}});
@@ -1328,7 +1337,9 @@ function update(dt,now){
       for(const c of planetScene.crystals){c.t+=dt*3;if(!c.got&&Math.hypot(me.x-c.x,me.y-c.y)<34){c.got=true;socket&&socket.emit('crystal');}}
       const pt=planetScene.portal;if(Math.hypot(me.x-pt.x,me.y-pt.y)<42)goToRoom('deck');
       const rp=planetScene.racePad;
-      if(rp&&$('race').style.display==='none'&&Math.abs(me.x-rp.x)<58&&Math.abs(me.y-rp.y)<40)openRace();}
+      if(rp){const onPad=Math.abs(me.x-rp.x)<58&&Math.abs(me.y-rp.y)<40;
+        if(!onPad)racePadArmed=true;                       // weggelaufen -> wieder scharf
+        else if(racePadArmed&&$('race').style.display==='none')openRace();}}
     if(now-lastSent>66){socket&&socket.emit('move',{x:me.x,y:me.y,face:me.face});lastSent=now;}}
   for(const id in players){const e=players[id];
     if(e.bubbleT>0){e.bubbleT-=dt;if(e.bubbleT<=0)e.bubble=null;}
@@ -1883,7 +1894,7 @@ function drawHallBoard(x,y){const now=performance.now();
 
 /* ---------------- METEORITEN-RENNEN ---------------- */
 const RACE_W=900;
-let raceState=null,raceTrack=null,raceG=null,raceRAF=null,raceMyX=RACE_W/2,raceResults=null,raceCam=0,raceGoAt=0;
+let raceState=null,raceTrack=null,raceG=null,raceRAF=null,raceMyX=RACE_W/2,raceResults=null,raceCam=0,raceGoAt=0,racePadArmed=true;
 function drawRacePad(o){const now=performance.now();
   // Schattenfläche
   ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.ellipse(o.x,o.y+30,72,20,0,0,7);ctx.fill();
@@ -1915,7 +1926,10 @@ function openRace(){$('race').style.display='flex';locked=true;
   socket&&socket.emit('race-join');
   if(!raceRAF)raceLoop();}
 function closeRace(){socket&&socket.emit('race-leave');$('race').style.display='none';
-  if(raceRAF)cancelAnimationFrame(raceRAF);raceRAF=null;locked=false;raceState=null;raceResults=null;}
+  if(raceRAF)cancelAnimationFrame(raceRAF);raceRAF=null;locked=false;raceState=null;raceResults=null;
+  racePadArmed=false;                                  // erst nach Weglaufen wieder auslösen
+  if(me&&planetScene&&planetScene.racePad){            // ein Stück von der Rampe wegstellen
+    me.ty=Math.min((PLANETS[myRoom()]||{h:1300}).h-60,planetScene.racePad.y+110);}}
 $('raceclose').onclick=closeRace;
 $('race').onclick=e=>{if(e.target.id==='race')closeRace();};
 $('raceinfo').onclick=e=>{e.stopPropagation();openHelp('race');};
