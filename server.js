@@ -311,6 +311,7 @@ io.on('connection', (socket) => {
     if (planet && xpLevel(me.xp) < planet.minLevel) { socket.emit('planet-locked', { minLevel: planet.minLevel }); return; }
     if (target === 'vip' && xpLevel(me.xp || 0) < VIP_LEVEL) { socket.emit('vip-locked', { minLevel: VIP_LEVEL }); return; }
     if (me.bjTable != null && target !== 'casino' && target !== 'vip') bjLeave(socket);
+    if (target !== 'verdiania') raceLeave(socket.id);
     me.room = target;
     me.x = +m.x || me.x; me.y = +m.y || me.y;
     io.emit('player-room', { id: socket.id, room: me.room, x: me.x, y: me.y });
@@ -504,6 +505,30 @@ io.on('connection', (socket) => {
   });
 
   socket.on('roul-sync', () => { socket.emit('roul-state', rouPublic()); });
+
+  // ---- Meteoriten-Rennen ----
+  socket.on('race-join', () => {
+    const me = players[socket.id]; if (!me) return;
+    if (me.room !== 'verdiania') return;
+    if (race && race.phase !== 'lobby') { socket.emit('race-busy', { phase: race.phase }); return; }
+    if (!race) race = { phase: 'lobby', players: {}, obstacles: [], boosts: [], endsAt: Date.now() + RACE_LOBBY_MS, finishOrder: [] };
+    if (race.players[socket.id]) return;
+    race.players[socket.id] = { name: me.name, color: me.color, species: me.species, x: RACE_W / 2, y: 0, vy: 0, done: false, place: 0, boostT: 0, hitT: 0, tx: null };
+    socket.emit('race-joined', { need: RACE_PLAYERS });
+    raceBroadcast('race-lobby', racePublic());
+  });
+  socket.on('race-leave', () => { raceLeave(socket.id); });
+  socket.on('race-leaderboard', async () => {
+    const { data } = await admin.from('profiles')
+      .select('username,race_wins').order('race_wins', { ascending: false }).limit(10);
+    socket.emit('race-leaderboard-data', { rows: (data || []).filter(r => (r.race_wins || 0) > 0) });
+  });
+  socket.on('race-move', (d) => {
+    if (!race || race.phase !== 'run') return;
+    const p = race.players[socket.id]; if (!p || p.done) return;
+    const tx = +(d && d.x);
+    if (isFinite(tx)) p.tx = Math.max(30, Math.min(RACE_W - 30, tx));
+  });
   socket.on('casino-leaderboard', async () => {
     const { data } = await admin.from('profiles')
       .select('username,casino_best,casino_best_game')
@@ -699,6 +724,7 @@ io.on('connection', (socket) => {
       rouBroadcast();
     }
     bjLeave(socket);
+    raceLeave(socket.id);
     c4LeaveHandler(socket.id);
     if (online[socket.userId] === socket.id) delete online[socket.userId];
     if (me) {
@@ -728,6 +754,7 @@ function finalizeSpawn(socket, profile) {
     spaceBest: profile.space_best || 0,
     lastWheel: profile.last_wheel || 0,
     casinoBest: profile.casino_best || 0,
+    raceWins: profile.race_wins || 0,
     casinoBestGame: profile.casino_best_game || null,
     sitting: false, table: -1,
     room: 'deck', x: 520, y: 400, face: 1, lastCollect: 0, lastSave: 0
@@ -833,6 +860,149 @@ function bjLeave(socket) {
 // ---------------- 4 GEWINNT (mehrere Tische) ----------------
 const C4_COLS = 7, C4_ROWS = 6, C4_REWARD = 25, TABLES = 3;
 const games = new Array(TABLES).fill(null); // je Tisch ein Spiel
+
+// ================= METEORITEN-RENNEN (3 Spieler, auf Verdiania) =================
+const RACE_PLAYERS = 3;          // so viele starten ein Rennen
+const RACE_LOBBY_MS = 20000;     // max. Wartezeit, dann Start mit >=2
+const RACE_LEN = 4800;           // Streckenlänge in Welt-Einheiten (~23 s Fahrzeit)
+const RACE_W = 900;              // Breite der Rennstrecke
+const RACE_REWARD = [120, 60, 30]; // Sternenstaub für Platz 1/2/3
+const RACE_XP = [45, 25, 15];
+let race = null;  // { phase:'lobby'|'countdown'|'run'|'done', players:{}, obstacles:[], boosts:[], startedAt, endsAt }
+
+function raceMakeTrack(seed) {
+  // Deterministische Strecke, damit alle exakt dieselben Hindernisse sehen
+  let s = seed >>> 0;
+  const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+  const obstacles = [], boosts = [];
+  for (let y = 500; y < RACE_LEN - 200; y += 90 + rnd() * 70) {
+    const count = 1 + Math.floor(rnd() * 2);
+    for (let i = 0; i < count; i++) {
+      obstacles.push({ x: 60 + rnd() * (RACE_W - 120), y: y + rnd() * 40, r: 20 + rnd() * 16 });
+    }
+    if (rnd() < 0.35) boosts.push({ x: 60 + rnd() * (RACE_W - 120), y: y + 45 + rnd() * 30, r: 16 });
+  }
+  return { obstacles, boosts };
+}
+function racePublic() {
+  if (!race) return null;
+  const list = [];
+  for (const id in race.players) {
+    const p = race.players[id];
+    list.push({ id, name: p.name, color: p.color, species: p.species, x: p.x, y: p.y, done: p.done, place: p.place, boost: p.boostT > 0, hit: p.hitT > 0 });
+  }
+  return { phase: race.phase, endsAt: race.endsAt, players: list, len: RACE_LEN, w: RACE_W };
+}
+function raceBroadcast(ev, payload) {
+  for (const id in race.players) io.to(id).emit(ev, payload);
+}
+function raceCountPlayers() { return Object.keys(race ? race.players : {}).length; }
+function raceReset() { race = null; }
+function raceStart() {
+  race.phase = 'countdown';
+  race.endsAt = Date.now() + 3200;
+  const seed = (Math.random() * 4294967296) >>> 0;
+  const track = raceMakeTrack(seed);
+  race.obstacles = track.obstacles; race.boosts = track.boosts; race.seed = seed;
+  race.finishOrder = [];
+  let i = 0;
+  for (const id in race.players) {
+    const p = race.players[id];
+    p.x = (RACE_W / (raceCountPlayers() + 1)) * (i + 1); p.y = 0;
+    p.vy = 0; p.done = false; p.place = 0; p.boostT = 0; p.hitT = 0; p.lane = i;
+    i++;
+  }
+  raceBroadcast('race-start', { track: { obstacles: race.obstacles, boosts: race.boosts }, state: racePublic(), countdown: 3200 });
+  setTimeout(() => {
+    if (!race || race.phase !== 'countdown') return;
+    race.phase = 'run'; race.startedAt = Date.now(); race.endsAt = Date.now() + 90000;
+    raceBroadcast('race-go', { state: racePublic() });
+  }, 3200);
+}
+function raceFinish() {
+  if (!race) return;
+  race.phase = 'done';
+  // Übrige Spieler nach Fortschritt einsortieren
+  const rest = Object.keys(race.players).filter(id => !race.players[id].done)
+    .sort((a, b) => race.players[b].y - race.players[a].y);
+  for (const id of rest) { race.finishOrder.push(id); race.players[id].place = race.finishOrder.length; }
+  const results = [];
+  race.finishOrder.forEach((id, idx) => {
+    const p = race.players[id]; if (!p) return;
+    const me = players[id];
+    const coins = RACE_REWARD[idx] || 10, xp = RACE_XP[idx] || 5;
+    if (me) {
+      me.stardust += coins;
+      const sock = io.sockets.sockets.get(id);
+      if (sock) { sock.emit('stardust', { value: me.stardust }); grantXp(sock, me, xp); }
+      admin.from('profiles').update({ stardust: me.stardust }).eq('id', me.userId).then(() => {}, () => {});
+      if (idx === 0) {
+        me.raceWins = (me.raceWins || 0) + 1;
+        admin.from('profiles').update({ race_wins: me.raceWins }).eq('id', me.userId).then(() => {}, () => {});
+        io.emit('system', { code: 'sys_race_win', params: { name: me.name } });
+      }
+    }
+    results.push({ id, name: p.name, color: p.color, place: idx + 1, coins, xp });
+  });
+  raceBroadcast('race-result', { results });
+  setTimeout(() => { if (race && race.phase === 'done') raceReset(); }, 9000);
+}
+function raceTick() {
+  if (!race) return;
+  const now = Date.now();
+  if (race.phase === 'lobby') {
+    if (raceCountPlayers() >= RACE_PLAYERS) { raceStart(); return; }
+    if (now >= race.endsAt) {
+      if (raceCountPlayers() >= 2) raceStart();
+      else { raceBroadcast('race-cancel', { reason: 'nobody' }); raceReset(); }
+    }
+    return;
+  }
+  if (race.phase !== 'run') return;
+  const dt = 1 / 20;
+  for (const id in race.players) {
+    const p = race.players[id];
+    if (p.done) continue;
+    // Vorwärtsfahrt (Boost macht schneller, Treffer bremst)
+    let speed = 210;
+    if (p.boostT > 0) { speed = 340; p.boostT -= dt; }
+    if (p.hitT > 0) { speed = 90; p.hitT -= dt; }
+    p.y += speed * dt;
+    // seitliche Steuerung kommt vom Client als Zielposition
+    if (p.tx != null) {
+      const dx = p.tx - p.x, mx = Math.min(Math.abs(dx), 260 * dt);
+      p.x += Math.sign(dx) * mx;
+    }
+    p.x = Math.max(30, Math.min(RACE_W - 30, p.x));
+    // Kollisionen serverseitig prüfen (keine Manipulation vom Client möglich)
+    if (p.hitT <= 0) {
+      for (const o of race.obstacles) {
+        if (Math.abs(o.y - p.y) < o.r + 16 && Math.abs(o.x - p.x) < o.r + 14) { p.hitT = 0.9; p.boostT = 0; break; }
+      }
+    }
+    for (const b of race.boosts) {
+      if (!b.taken && Math.abs(b.y - p.y) < b.r + 16 && Math.abs(b.x - p.x) < b.r + 14) {
+        p.boostT = 1.6;
+      }
+    }
+    if (p.y >= RACE_LEN) {
+      p.done = true; race.finishOrder.push(id); p.place = race.finishOrder.length;
+      raceBroadcast('race-finished', { id, place: p.place, name: p.name });
+    }
+  }
+  raceBroadcast('race-state', racePublic());
+  const allDone = Object.keys(race.players).every(id => race.players[id].done);
+  if (allDone || now >= race.endsAt) raceFinish();
+}
+setInterval(raceTick, 50);
+function raceLeave(socketId) {
+  if (!race || !race.players[socketId]) return;
+  delete race.players[socketId];
+  if (race.phase === 'lobby') {
+    if (raceCountPlayers() === 0) raceReset();
+    else raceBroadcast('race-lobby', racePublic());
+  } else if (raceCountPlayers() === 0) raceReset();
+}
 
 function c4NewBoard() { return Array.from({length:C4_ROWS}, () => Array(C4_COLS).fill(0)); }
 function c4Both(g, ev, payload) { if (g.a) io.to(g.a.id).emit(ev, payload); if (g.b) io.to(g.b.id).emit(ev, payload); }
