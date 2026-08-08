@@ -246,7 +246,7 @@ function slotRoll(){ const total=SLOT_SYMS.reduce((s,x)=>s+x.w,0); let r=Math.ra
 // ---- Planeten (Level-basiert freigeschaltet) ----
 const PLANETS = [
   { id:'verdiania', name:'Verdiania', minLevel:1,  theme:'verdant', w:2200, h:1300 },
-  { id:'cryonis',   name:'Cryonis',   minLevel:5,  theme:'ice',     w:3400, h:1500 },
+  { id:'cryonis',   name:'Cryonis',   minLevel:5,  theme:'ice',     w:3600, h:620 },
   { id:'magmara',   name:'Magmara',   minLevel:12, theme:'lava',    w:2200, h:1300 }
 ];
 // Cryonis: begehbare Wolkenkratzer mit echten Innenraeumen (eigene Zimmer, Tuer zurueck zu 'cryonis')

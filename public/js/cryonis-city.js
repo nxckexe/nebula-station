@@ -1,20 +1,30 @@
-import { getMe, goToRoom } from './core.js';
-import { roundRect, clamp } from './render-utils.js';
+import { goToRoom } from './core.js';
+import { roundRect } from './render-utils.js';
 import { CRYONIS_BUILDINGS, CRYONIS_GROUND_Y } from './data/rooms.js';
 
+// Fliegende Autos: verteilt ueber mehrere Hoehen im Himmel, manche vor/hinter den Wolkenkratzern
 const CARS=[
-  {laneY:150,speed:76, phase:.10,color:'#ff2e88'},
-  {laneY:210,speed:-54,phase:.62,color:'#31e1ff'},
-  {laneY:270,speed:95, phase:.35,color:'#ffd166'},
-  {laneY:330,speed:-70,phase:.80,color:'#7be0b0'},
-  {laneY:195,speed:60, phase:.48,color:'#b467ff'}
+  {laneY:40, speed:82, phase:.05,color:'#ff2e88',scale:0.85},
+  {laneY:80, speed:-58,phase:.55,color:'#31e1ff',scale:1},
+  {laneY:130,speed:96, phase:.30,color:'#ffd166',scale:0.9},
+  {laneY:170,speed:-72,phase:.75,color:'#7be0b0',scale:1.1},
+  {laneY:210,speed:64, phase:.42,color:'#b467ff',scale:0.95},
+  {laneY:260,speed:-88,phase:.18,color:'#ff9e64',scale:1},
+  {laneY:300,speed:70, phase:.62,color:'#4dd0ff',scale:1.05},
+  {laneY:340,speed:-50,phase:.88,color:'#ff5ea8',scale:0.9}
 ];
 
-let stars=null,skyline=null,entryArmed=true;
+// Hochbahn: ein Zug faehrt regelmaessig quer durchs Bild, hoch oben ueber den Daechern
+const MONORAIL_Y=64;
+const MONORAIL_SPEED=260;
+const MONORAIL_PERIOD=13000; // ms zwischen zwei Durchfahrten
+
+let stars=null,skyline=null,rain=null,entryArmed=true;
 
 export function initCryonisScene(){
-  stars=[];for(let i=0;i<120;i++)stars.push({x:Math.random()*3400,y:Math.random()*CRYONIS_GROUND_Y*0.6,r:Math.random()*1.6+.4,t:Math.random()*6});
-  skyline=[];for(let i=0;i<26;i++)skyline.push({x:Math.random()*3600-100,w:60+Math.random()*90,h:120+Math.random()*260,c:Math.random()<0.5?'#1c1440':'#20124a'});
+  stars=[];for(let i=0;i<90;i++)stars.push({x:Math.random()*3600,y:Math.random()*180,r:Math.random()*1.5+.3,t:Math.random()*6});
+  skyline=[];for(let i=0;i<30;i++)skyline.push({x:Math.random()*3800-100,w:50+Math.random()*80,h:60+Math.random()*140,c:Math.random()<0.5?'#1c1440':'#20124a'});
+  rain=[];for(let i=0;i<70;i++)rain.push({x:Math.random()*3600,y:Math.random()*620,speed:260+Math.random()*180,len:10+Math.random()*10});
   entryArmed=true;
 }
 
@@ -26,11 +36,11 @@ function carX(now,pl,car){
 }
 
 function drawWindows(ctx,x0,y0,w,h,color,seed){
-  const cols=Math.max(2,Math.floor(w/34)),rows=Math.max(3,Math.floor(h/40));
+  const cols=Math.max(2,Math.floor(w/30)),rows=Math.max(2,Math.floor(h/28));
   const cw=w/cols,ch=h/rows,now=performance.now();
   for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
     const wx=x0+c*cw+cw*0.22,wy=y0+r*ch+ch*0.22,ww=cw*0.56,wh=ch*0.56;
-    const flick=Math.sin(now/500+seed+r*3.1+c*1.7);
+    const flick=Math.sin(now/450+seed+r*3.1+c*1.7);
     const lit=flick>-0.25;
     ctx.fillStyle=lit?color:'rgba(10,8,26,.85)';
     ctx.globalAlpha=lit?(0.55+0.35*Math.max(0,flick)):1;
@@ -39,47 +49,38 @@ function drawWindows(ctx,x0,y0,w,h,color,seed){
   }
 }
 
-function drawBuilding(ctx,b,pl){
+function drawBuilding(ctx,b){
   const x0=b.x-b.w/2,topY=b.topY,h=CRYONIS_GROUND_Y-topY;
-  // Schatten am Boden
-  ctx.fillStyle='rgba(0,0,0,.4)';ctx.beginPath();ctx.ellipse(b.x,CRYONIS_GROUND_Y+14,b.w*0.62,16,0,0,7);ctx.fill();
-  // Baukoerper
+  ctx.fillStyle='rgba(0,0,0,.4)';ctx.beginPath();ctx.ellipse(b.x,CRYONIS_GROUND_Y+10,b.w*0.6,10,0,0,7);ctx.fill();
   const g=ctx.createLinearGradient(0,topY,0,CRYONIS_GROUND_Y);g.addColorStop(0,'#241a44');g.addColorStop(1,'#0f0a24');
   ctx.fillStyle=g;ctx.strokeStyle='#000';ctx.lineWidth=3;
-  roundRect(ctx,x0,topY,b.w,h,14);ctx.fill();ctx.stroke();
-  // Fenster
-  drawWindows(ctx,x0+10,topY+16,b.w-20,h-36,b.color,b.x*0.01);
-  // Dach-Antenne mit Blinklicht
+  roundRect(ctx,x0,topY,b.w,h,12);ctx.fill();ctx.stroke();
+  drawWindows(ctx,x0+8,topY+12,b.w-16,h-28,b.color,b.x*0.01);
   const antX=b.x+b.w*0.28;
-  ctx.strokeStyle='#3a2f5a';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(antX,topY);ctx.lineTo(antX,topY-26);ctx.stroke();
-  ctx.fillStyle=Math.sin(performance.now()/260)>0?'#ff5a5a':'#5a1c1c';ctx.beginPath();ctx.arc(antX,topY-26,4,0,7);ctx.fill();
-  // Vertikaler Neon-Streifen
-  ctx.fillStyle=b.color;ctx.globalAlpha=.85;ctx.fillRect(x0+6,topY+8,5,h-16);ctx.fillRect(x0+b.w-11,topY+8,5,h-16);ctx.globalAlpha=1;
-  // Leuchtschild
-  ctx.font='800 15px Fredoka';ctx.textAlign='center';
+  ctx.strokeStyle='#3a2f5a';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(antX,topY);ctx.lineTo(antX,topY-16);ctx.stroke();
+  ctx.fillStyle=Math.sin(performance.now()/260)>0?'#ff5a5a':'#5a1c1c';ctx.beginPath();ctx.arc(antX,topY-16,3,0,7);ctx.fill();
+  ctx.fillStyle=b.color;ctx.globalAlpha=.85;ctx.fillRect(x0+5,topY+6,4,h-12);ctx.fillRect(x0+b.w-9,topY+6,4,h-12);ctx.globalAlpha=1;
+  ctx.font='800 13px Fredoka';ctx.textAlign='center';
   const label=b.icon+' '+b.name,tw=ctx.measureText(label).width;
-  const signY=topY+34;
-  ctx.fillStyle='#0a0818';ctx.strokeStyle=b.color;ctx.lineWidth=3;
-  roundRect(ctx,b.x-tw/2-14,signY-18,tw+28,32,12);ctx.fill();ctx.stroke();
+  const signY=topY+22;
+  ctx.fillStyle='#0a0818';ctx.strokeStyle=b.color;ctx.lineWidth=2;
+  roundRect(ctx,b.x-tw/2-10,signY-14,tw+20,26,10);ctx.fill();ctx.stroke();
   const pulse=.6+.4*Math.sin(performance.now()/300+b.x);
-  ctx.fillStyle=b.glow;ctx.globalAlpha=pulse;ctx.fillText(label,b.x,signY+5);ctx.globalAlpha=1;
-  // Eingang
-  const doorW=64,doorH=90,dy=CRYONIS_GROUND_Y;
-  ctx.fillStyle='#05030f';ctx.strokeStyle=b.color;ctx.lineWidth=4;
-  roundRect(ctx,b.x-doorW/2,dy-doorH,doorW,doorH,10);ctx.fill();ctx.stroke();
+  ctx.fillStyle=b.glow;ctx.globalAlpha=pulse;ctx.fillText(label,b.x,signY+4);ctx.globalAlpha=1;
+  const doorW=54,doorH=Math.min(70,h-40),dy=CRYONIS_GROUND_Y;
+  ctx.fillStyle='#05030f';ctx.strokeStyle=b.color;ctx.lineWidth=3;
+  roundRect(ctx,b.x-doorW/2,dy-doorH,doorW,doorH,8);ctx.fill();ctx.stroke();
   const gp=.5+.5*Math.sin(performance.now()/260);
   ctx.fillStyle=b.glow;ctx.globalAlpha=.25+.35*gp;
-  roundRect(ctx,b.x-doorW/2+6,dy-doorH+6,doorW-12,doorH-12,8);ctx.fill();ctx.globalAlpha=1;
-  ctx.fillStyle='#fff';ctx.font='700 22px Fredoka';ctx.textAlign='center';ctx.fillText('⇪',b.x,dy-doorH*0.32);
+  roundRect(ctx,b.x-doorW/2+5,dy-doorH+5,doorW-10,doorH-10,6);ctx.fill();ctx.globalAlpha=1;
+  ctx.fillStyle='#fff';ctx.font='700 18px Fredoka';ctx.textAlign='center';ctx.fillText('⇪',b.x,dy-doorH*0.32);
 }
 
-function drawCar(ctx,x,y,color,dir){
-  ctx.save();ctx.translate(x,y);if(dir<0)ctx.scale(-1,1);
-  ctx.fillStyle='rgba(0,0,0,.25)';ctx.beginPath();ctx.ellipse(0,16,26,5,0,0,7);ctx.fill();
-  // Lichtschweif
+function drawCar(ctx,x,y,color,dir,scale){
+  ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);if(dir<0)ctx.scale(-1,1);
+  ctx.fillStyle='rgba(0,0,0,.22)';ctx.beginPath();ctx.ellipse(0,14,24,4,0,0,7);ctx.fill();
   const trail=ctx.createLinearGradient(-70,0,-10,0);trail.addColorStop(0,'transparent');trail.addColorStop(1,color);
   ctx.fillStyle=trail;ctx.fillRect(-70,-2,60,4);
-  // Karosserie
   ctx.fillStyle=color;ctx.strokeStyle='#0a0818';ctx.lineWidth=2;
   ctx.beginPath();ctx.moveTo(-22,4);ctx.quadraticCurveTo(-14,-9,0,-9);ctx.quadraticCurveTo(14,-9,22,4);ctx.quadraticCurveTo(10,10,0,10);ctx.quadraticCurveTo(-10,10,-22,4);ctx.closePath();
   ctx.fill();ctx.stroke();
@@ -88,34 +89,60 @@ function drawCar(ctx,x,y,color,dir){
   ctx.restore();
 }
 
+function drawMonorail(ctx,pl){
+  const now=performance.now();
+  // Schiene: durchgehende Linie mit Stuetzen
+  ctx.strokeStyle='rgba(150,170,220,.35)';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(0,MONORAIL_Y+14);ctx.lineTo(pl.w,MONORAIL_Y+14);ctx.stroke();
+  ctx.strokeStyle='rgba(150,170,220,.2)';ctx.lineWidth=2;
+  for(let x=40;x<pl.w;x+=160){ctx.beginPath();ctx.moveTo(x,MONORAIL_Y+14);ctx.lineTo(x,MONORAIL_Y+30);ctx.stroke();}
+  const cyclePos=(now%MONORAIL_PERIOD)/MONORAIL_PERIOD;
+  const trainLen=260,travel=pl.w+trainLen;
+  const headX=cyclePos*travel-trainLen;
+  if(headX<-trainLen||headX>pl.w+trainLen)return;
+  for(let i=0;i<3;i++){
+    const cx=headX-i*88;
+    ctx.fillStyle=i===0?'#dfe8ff':'#aebbee';ctx.strokeStyle='#0a0818';ctx.lineWidth=2;
+    roundRect(ctx,cx-38,MONORAIL_Y-12,76,24,10);ctx.fill();ctx.stroke();
+    ctx.fillStyle='rgba(120,220,255,.7)';
+    for(let w=-26;w<=26;w+=17)ctx.fillRect(cx+w,MONORAIL_Y-7,10,10);
+  }
+}
+
+function drawRain(ctx,pl){
+  ctx.strokeStyle='rgba(160,200,255,.28)';ctx.lineWidth=1.4;
+  for(const d of rain){
+    d.y+=(d.speed*0.016);
+    if(d.y>620){d.y=-20;d.x=Math.random()*pl.w;}
+    ctx.beginPath();ctx.moveTo(d.x,d.y);ctx.lineTo(d.x-4,d.y+d.len);ctx.stroke();
+  }
+}
+
 export function renderCryonisCity(ctx,pl){
   const now=performance.now();
-  // Himmel
-  const sky=ctx.createLinearGradient(0,0,0,pl.h);sky.addColorStop(0,'#1a0f3d');sky.addColorStop(.55,'#150a30');sky.addColorStop(1,'#05030f');
-  ctx.fillStyle=sky;ctx.fillRect(0,0,pl.w,pl.h);
-  // Doppelmond
-  ctx.fillStyle='#cdeaff';ctx.globalAlpha=.9;ctx.beginPath();ctx.arc(pl.w*0.14,120,46,0,7);ctx.fill();
-  ctx.fillStyle='#ffb3e6';ctx.globalAlpha=.55;ctx.beginPath();ctx.arc(pl.w*0.14+70,150,26,0,7);ctx.fill();ctx.globalAlpha=1;
-  // Sterne
+  const sky=ctx.createLinearGradient(0,0,0,CRYONIS_GROUND_Y);sky.addColorStop(0,'#1a0f3d');sky.addColorStop(.6,'#170b38');sky.addColorStop(1,'#0c0726');
+  ctx.fillStyle=sky;ctx.fillRect(0,0,pl.w,CRYONIS_GROUND_Y);
+  ctx.fillStyle='#cdeaff';ctx.globalAlpha=.9;ctx.beginPath();ctx.arc(pl.w*0.1,70,30,0,7);ctx.fill();
+  ctx.fillStyle='#ffb3e6';ctx.globalAlpha=.5;ctx.beginPath();ctx.arc(pl.w*0.1+44,88,16,0,7);ctx.fill();ctx.globalAlpha=1;
   if(stars)for(const s of stars){const a=.3+.5*Math.abs(Math.sin(now/1000+s.t));ctx.fillStyle='rgba(220,226,255,'+a+')';ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,7);ctx.fill();}
-  // Ferne Skyline (Silhouette)
   if(skyline)for(const s of skyline){ctx.fillStyle=s.c;ctx.fillRect(s.x,CRYONIS_GROUND_Y-s.h,s.w,s.h);
-    ctx.fillStyle='rgba(122,224,255,.18)';for(let wy=CRYONIS_GROUND_Y-s.h+10;wy<CRYONIS_GROUND_Y-8;wy+=18)ctx.fillRect(s.x+6,wy,s.w-12,4);}
+    ctx.fillStyle='rgba(122,224,255,.16)';for(let wy=CRYONIS_GROUND_Y-s.h+8;wy<CRYONIS_GROUND_Y-6;wy+=14)ctx.fillRect(s.x+5,wy,s.w-10,3);}
+  drawMonorail(ctx,pl);
+  // Gebaeude (Sortierung nach oben-Kante fuer etwas Tiefenwirkung)
+  for(const b of CRYONIS_BUILDINGS)drawBuilding(ctx,b);
+  // Fliegende Autos ueber allem
+  for(const car of CARS){const x=carX(now,pl,car),dir=car.speed>=0?1:-1;drawCar(ctx,x,car.laneY,car.color,dir,car.scale);}
   // Boden / nasse Strasse
   const groundG=ctx.createLinearGradient(0,CRYONIS_GROUND_Y,0,pl.h);groundG.addColorStop(0,'#100a26');groundG.addColorStop(1,'#050414');
   ctx.fillStyle=groundG;ctx.fillRect(0,CRYONIS_GROUND_Y,pl.w,pl.h-CRYONIS_GROUND_Y);
   ctx.strokeStyle='rgba(122,224,255,.25)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,CRYONIS_GROUND_Y);ctx.lineTo(pl.w,CRYONIS_GROUND_Y);ctx.stroke();
-  ctx.strokeStyle='rgba(255,255,255,.12)';ctx.setLineDash([26,22]);ctx.lineWidth=3;
-  ctx.beginPath();ctx.moveTo(0,pl.h-40);ctx.lineTo(pl.w,pl.h-40);ctx.stroke();ctx.setLineDash([]);
-  // Neon-Reflexionen im Boden je Gebaeude
+  ctx.strokeStyle='rgba(255,255,255,.12)';ctx.setLineDash([22,18]);ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(0,pl.h-24);ctx.lineTo(pl.w,pl.h-24);ctx.stroke();ctx.setLineDash([]);
   for(const b of CRYONIS_BUILDINGS){
     const rg=ctx.createLinearGradient(0,CRYONIS_GROUND_Y,0,pl.h);rg.addColorStop(0,b.color+'55');rg.addColorStop(1,'transparent');
     ctx.fillStyle=rg;ctx.fillRect(b.x-b.w*0.42,CRYONIS_GROUND_Y,b.w*0.84,pl.h-CRYONIS_GROUND_Y);
   }
-  // Gebaeude
-  for(const b of CRYONIS_BUILDINGS)drawBuilding(ctx,b,pl);
-  // Fliegende Autos
-  for(const car of CARS){const x=carX(now,pl,car),dir=car.speed>=0?1:-1;drawCar(ctx,x,car.laneY,car.color,dir);}
+  // Regen ueber der ganzen Szene
+  drawRain(ctx,pl);
 }
 
 export function getBuildingExitSpot(fromRoom){

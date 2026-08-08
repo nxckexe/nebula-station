@@ -37,15 +37,19 @@ export const ROU_OBJ={x:1750,y:430,r:110};
 export const HALL_OBJ={x:1580,y:330,r:62};
 export const PLANETS={
   verdiania:{name:'Verdiania',minLevel:1,w:2200,h:1300,sky:['#0c3322','#08201a'],ground:'#1f7a4d',ground2:'#166b41',flora:'#7be0b0',dot:'radial-gradient(circle at 35% 30%,#7be0b0,#1f7a4d)'},
-  cryonis:{name:'Cryonis',minLevel:5,w:3400,h:1500,sky:['#1a0f3d','#05030f'],ground:'#0d0a1f',ground2:'#161029',flora:'#31e1ff',dot:'radial-gradient(circle at 35% 30%,#bfeaff,#4d7fb0)',city:true},
+  cryonis:{name:'Cryonis',minLevel:5,w:3600,h:620,sky:['#1a0f3d','#05030f'],ground:'#0d0a1f',ground2:'#161029',flora:'#31e1ff',dot:'radial-gradient(circle at 35% 30%,#bfeaff,#4d7fb0)',city:true},
   magmara:{name:'Magmara',minLevel:12,w:2200,h:1300,sky:['#2e0d0a','#1a0707'],ground:'#7a3320',ground2:'#631f12',flora:'#ffb14d',dot:'radial-gradient(circle at 35% 30%,#ffcaa0,#7a3320)'}
 };
 export const PLANET_ORDER=['verdiania','cryonis','magmara'];
 
 // ---- Cryonis: begehbare Cyberpunk-Stadt ----
-export const CRYONIS_GROUND_Y=1020;
+// Die Welt ist so hoch wie das feste Kamerafenster (H=620) -> kein vertikales Scrollen,
+// die Wolkenkratzer passen dadurch immer komplett ins Bild ("weiter nach hinten geschoben").
+export const CRYONIS_GROUND_Y=460;
+export const CRYONIS_WALK_Y0=448;
+export const CRYONIS_WALK_Y1=596;
 export const CRYONIS_BUILDINGS=[
-  {id:'cryo_arcade',room:'cryo_arcade',x:640,  w:320,topY:300,color:'#ff2e88',glow:'#ff8fc7',name:'Neon Arcade',icon:'🕹️'},
-  {id:'cryo_plaza', room:'cryo_plaza', x:1750, w:480,topY:120,color:'#31e1ff',glow:'#9df3ff',name:'Cryo Plaza',  icon:'🏢'},
-  {id:'cryo_club',  room:'cryo_club',  x:2820, w:300,topY:380,color:'#b467ff',glow:'#e2c6ff',name:'Data Club',   icon:'🎧'}
+  {id:'cryo_arcade',room:'cryo_arcade',x:750, w:300,topY:210,color:'#ff2e88',glow:'#ff8fc7',name:'Neon Arcade',icon:'🕹️'},
+  {id:'cryo_plaza', room:'cryo_plaza', x:1900,w:440,topY:90, color:'#31e1ff',glow:'#9df3ff',name:'Cryo Plaza',  icon:'🏢'},
+  {id:'cryo_club',  room:'cryo_club',  x:3050,w:280,topY:230,color:'#b467ff',glow:'#e2c6ff',name:'Data Club',   icon:'🎧'}
 ];
