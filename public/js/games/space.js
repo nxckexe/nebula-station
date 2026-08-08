@@ -1,4 +1,4 @@
-import { $, t, addMsg, showPopup, setLocked, getMe } from '../core.js';
+import { $, t, addMsg, showPopup, setLocked, getMe, drawAvatarPreview } from '../core.js';
 import { socket } from '../net.js';
 import { roundRect as roundRectImpl, clamp, esc } from '../render-utils.js';
 import { INK } from '../data/appearance.js';
@@ -22,29 +22,33 @@ function closeSpace(){$('space').style.display='none';if(spaceRAF)cancelAnimatio
 function spaceStart(){spacePhase='play';ship={x:210,y:350};aster=[];dust=[];spSpeed=1;spDist=0;spColl=0;spSpawn=0.6;spDustSpawn=0.4;$('spacefoot').textContent=t('space_controls');}
 function spaceGameOver(){spacePhase='over';spaceNewRecord=false;socket&&socket.emit('space-score',{collected:spColl,dist:spDist});
   showPopup('🛸',t('popup_crash_title'),t('amount_stardust',{amount:spColl}),'gold');
+  $('spacefoot').innerHTML='<button class="betb" id="spaceagain">🚀 Nochmal</button><button class="betb" id="spaceboard">🏆 Rekorde</button><button class="betb" id="spaceexit">Aussteigen</button>';
   const a=$('spaceagain'),x=$('spaceexit'),b=$('spaceboard');if(a)a.onclick=()=>{spacePhase='boarding';spaceT=0;$('spacefoot').textContent='Einsteigen…';};if(x)x.onclick=closeSpace;if(b)b.onclick=openSpaceBoard;}
 function spaceLoop(){const now=performance.now(),dt=Math.min((now-spaceLast)/1000,.05);spaceLast=now;
   if($('space').style.display==='none'){spaceRAF=null;return;}
   const g=spaceG,W2=420,H2=470;g.fillStyle='#060418';g.fillRect(0,0,W2,H2);
+  const cxp=W2/2,cyp=175;
   for(const s of spaceStars){s.r+=s.sp*dt*(spacePhase==='play'?(1+spSpeed*0.5):1);if(s.r>340){s.r=Math.random()*30;s.a=Math.random()*6.28;}
-    const sx=210+Math.cos(s.a)*s.r,sy=250+Math.sin(s.a)*s.r*0.86;if(sx<0||sx>W2||sy<0||sy>H2)continue;
-    g.fillStyle='rgba(255,255,255,'+Math.min(1,s.r/120)+')';g.fillRect(sx,sy,1.6,1.6);}
+    const x1=cxp+Math.cos(s.a)*s.r,y1=cyp+Math.sin(s.a)*s.r*.85,x2=cxp+Math.cos(s.a)*(s.r-9),y2=cyp+Math.sin(s.a)*(s.r-9)*.85;
+    g.strokeStyle='rgba(200,220,255,'+Math.min(1,s.r/300)+')';g.lineWidth=Math.max(1,s.r/130);g.beginPath();g.moveTo(x1,y1);g.lineTo(x2,y2);g.stroke();}
   if(spacePhase==='boarding')drawBoarding(g,dt,W2);
   else if(spacePhase==='play')playSpace(g,dt,W2,H2);
   else drawSpaceOver(g,W2,H2);
   drawCockpit(g,W2,H2);
   spaceRAF=requestAnimationFrame(spaceLoop);}
 function drawBoarding(g,dt,W2){spaceT+=dt;const t=spaceT,cx=210,cy=250;
-  g.save();g.translate(cx,cy);
-  g.fillStyle='#4dd0ff';g.beginPath();g.ellipse(0,0,34,26,0,0,7);g.fill();
-  g.strokeStyle=INK;g.lineWidth=3;g.stroke();
-  g.fillStyle='rgba(20,26,61,.75)';g.beginPath();g.ellipse(0,-7,18,13,0,0,7);g.fill();
-  const bob=Math.sin(t*3)*4;
-  g.fillStyle='#ffb14d';g.beginPath();g.arc(0,10+bob,6,0,7);g.fill();
-  g.restore();
-  g.fillStyle='#cfe6ff';g.font='700 15px Fredoka';g.textAlign='center';g.fillText('Einsteigen…',cx,cy+70);
+  g.fillStyle='#cfd8f2';g.strokeStyle=INK;g.lineWidth=4;roundRectImpl(g,cx-58,cy-18,116,78,22);g.fill();g.stroke();
+  const slide=Math.min(1,t/0.9),ax=cx+90-90*slide,ay=cy+18;
+  const me=getMe();
+  const fake={species:(me&&me.species)||'blobbi',color:(me&&me.color)||'#4dd0ff',acc:(me&&me.acc)||'none',face:-1,step:0,expr:t>1?'happy':'wow'};
+  drawAvatarPreview(g,fake,ax,ay);
+  const close=Math.max(0,Math.min(1,(t-1.0)/0.7));
+  g.fillStyle='rgba(120,200,255,'+(0.22+0.32*close)+')';g.strokeStyle=INK;g.lineWidth=4;
+  g.beginPath();g.ellipse(cx,cy-2,62,42*close+2,0,Math.PI,0);g.closePath();g.fill();g.stroke();
+  g.fillStyle='rgba(255,255,255,.4)';g.beginPath();g.ellipse(cx-16,cy-14*close-2,10,5*close,-.4,0,7);g.fill();
   if(t>=2.6){spaceStart();return;}
-}
+  if(t>1.6){const num=Math.max(1,Math.ceil((2.6-t)/0.34));g.fillStyle='#ffd166';g.strokeStyle=INK;g.lineWidth=5;g.font='800 62px Fredoka';g.textAlign='center';g.strokeText(num,210,150);g.fillText(num,210,150);}
+  else{g.fillStyle='#cbb8ff';g.font='700 15px Fredoka';g.textAlign='center';g.fillText('Anschnallen…',210,150);}}
 function playSpace(g,dt,W2,H2){spDist+=spSpeed*dt*55;spSpeed+=dt*0.05;
   let vx=0,vy=0;if(spaceKeys['arrowleft']||spaceKeys['a'])vx--;if(spaceKeys['arrowright']||spaceKeys['d'])vx++;if(spaceKeys['arrowup']||spaceKeys['w'])vy--;if(spaceKeys['arrowdown']||spaceKeys['s'])vy++;
   if(spacePointer){ship.x+=(spacePointer.x-ship.x)*Math.min(1,dt*11);ship.y+=(spacePointer.y-ship.y)*Math.min(1,dt*11);}
@@ -63,7 +67,7 @@ function playSpace(g,dt,W2,H2){spDist+=spSpeed*dt*55;spSpeed+=dt*0.05;
   drawShip(g,ship.x,ship.y);
   g.fillStyle='#fff';g.font='700 15px Fredoka';g.textAlign='left';g.fillText('✦ '+spColl,16,140);g.textAlign='right';g.fillText(Math.floor(spDist)+' m',W2-16,140);}
 function drawSpaceOver(g,W2,H2){g.fillStyle='rgba(6,4,20,.55)';g.fillRect(0,110,W2,H2-170);
-  g.fillStyle='#ff5ea8';g.font='800 22px Fredoka';g.textAlign='center';g.fillText('💥 Bruchlandung!',210,232);
+  g.fillStyle='#ff5ea8';g.strokeStyle=INK;g.lineWidth=5;g.font='800 32px Fredoka';g.textAlign='center';g.strokeText('BRUCHLANDUNG',210,225);g.fillText('BRUCHLANDUNG',210,225);
   g.fillStyle='#fff';g.font='700 18px Fredoka';g.fillText('Strecke: '+Math.floor(spDist)+' m',210,262);
   g.fillStyle='#ffd166';g.fillText('+'+spColl+' ✦ gesammelt',210,290);
   if(spaceNewRecord){g.fillStyle='#7be0b0';g.font='800 17px Fredoka';g.fillText('🏆 NEUER REKORD!',210,318);}

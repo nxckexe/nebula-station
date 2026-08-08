@@ -14,7 +14,16 @@ export const ROOMS={
     deco:[]},
   vip:{id:'vip',accent:'#ffd166',wall1:'#2a2440',wall2:'#12101f',floor1:'#1b1730',floor2:'#141126',
     door:{x:70,y:360,to:'casino',dirRight:false},
-    deco:[]}
+    deco:[]},
+  cryo_arcade:{id:'cryo_arcade',accent:'#ff2e88',wall1:'#3a1250',wall2:'#1f0a30',floor1:'#241033',floor2:'#1a0b26',
+    door:{x:70,y:360,to:'cryonis',dirRight:false},
+    deco:[{t:'console',x:200,y:250},{t:'console',x:330,y:250},{t:'holo',x:540,y:246},{t:'vending',x:745,y:236},{t:'crate',x:905,y:272}]},
+  cryo_plaza:{id:'cryo_plaza',accent:'#31e1ff',wall1:'#0d2b45',wall2:'#071a2c',floor1:'#12283a',floor2:'#0d1f2d',
+    door:{x:70,y:360,to:'cryonis',dirRight:false},
+    deco:[{t:'holo',x:300,y:246},{t:'holo',x:610,y:246},{t:'bench',x:470,y:300},{t:'bench',x:730,y:300},{t:'plant',x:905,y:272},{t:'plant',x:160,y:272}]},
+  cryo_club:{id:'cryo_club',accent:'#b467ff',wall1:'#2a0f45',wall2:'#160726',floor1:'#1c0e30',floor2:'#150a24',
+    door:{x:70,y:360,to:'cryonis',dirRight:false},
+    deco:[{t:'console',x:250,y:250},{t:'vending',x:450,y:236},{t:'bench',x:650,y:300},{t:'holo',x:820,y:246}]}
 };
 export const VIP_LEVEL=10;
 export const VIP_SLOTS=[{x:300,y:300},{x:470,y:300},{x:800,y:300}];
@@ -28,7 +37,15 @@ export const ROU_OBJ={x:1750,y:430,r:110};
 export const HALL_OBJ={x:1580,y:330,r:62};
 export const PLANETS={
   verdiania:{name:'Verdiania',minLevel:1,w:2200,h:1300,sky:['#0c3322','#08201a'],ground:'#1f7a4d',ground2:'#166b41',flora:'#7be0b0',dot:'radial-gradient(circle at 35% 30%,#7be0b0,#1f7a4d)'},
-  cryonis:{name:'Cryonis',minLevel:5,w:2200,h:1300,sky:['#0a2033','#08131f'],ground:'#4d7fb0','ground2':'#3c6a97',flora:'#bfeaff',dot:'radial-gradient(circle at 35% 30%,#bfeaff,#4d7fb0)'},
+  cryonis:{name:'Cryonis',minLevel:5,w:3400,h:1500,sky:['#1a0f3d','#05030f'],ground:'#0d0a1f',ground2:'#161029',flora:'#31e1ff',dot:'radial-gradient(circle at 35% 30%,#bfeaff,#4d7fb0)',city:true},
   magmara:{name:'Magmara',minLevel:12,w:2200,h:1300,sky:['#2e0d0a','#1a0707'],ground:'#7a3320',ground2:'#631f12',flora:'#ffb14d',dot:'radial-gradient(circle at 35% 30%,#ffcaa0,#7a3320)'}
 };
 export const PLANET_ORDER=['verdiania','cryonis','magmara'];
+
+// ---- Cryonis: begehbare Cyberpunk-Stadt ----
+export const CRYONIS_GROUND_Y=1020;
+export const CRYONIS_BUILDINGS=[
+  {id:'cryo_arcade',room:'cryo_arcade',x:640,  w:320,topY:300,color:'#ff2e88',glow:'#ff8fc7',name:'Neon Arcade',icon:'🕹️'},
+  {id:'cryo_plaza', room:'cryo_plaza', x:1750, w:480,topY:120,color:'#31e1ff',glow:'#9df3ff',name:'Cryo Plaza',  icon:'🏢'},
+  {id:'cryo_club',  room:'cryo_club',  x:2820, w:300,topY:380,color:'#b467ff',glow:'#e2c6ff',name:'Data Club',   icon:'🎧'}
+];

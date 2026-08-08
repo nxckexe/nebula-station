@@ -98,7 +98,7 @@
     <button class="pclose" id="mclose">✕</button>
     <h1 data-i18n="map_title">Karte</h1>
     <p data-i18n="map_sub">Wohin möchtest du?</p>
-    <div class="rooms" id="rooms"></div>
+    <canvas id="mapCanvas" class="mapcanvas"></canvas>
   </div>
 </div>
 
@@ -396,7 +396,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { COLORS, INK, SPECIES, SP_LABEL, ACCS, ITEM_ICON } from './js/data/appearance.js';
 import { EMOTES, EMOTE_LIST, EMOTE_DUR, EMOTE_META } from './js/data/emotes.js';
-import { CW, CRUG, ROOMS, VIP_LEVEL, VIP_SLOTS, VIP_BJ, FOUNTAINS, CASINO_SLOTS, WHEEL_OBJ, BJ_TABLES, PLINKO_OBJ, ROU_OBJ, HALL_OBJ, PLANETS, PLANET_ORDER } from './js/data/rooms.js';
+import { CW, CRUG, ROOMS, VIP_LEVEL, VIP_SLOTS, VIP_BJ, FOUNTAINS, CASINO_SLOTS, WHEEL_OBJ, BJ_TABLES, PLINKO_OBJ, ROU_OBJ, HALL_OBJ, PLANETS, PLANET_ORDER, CRYONIS_GROUND_Y } from './js/data/rooms.js';
 import { SHOP, ITEM_NAME_JA } from './js/data/shop.js';
 import { GAME_NAMES, GAME_ICONS, ROU_RED, ROU_ORDER, PLINKO_ROWS, PLINKO_MULT, PLINKO_COLS, WHEEL_VALUES, WHEEL_COLS } from './js/data/casino-games.js';
 import { HELP } from './js/data/help.js';
@@ -412,6 +412,8 @@ import { openSlot, onSlotResult, initSlotDom } from './js/games/slot.js';
 import { C4_TABLES, openC4Menu, checkArrivedAtTable, onC4Waiting, onC4Busy, onC4Cancel, onC4Start, onC4Update, onC4Over, onLeaderboardData, initC4Dom } from './js/games/c4.js';
 import { checkRacePad, onRaceJoined, onRaceLobby, onRaceBusy, onRaceCancel, onRaceStart, onRaceGo, onRaceState, onRaceFinished, onRaceResult, initRaceDom } from './js/games/race.js';
 import { SHIP_OBJ, requestBoard, checkBoardArrival, onSpaceBest, onSpaceLeaderboardData, initSpaceDom } from './js/games/space.js';
+import { initMapDom } from './js/map-view.js';
+import { initCryonisScene, renderCryonisCity, checkCryonisEntrance, getBuildingExitSpot } from './js/cryonis-city.js';
 
 /* ============================================================
    NEBULA STATION — Client mit Login (Supabase) + Multiplayer
@@ -480,7 +482,6 @@ function applyI18n(){
   if(mode)$('authBtn').textContent=t(mode==='reg'?'auth_btn_register':'auth_btn_login');
   if(typeof renderShop==='function'&&$('shop')&&$('shop').style.display!=='none')renderShop();
   if(typeof renderEmoteBar==='function')renderEmoteBar();
-  if(typeof buildMap==='function'&&$('rooms'))buildMap();
   if(me&&$('room-name'))$('room-name').textContent=t('room_'+me.room);
 }
 function setLang(l){LANG=l;localStorage.setItem('ns_lang',l);applyI18n();}
@@ -704,7 +705,9 @@ function checkDoor(){if(!me||!ROOMS[me.room])return;for(const d of roomDoors(ROO
 function goToRoom(room,fromRoom){if(!me||locked||room===me.room)return;
   if(room==='vip'&&(myLevel||1)<VIP_LEVEL){showPopup('🔒',t('popup_vip_title'),t('popup_vip_sub',{level:VIP_LEVEL,mylevel:myLevel||1}),'purple');return;}
   me.room=room;
-  if(PLANETS[room]){const pl=PLANETS[room];me.x=me.tx=pl.w/2;me.y=me.ty=pl.h-130;genPlanet(room);document.getElementById('room-name').textContent=pl.name;}
+  if(PLANETS[room]){const pl=PLANETS[room];const exitSpot=pl.city?getBuildingExitSpot(fromRoom):null;
+    if(exitSpot){me.x=me.tx=exitSpot.x;me.y=me.ty=exitSpot.y;}else{me.x=me.tx=pl.w/2;me.y=me.ty=pl.h-130;}
+    genPlanet(room);document.getElementById('room-name').textContent=pl.name;}
   else{const doors=roomDoors(ROOMS[room]);const nd=(fromRoom&&doors.find(d=>d.to===fromRoom))||doors[0];me.x=me.tx=nd.x>W/2?nd.x-140:nd.x+140;me.y=me.ty=nd.y;document.getElementById('room-name').textContent=t('room_'+room);}
   socket&&socket.emit('room',{room:me.room,x:me.x,y:me.y});
   resetBjLive();if(room==='casino'){socket&&socket.emit('bj-watch');socket&&socket.emit('roul-sync');socket&&socket.emit('casino-leaderboard');}
@@ -720,7 +723,8 @@ function update(dt,now){
     if(PLANETS[me.room]&&planetScene){
       for(const c of planetScene.crystals){c.t+=dt*3;if(!c.got&&Math.hypot(me.x-c.x,me.y-c.y)<34){c.got=true;socket&&socket.emit('crystal');}}
       const pt=planetScene.portal;if(Math.hypot(me.x-pt.x,me.y-pt.y)<42)goToRoom('deck');
-      checkRacePad(me,planetScene.racePad);}
+      checkRacePad(me,planetScene.racePad);
+      if(PLANETS[me.room].city)checkCryonisEntrance(me);}
     if(now-lastSent>66){socket&&socket.emit('move',{x:me.x,y:me.y,face:me.face});lastSent=now;}}
   for(const id in players){const e=players[id];
     if(e.bubbleT>0){e.bubbleT-=dt;if(e.bubbleT<=0)e.bubble=null;}
@@ -769,14 +773,24 @@ function render(){const r=cv.parentElement.getBoundingClientRect();ctx.clearRect
 
 /* ---------------- PLANETEN ---------------- */
 let planetStars=null;
-function genPlanet(id){const pl=PLANETS[id];planetScene={scenery:[],crystals:[],portal:{x:pl.w/2,y:pl.h-80},racePad:id==='verdiania'?{x:pl.w*0.22,y:pl.h-150}:null};
+function genPlanet(id){const pl=PLANETS[id];
+  if(pl.city){planetScene={scenery:[],crystals:[],portal:{x:pl.w/2,y:pl.h-80},racePad:null};
+    for(let i=0;i<10;i++)planetScene.crystals.push({x:120+Math.random()*(pl.w-240),y:CRYONIS_GROUND_Y+40+Math.random()*(pl.h-CRYONIS_GROUND_Y-80),t:Math.random()*6,got:false});
+    initCryonisScene();
+    return;}
+  planetScene={scenery:[],crystals:[],portal:{x:pl.w/2,y:pl.h-80},racePad:id==='verdiania'?{x:pl.w*0.22,y:pl.h-150}:null};
   const gy=pl.h*0.5;
   for(let i=0;i<44;i++)planetScene.scenery.push({x:50+Math.random()*(pl.w-100),y:gy+20+Math.random()*(pl.h-gy-60),t:Math.random()<0.5?'rock':'flora',s:0.7+Math.random()*0.9});
   planetScene.scenery.sort((a,b)=>a.y-b.y);
   for(let i=0;i<14;i++)planetScene.crystals.push({x:90+Math.random()*(pl.w-180),y:gy+30+Math.random()*(pl.h-gy-70),t:Math.random()*6,got:false});
   planetStars=[];for(let i=0;i<80;i++)planetStars.push({x:Math.random()*pl.w,y:Math.random()*gy,r:Math.random()*1.6+.4,t:Math.random()*6});
 }
-function renderPlanet(id){const pl=PLANETS[id],gy=pl.h*0.5;
+function renderPlanet(id){const pl=PLANETS[id];
+  if(pl.city){renderCryonisCity(ctx,pl);
+    if(planetScene){for(const c of planetScene.crystals)if(!c.got){if(hoveredIs('crystal',c))drawHovered(c.x,c.y,()=>drawCrystal(c));else drawCrystal(c);}
+      if(hoveredIs('portal'))drawHovered(planetScene.portal.x,planetScene.portal.y,()=>drawPortal(planetScene.portal));else drawPortal(planetScene.portal);}
+    return;}
+  const gy=pl.h*0.5;
   const g=ctx.createLinearGradient(0,0,0,pl.h);g.addColorStop(0,pl.sky[0]);g.addColorStop(1,pl.sky[1]);ctx.fillStyle=g;ctx.fillRect(0,0,pl.w,pl.h);
   const now=performance.now()/1000;
   if(planetStars)for(const s of planetStars){const a=.4+.5*Math.abs(Math.sin(now+s.t));ctx.fillStyle='rgba(232,236,255,'+a+')';ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,7);ctx.fill();}
@@ -1518,16 +1532,6 @@ $('invtoggle').onclick=()=>{const inv=$('pinv');const open=inv.style.display==='
   $('invtoggle').firstElementChild.textContent=open?t('inv_close'):t('inv_open');};
 
 /* ---------------- KARTE ---------------- */
-const ROOM_LIST=[{id:'deck'},{id:'obs'},{id:'casino'},{id:'vip'}];
-function buildMap(){const r=$('rooms');r.innerHTML='';
-  ROOM_LIST.forEach(rm=>{const b=document.createElement('div');b.className='roombtn';
-    const dot=document.createElement('div');dot.className='roomdot';dot.style.background=ROOMS[rm.id].accent;
-    const lab=document.createElement('span');lab.textContent=t('room_'+rm.id)+(me&&me.room===rm.id?(LANG==='ja'?'　•　（ここにいるよ）':'  •  (du bist hier)'):'');
-    b.appendChild(dot);b.appendChild(lab);
-    b.onclick=()=>{goToRoom(rm.id);$('map').style.display='none';};r.appendChild(b);});}
-$('mapBtn').onclick=()=>{buildMap();$('map').style.display='flex';};
-$('mclose').onclick=()=>$('map').style.display='none';
-$('map').onclick=e=>{if(e.target.id==='map')$('map').style.display='none';};
 
 /* ---------------- 4 GEWINNT ---------------- */
 const SLOT_OBJ={x:300,y:485,r:54};
@@ -1744,7 +1748,13 @@ registerCore({
   setLocked: (v) => { locked = v; },
   getLang: () => LANG,
   getMyId: () => myId,
-  getPlanetScene: () => planetScene
+  getPlanetScene: () => planetScene,
+  goToRoom: (room, fromRoom) => goToRoom(room, fromRoom),
+  drawAvatarPreview: (targetCtx, fake, ax, ay) => {
+    const main = ctx; ctx = targetCtx;
+    const m = drawBody(fake, ax, ay, 1, false); drawFace(fake, ax, m); drawAcc(fake.acc, ax, m, -1);
+    ctx = main;
+  }
 });
 initWheelDom();
 initBlackjackDom();
@@ -1754,6 +1764,7 @@ initSlotDom();
 initC4Dom();
 initRaceDom();
 initSpaceDom();
+initMapDom();
 resize();seedOrbs();requestAnimationFrame(loop);
 $('flagde').onclick=()=>setLang('de');
 $('flagja').onclick=()=>setLang('ja');

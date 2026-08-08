@@ -11,5 +11,7 @@ export function myRoom() { return deps.myRoom(); }
 export function getLang() { return deps.getLang(); }
 export function getMyId() { return deps.getMyId(); }
 export function getPlanetScene() { return deps.getPlanetScene(); }
+export function goToRoom(room, fromRoom) { return deps.goToRoom(room, fromRoom); }
+export function drawAvatarPreview(targetCtx, fake, ax, ay) { return deps.drawAvatarPreview(targetCtx, fake, ax, ay); }
 export function isLocked() { return deps.getLocked(); }
 export function setLocked(v) { deps.setLocked(v); }

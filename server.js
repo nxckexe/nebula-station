@@ -245,11 +245,21 @@ function slotRoll(){ const total=SLOT_SYMS.reduce((s,x)=>s+x.w,0); let r=Math.ra
 
 // ---- Planeten (Level-basiert freigeschaltet) ----
 const PLANETS = [
-  { id:'verdiania', name:'Verdiania', minLevel:1,  theme:'verdant' },
-  { id:'cryonis',   name:'Cryonis',   minLevel:5,  theme:'ice'     },
-  { id:'magmara',   name:'Magmara',   minLevel:12, theme:'lava'    }
+  { id:'verdiania', name:'Verdiania', minLevel:1,  theme:'verdant', w:2200, h:1300 },
+  { id:'cryonis',   name:'Cryonis',   minLevel:5,  theme:'ice',     w:3400, h:1500 },
+  { id:'magmara',   name:'Magmara',   minLevel:12, theme:'lava',    w:2200, h:1300 }
 ];
-const ROOM_IDS = new Set(['deck', 'obs', 'casino', 'vip'].concat(PLANETS.map(p => p.id)));
+// Cryonis: begehbare Wolkenkratzer mit echten Innenraeumen (eigene Zimmer, Tuer zurueck zu 'cryonis')
+const CRYONIS_BUILDING_ROOMS = ['cryo_arcade', 'cryo_plaza', 'cryo_club'];
+const ROOM_IDS = new Set(['deck', 'obs', 'casino', 'vip', ...CRYONIS_BUILDING_ROOMS].concat(PLANETS.map(p => p.id)));
+const STATION_BOUNDS = { w: 1040, h: 620 };
+const CASINO_BOUNDS = { w: 2000, h: 620 };
+function roomBounds(roomId) {
+  const planet = PLANETS.find(p => p.id === roomId);
+  if (planet) return { w: planet.w, h: planet.h };
+  if (roomId === 'casino') return CASINO_BOUNDS;
+  return STATION_BOUNDS;
+}
 const clamp = (v,a,b) => v<a?a:v>b?b:v;
 
 const players = {}; // socket.id -> Spielerzustand (nur fuer aktive Sitzung)
@@ -297,8 +307,9 @@ io.on('connection', (socket) => {
 
   socket.on('move', (m) => {
     const me = players[socket.id]; if (!me) return;
-    me.x = clamp(+m.x || 0, 0, 2600);
-    me.y = clamp(+m.y || 0, 0, 1700);
+    const b = roomBounds(me.room);
+    me.x = clamp(+m.x || 0, 0, b.w);
+    me.y = clamp(+m.y || 0, 0, b.h);
     me.face = m.face === -1 ? -1 : 1;
     socket.broadcast.emit('player-moved', { id: socket.id, x: me.x, y: me.y, face: me.face });
   });
