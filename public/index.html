@@ -396,7 +396,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { COLORS, INK, SPECIES, SP_LABEL, ACCS, ITEM_ICON } from './js/data/appearance.js';
 import { EMOTES, EMOTE_LIST, EMOTE_DUR, EMOTE_META } from './js/data/emotes.js';
-import { CW, CRUG, ROOMS, VIP_LEVEL, VIP_SLOTS, VIP_BJ, FOUNTAINS, CASINO_SLOTS, WHEEL_OBJ, BJ_TABLES, PLINKO_OBJ, ROU_OBJ, HALL_OBJ, PLANETS, PLANET_ORDER, CRYONIS_GROUND_Y, CRYONIS_WALK_Y0, CRYONIS_WALK_Y1 } from './js/data/rooms.js';
+import { CW, CRUG, ROOMS, VIP_LEVEL, VIP_SLOTS, VIP_BJ, FOUNTAINS, CASINO_SLOTS, WHEEL_OBJ, BJ_TABLES, PLINKO_OBJ, ROU_OBJ, HALL_OBJ, PLANETS, PLANET_ORDER, CRYONIS_GROUND_Y, CRYONIS_WALK_Y0, CRYONIS_WALK_Y1, CRYONIS_PORTAL_X } from './js/data/rooms.js';
 import { SHOP, ITEM_NAME_JA } from './js/data/shop.js';
 import { GAME_NAMES, GAME_ICONS, ROU_RED, ROU_ORDER, PLINKO_ROWS, PLINKO_MULT, PLINKO_COLS, WHEEL_VALUES, WHEEL_COLS } from './js/data/casino-games.js';
 import { HELP } from './js/data/help.js';
@@ -413,7 +413,7 @@ import { C4_TABLES, openC4Menu, checkArrivedAtTable, onC4Waiting, onC4Busy, onC4
 import { checkRacePad, onRaceJoined, onRaceLobby, onRaceBusy, onRaceCancel, onRaceStart, onRaceGo, onRaceState, onRaceFinished, onRaceResult, initRaceDom } from './js/games/race.js';
 import { SHIP_OBJ, requestBoard, checkBoardArrival, onSpaceBest, onSpaceLeaderboardData, initSpaceDom } from './js/games/space.js';
 import { initMapDom } from './js/map-view.js';
-import { initCryonisScene, renderCryonisCity, checkCryonisEntrance, getBuildingExitSpot } from './js/cryonis-city.js';
+import { initCryonisScene, renderCryonisCity, checkCryonisEntrance, getBuildingExitSpot, buildingDoorAt } from './js/cryonis-city.js';
 
 /* ============================================================
    NEBULA STATION — Client mit Login (Supabase) + Multiplayer
@@ -695,7 +695,8 @@ cv.addEventListener('pointermove',e=>{
   if(!h&&ROOMS[rid]){const dd=ROOMS[rid].deco.find(d=>Math.hypot(d.x-p.x,d.y-p.y)<36);if(dd)h={kind:'deco',obj:dd};}
   if(!h&&PLANETS[rid]&&planetScene){if(Math.hypot(planetScene.portal.x-p.x,planetScene.portal.y-p.y)<42)h={kind:'portal'};
     if(!h&&planetScene.racePad&&Math.abs(p.x-planetScene.racePad.x)<70&&Math.abs(p.y-planetScene.racePad.y)<58)h={kind:'racepad'};
-    else{const c=planetScene.crystals.find(c=>!c.got&&Math.hypot(c.x-p.x,c.y-p.y)<28);if(c)h={kind:'crystal',obj:c};}}
+    else{const c=planetScene.crystals.find(c=>!c.got&&Math.hypot(c.x-p.x,c.y-p.y)<28);if(c)h={kind:'crystal',obj:c};}
+    if(!h&&PLANETS[rid].city){const bid=buildingDoorAt(p);if(bid)h={kind:'cryodoor',obj:bid};}}
   if(!h){const q=Object.values(players).filter(q=>q.room===rid&&q.id!==myId).find(q=>Math.hypot(q.x-p.x,q.y-p.y)<26);if(q)h={kind:'player',obj:q};}
   hover=h;cv.style.cursor=h?'pointer':'default';
 });
@@ -710,7 +711,9 @@ function goToRoom(room,fromRoom){if(!me||locked||room===me.room)return;
   if(room==='vip'&&(myLevel||1)<VIP_LEVEL){showPopup('🔒',t('popup_vip_title'),t('popup_vip_sub',{level:VIP_LEVEL,mylevel:myLevel||1}),'purple');return;}
   me.room=room;
   if(PLANETS[room]){const pl=PLANETS[room];const exitSpot=pl.city?getBuildingExitSpot(fromRoom):null;
-    if(exitSpot){me.x=me.tx=exitSpot.x;me.y=me.ty=exitSpot.y;}else{me.x=me.tx=pl.w/2;me.y=me.ty=pl.h-130;}
+    if(exitSpot){me.x=me.tx=exitSpot.x;me.y=me.ty=exitSpot.y;}
+    else if(pl.city){me.x=me.tx=CRYONIS_PORTAL_X;me.y=me.ty=CRYONIS_GROUND_Y+60;}
+    else{me.x=me.tx=pl.w/2;me.y=me.ty=pl.h-130;}
     genPlanet(room);document.getElementById('room-name').textContent=pl.name;}
   else{const doors=roomDoors(ROOMS[room]);const nd=(fromRoom&&doors.find(d=>d.to===fromRoom))||doors[0];me.x=me.tx=nd.x>W/2?nd.x-140:nd.x+140;me.y=me.ty=nd.y;document.getElementById('room-name').textContent=t('room_'+room);}
   socket&&socket.emit('room',{room:me.room,x:me.x,y:me.y});
@@ -781,7 +784,7 @@ function render(){const r=cv.parentElement.getBoundingClientRect();ctx.clearRect
 /* ---------------- PLANETEN ---------------- */
 let planetStars=null;
 function genPlanet(id){const pl=PLANETS[id];
-  if(pl.city){planetScene={scenery:[],crystals:[],portal:{x:pl.w/2,y:pl.h-80},racePad:null};
+  if(pl.city){planetScene={scenery:[],crystals:[],portal:{x:CRYONIS_PORTAL_X,y:CRYONIS_GROUND_Y+60},racePad:null};
     for(let i=0;i<10;i++)planetScene.crystals.push({x:120+Math.random()*(pl.w-240),y:CRYONIS_GROUND_Y+40+Math.random()*(pl.h-CRYONIS_GROUND_Y-80),t:Math.random()*6,got:false});
     initCryonisScene();
     return;}
@@ -793,7 +796,7 @@ function genPlanet(id){const pl=PLANETS[id];
   planetStars=[];for(let i=0;i<80;i++)planetStars.push({x:Math.random()*pl.w,y:Math.random()*gy,r:Math.random()*1.6+.4,t:Math.random()*6});
 }
 function renderPlanet(id){const pl=PLANETS[id];
-  if(pl.city){renderCryonisCity(ctx,pl);
+  if(pl.city){renderCryonisCity(ctx,pl,hoveredIs('cryodoor')?hover.obj:null);
     if(planetScene){for(const c of planetScene.crystals)if(!c.got){if(hoveredIs('crystal',c))drawHovered(c.x,c.y,()=>drawCrystal(c));else drawCrystal(c);}
       if(hoveredIs('portal'))drawHovered(planetScene.portal.x,planetScene.portal.y,()=>drawPortal(planetScene.portal));else drawPortal(planetScene.portal);}
     return;}

@@ -44,12 +44,17 @@ export const PLANET_ORDER=['verdiania','cryonis','magmara'];
 
 // ---- Cryonis: begehbare Cyberpunk-Stadt ----
 // Die Welt ist so hoch wie das feste Kamerafenster (H=620) -> kein vertikales Scrollen,
-// die Wolkenkratzer passen dadurch immer komplett ins Bild ("weiter nach hinten geschoben").
-export const CRYONIS_GROUND_Y=460;
-export const CRYONIS_WALK_Y0=448;
-export const CRYONIS_WALK_Y1=596;
+// die Wolkenkratzer passen dadurch immer komplett ins Bild. Sie sind bewusst hoch angelegt
+// (fast bis zum oberen Rand), damit sie den Bildschirm dominieren wie in Club Penguins Town,
+// mit nur einem schmalen begehbaren Gehweg-Streifen ganz unten.
+export const CRYONIS_GROUND_Y=520;
+export const CRYONIS_WALK_Y0=508;
+export const CRYONIS_WALK_Y1=604;
+// Ankunftspunkt/Portal bewusst weit von jedem Gebaeude entfernt (>500px), damit man beim
+// Herumlaufen nicht versehentlich zurueck zur Station oder in ein Gebaeude stolpert.
+export const CRYONIS_PORTAL_X=1300;
 export const CRYONIS_BUILDINGS=[
-  {id:'cryo_arcade',room:'cryo_arcade',x:750, w:300,topY:210,color:'#ff2e88',glow:'#ff8fc7',name:'Neon Arcade',icon:'🕹️'},
-  {id:'cryo_plaza', room:'cryo_plaza', x:1900,w:440,topY:90, color:'#31e1ff',glow:'#9df3ff',name:'Cryo Plaza',  icon:'🏢'},
-  {id:'cryo_club',  room:'cryo_club',  x:3050,w:280,topY:230,color:'#b467ff',glow:'#e2c6ff',name:'Data Club',   icon:'🎧'}
+  {id:'cryo_arcade',room:'cryo_arcade',x:750, w:340,topY:200,color:'#ff2e88',glow:'#ff8fc7',name:'Neon Arcade',icon:'🕹️'},
+  {id:'cryo_plaza', room:'cryo_plaza', x:1900,w:520,topY:20, color:'#31e1ff',glow:'#9df3ff',name:'Cryo Plaza',  icon:'🏢'},
+  {id:'cryo_club',  room:'cryo_club',  x:3050,w:320,topY:240,color:'#b467ff',glow:'#e2c6ff',name:'Data Club',   icon:'🎧'}
 ];
