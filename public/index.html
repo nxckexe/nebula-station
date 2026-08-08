@@ -712,7 +712,7 @@ function goToRoom(room,fromRoom){if(!me||locked||room===me.room)return;
   me.room=room;
   if(PLANETS[room]){const pl=PLANETS[room];const exitSpot=pl.city?getBuildingExitSpot(fromRoom):null;
     if(exitSpot){me.x=me.tx=exitSpot.x;me.y=me.ty=exitSpot.y;}
-    else if(pl.city){me.x=me.tx=CRYONIS_PORTAL_X;me.y=me.ty=CRYONIS_GROUND_Y+60;}
+    else if(pl.city){me.x=me.tx=CRYONIS_PORTAL_X+110;me.y=me.ty=CRYONIS_GROUND_Y+60;}
     else{me.x=me.tx=pl.w/2;me.y=me.ty=pl.h-130;}
     genPlanet(room);document.getElementById('room-name').textContent=pl.name;}
   else{const doors=roomDoors(ROOMS[room]);const nd=(fromRoom&&doors.find(d=>d.to===fromRoom))||doors[0];me.x=me.tx=nd.x>W/2?nd.x-140:nd.x+140;me.y=me.ty=nd.y;document.getElementById('room-name').textContent=t('room_'+room);}
