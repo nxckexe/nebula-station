@@ -12,7 +12,12 @@ const SLOT_POS=[{x:260,y:300},{x:460,y:300},{x:260,y:410},{x:460,y:410},{x:260,y
 const MACHINE_BOX={x0:585,y0:280,x1:715,y1:430};
 const COUNTER_BOX={x0:770,y0:330,x1:1010,y1:480};
 
-function slotItemsFor(storeId){return FOOD_ITEMS.filter(i=>i.stores.includes(storeId)&&!i.machineOnly);}
+// Nimmt sowohl die reine Laden-Kennung ('seven') als auch die Zimmer-ID ('cryo_seven') entgegen,
+// damit ein Aufruf mit der Raum-ID (wie sie ueberall sonst im Spiel verwendet wird) nicht auf das
+// falsche Theme/leere Regale zurueckfaellt.
+function normalizeStore(id){return id==='cryo_familymart'?'familymart':id==='cryo_seven'?'seven':id;}
+
+function slotItemsFor(storeId){return FOOD_ITEMS.filter(i=>i.stores.includes(normalizeStore(storeId))&&!i.machineOnly);}
 
 export function combiniShelfItemAt(p,storeId){
   const items=slotItemsFor(storeId);
@@ -23,7 +28,7 @@ export function combiniShelfItemAt(p,storeId){
   return null;
 }
 export function combiniMachineAt(p,storeId){
-  if(storeId!=='seven')return false;
+  if(normalizeStore(storeId)!=='seven')return false;
   return p.x>=MACHINE_BOX.x0&&p.x<=MACHINE_BOX.x1&&p.y>=MACHINE_BOX.y0&&p.y<=MACHINE_BOX.y1;
 }
 
@@ -159,7 +164,8 @@ function drawSlushMachine(ctx,x0,y0,x1,y1,pourT){
   }
 }
 
-export function renderCombiniInterior(ctx,storeId,opts){
+export function renderCombiniInterior(ctx,rawStoreId,opts){
+  const storeId=normalizeStore(rawStoreId);
   const theme=THEMES[storeId]||THEMES.familymart;
   const playersHere=(opts&&opts.playersHere)||[];
   const pourT=(opts&&opts.pourT)||0;
