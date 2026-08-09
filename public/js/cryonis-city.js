@@ -103,6 +103,61 @@ function drawBuilding(ctx,b,openAmt){
   ctx.globalAlpha=1;
 }
 
+// Wiedererkennbare Ladenfronten (real-life-inspiriert): heller, erdgeschossig, mit gestreiftem Fassaden-Schild -
+// bewusster Kontrast zu den Neon-Wolkenkratzern, damit sie als Landmarken auffallen.
+function drawStoreShell(ctx,b,facadeColor){
+  const x0=b.x-b.w/2,topY=b.topY,h=CRYONIS_GROUND_Y-topY;
+  ctx.fillStyle='rgba(0,0,0,.4)';ctx.beginPath();ctx.ellipse(b.x,CRYONIS_GROUND_Y+10,b.w*0.6,10,0,0,7);ctx.fill();
+  ctx.fillStyle=facadeColor;ctx.strokeStyle='#000';ctx.lineWidth=3;
+  roundRect(ctx,x0,topY,b.w,h,8);ctx.fill();ctx.stroke();
+  return {x0,topY,h};
+}
+function drawStoreWindow(ctx,x0,topY,w,h,glassColor){
+  const winY=topY+h*0.42,winH=h*0.5;
+  ctx.fillStyle=glassColor;ctx.globalAlpha=.85;ctx.fillRect(x0+10,winY,w-20,winH-10);ctx.globalAlpha=1;
+  ctx.strokeStyle='#6b7580';ctx.lineWidth=3;ctx.strokeRect(x0+10,winY,w-20,winH-10);
+  const step=(w-20)/4;
+  for(let wx=x0+10+step;wx<x0+w-10;wx+=step){ctx.beginPath();ctx.moveTo(wx,winY);ctx.lineTo(wx,winY+winH-10);ctx.stroke();}
+}
+function drawStoreDoor(ctx,b,openAmt,panelColor,frameColor){
+  const h=CRYONIS_GROUND_Y-b.topY,doorW=DOOR_W,doorH=Math.min(70,h-40),dy=CRYONIS_GROUND_Y;
+  ctx.fillStyle='#0a0a12';ctx.strokeStyle=frameColor;ctx.lineWidth=3;
+  roundRect(ctx,b.x-doorW/2,dy-doorH,doorW,doorH,6);ctx.fill();ctx.stroke();
+  const gp=.5+.5*Math.sin(performance.now()/260);
+  ctx.fillStyle='#ffedb0';ctx.globalAlpha=(.3+.3*gp)*Math.max(0.15,openAmt);
+  roundRect(ctx,b.x-doorW/2+5,dy-doorH+5,doorW-10,doorH-10,4);ctx.fill();ctx.globalAlpha=1;
+  const panelW=doorW/2,slide=panelW*openAmt;
+  ctx.strokeStyle='#4a5560';ctx.lineWidth=2;ctx.fillStyle=panelColor;
+  roundRect(ctx,b.x-doorW/2-slide,dy-doorH,panelW,doorH,4);ctx.fill();ctx.stroke();
+  roundRect(ctx,b.x+slide,dy-doorH,panelW,doorH,4);ctx.fill();ctx.stroke();
+}
+function drawSevenEleven(ctx,b,openAmt){
+  const {x0,topY,h}=drawStoreShell(ctx,b,'#eef0ef');
+  drawStoreWindow(ctx,x0,topY,b.w,h,'#ffedb0');
+  const signY=topY+2,signH=h*0.36;
+  ctx.fillStyle='#ff8200';ctx.fillRect(x0,signY,b.w,signH*0.42);
+  ctx.fillStyle='#00543d';ctx.fillRect(x0,signY+signH*0.42,b.w,signH*0.42);
+  ctx.fillStyle='#e2231a';ctx.fillRect(x0,signY+signH*0.84,b.w,signH*0.16);
+  ctx.strokeStyle='#000';ctx.lineWidth=2;ctx.strokeRect(x0,signY,b.w,signH);
+  ctx.fillStyle='#fff';ctx.font='800 '+Math.min(22,b.w*0.1)+'px Fredoka';ctx.textAlign='center';
+  ctx.fillText('7-ELEVEN',b.x,signY+signH*0.6);
+  drawStoreDoor(ctx,b,openAmt,'#dfe9ff','#8fa3c0');
+}
+function drawFamilyMart(ctx,b,openAmt){
+  const {x0,topY,h}=drawStoreShell(ctx,b,'#f2f4f0');
+  drawStoreWindow(ctx,x0,topY,b.w,h,'#dff3ff');
+  const signY=topY+2,signH=h*0.36;
+  ctx.fillStyle='#00a651';ctx.fillRect(x0,signY,b.w,signH);
+  ctx.save();ctx.beginPath();ctx.rect(x0,signY,b.w,signH);ctx.clip();
+  ctx.fillStyle='#0072bc';ctx.beginPath();
+  ctx.moveTo(x0+b.w*0.58,signY);ctx.lineTo(x0+b.w*0.76,signY);ctx.lineTo(x0+b.w*0.58,signY+signH);ctx.lineTo(x0+b.w*0.4,signY+signH);
+  ctx.closePath();ctx.fill();ctx.restore();
+  ctx.strokeStyle='#000';ctx.lineWidth=2;ctx.strokeRect(x0,signY,b.w,signH);
+  ctx.fillStyle='#fff';ctx.font='800 '+Math.min(17,b.w*0.08)+'px Fredoka';ctx.textAlign='center';
+  ctx.fillText('FamilyMart',b.x-b.w*0.13,signY+signH*0.62);
+  drawStoreDoor(ctx,b,openAmt,'#dff3ff','#5aa0c8');
+}
+
 function drawCar(ctx,x,y,color,dir,scale){
   ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);if(dir<0)ctx.scale(-1,1);
   ctx.fillStyle='rgba(0,0,0,.22)';ctx.beginPath();ctx.ellipse(0,14,24,4,0,0,7);ctx.fill();
@@ -160,7 +215,12 @@ export function renderCryonisCity(ctx,pl,hoveredDoorId){
     ctx.fillStyle='rgba(122,224,255,.16)';for(let wy=CRYONIS_GROUND_Y-s.h+8;wy<CRYONIS_GROUND_Y-6;wy+=14)ctx.fillRect(s.x+5,wy,s.w-10,3);}
   drawMonorail(ctx,pl);
   // Gebaeude (Sortierung nach oben-Kante fuer etwas Tiefenwirkung)
-  for(const b of CRYONIS_BUILDINGS)drawBuilding(ctx,b,doorAnim[b.id]||0);
+  for(const b of CRYONIS_BUILDINGS){
+    const amt=doorAnim[b.id]||0;
+    if(b.storeStyle==='seven')drawSevenEleven(ctx,b,amt);
+    else if(b.storeStyle==='familymart')drawFamilyMart(ctx,b,amt);
+    else drawBuilding(ctx,b,amt);
+  }
   // Fliegende Autos ueber allem
   for(const car of CARS){const x=carX(now,pl,car),dir=car.speed>=0?1:-1;drawCar(ctx,x,car.laneY,car.color,dir,car.scale);}
   // Boden / nasse Strasse

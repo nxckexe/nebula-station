@@ -27,7 +27,13 @@ export const ROOMS={
     deco:[]},
   cryo_club_roof:{id:'cryo_club_roof',accent:'#b467ff',wall1:'#160726',wall2:'#0a0316',floor1:'#1c0e30',floor2:'#150a24',
     door:{x:130,y:400,to:'cryo_club',dirRight:false,icon:'🛗'},
-    deco:[]}
+    deco:[]},
+  cryo_familymart:{id:'cryo_familymart',accent:'#00a651',wall1:'#dfeaf5',wall2:'#b9cfe0',floor1:'#eef2f5',floor2:'#d7e0e6',
+    door:{x:70,y:360,to:'cryonis',dirRight:false},
+    deco:[{t:'vending',x:200,y:250},{t:'vending',x:330,y:250},{t:'vending',x:460,y:250},{t:'crate',x:650,y:270},{t:'crate',x:700,y:250},{t:'plant',x:905,y:272},{t:'plant',x:150,y:330}]},
+  cryo_seven:{id:'cryo_seven',accent:'#e2231a',wall1:'#f5f0e0',wall2:'#e0d5b8',floor1:'#eee7d5',floor2:'#ddd0b0',
+    door:{x:70,y:360,to:'cryonis',dirRight:false},
+    deco:[{t:'vending',x:220,y:250},{t:'vending',x:350,y:250},{t:'crate',x:600,y:270},{t:'crate',x:650,y:250},{t:'crate',x:700,y:270},{t:'plant',x:905,y:272}]}
 };
 export const VIP_LEVEL=10;
 export const VIP_SLOTS=[{x:300,y:300},{x:470,y:300},{x:800,y:300}];
@@ -59,6 +65,8 @@ export const CRYONIS_WALK_Y1=604;
 export const CRYONIS_PORTAL_X=1300;
 export const CRYONIS_BUILDINGS=[
   {id:'cryo_arcade',room:'cryo_arcade',x:750, w:340,topY:200,color:'#ff2e88',glow:'#ff8fc7',name:'Neon Arcade',icon:'🕹️'},
+  {id:'cryo_familymart',room:'cryo_familymart',x:1100,w:240,topY:400,color:'#00a651',glow:'#4dc8ff',name:'Family Mart',icon:'🏪',storeStyle:'familymart'},
   {id:'cryo_plaza', room:'cryo_plaza', x:1900,w:520,topY:20, color:'#31e1ff',glow:'#9df3ff',name:'Cryo Plaza',  icon:'🏢'},
+  {id:'cryo_seven', room:'cryo_seven', x:2525,w:240,topY:405,color:'#e2231a',glow:'#00a651',name:'7-Eleven',icon:'🏪',storeStyle:'seven'},
   {id:'cryo_club',  room:'cryo_club',  x:3050,w:320,topY:240,color:'#b467ff',glow:'#e2c6ff',name:'Data Club',   icon:'🎧'}
 ];

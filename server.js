@@ -250,7 +250,7 @@ const PLANETS = [
   { id:'magmara',   name:'Magmara',   minLevel:12, theme:'lava',    w:2200, h:1300 }
 ];
 // Cryonis: begehbare Wolkenkratzer mit echten Innenraeumen (eigene Zimmer, Tuer zurueck zu 'cryonis')
-const CRYONIS_BUILDING_ROOMS = ['cryo_arcade', 'cryo_plaza', 'cryo_club', 'cryo_club_roof'];
+const CRYONIS_BUILDING_ROOMS = ['cryo_arcade', 'cryo_plaza', 'cryo_club', 'cryo_club_roof', 'cryo_familymart', 'cryo_seven'];
 const ROOM_IDS = new Set(['deck', 'obs', 'casino', 'vip', ...CRYONIS_BUILDING_ROOMS].concat(PLANETS.map(p => p.id)));
 const STATION_BOUNDS = { w: 1040, h: 620 };
 const CASINO_BOUNDS = { w: 2000, h: 620 };
