@@ -23,7 +23,11 @@ export const ROOMS={
     deco:[{t:'holo',x:300,y:246},{t:'holo',x:610,y:246},{t:'bench',x:470,y:300},{t:'bench',x:730,y:300},{t:'plant',x:905,y:272},{t:'plant',x:160,y:272}]},
   cryo_club:{id:'cryo_club',accent:'#b467ff',wall1:'#2a0f45',wall2:'#160726',floor1:'#1c0e30',floor2:'#150a24',
     door:{x:70,y:360,to:'cryonis',dirRight:false},
-    deco:[{t:'console',x:250,y:250},{t:'vending',x:450,y:236},{t:'bench',x:650,y:300},{t:'holo',x:820,y:246}]}
+    door2:{x:930,y:400,to:'cryo_club_roof',dirRight:true,icon:'🛗'},
+    deco:[]},
+  cryo_club_roof:{id:'cryo_club_roof',accent:'#b467ff',wall1:'#160726',wall2:'#0a0316',floor1:'#1c0e30',floor2:'#150a24',
+    door:{x:130,y:400,to:'cryo_club',dirRight:false,icon:'🛗'},
+    deco:[]}
 };
 export const VIP_LEVEL=10;
 export const VIP_SLOTS=[{x:300,y:300},{x:470,y:300},{x:800,y:300}];

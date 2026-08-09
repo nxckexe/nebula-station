@@ -1,4 +1,3 @@
-import { goToRoom } from './core.js';
 import { roundRect } from './render-utils.js';
 import { CRYONIS_BUILDINGS, CRYONIS_GROUND_Y } from './data/rooms.js';
 
@@ -19,7 +18,7 @@ const MONORAIL_Y=64;
 const MONORAIL_SPEED=260;
 const MONORAIL_PERIOD=13000; // ms zwischen zwei Durchfahrten
 
-let stars=null,skyline=null,rain=null,entryArmed=true;
+let stars=null,skyline=null,rain=null;
 const doorAnim={}; // building id -> aktueller Oeffnungsgrad 0..1 (fuer den Hover-Schiebetuer-Effekt)
 const DOOR_W=54;
 
@@ -40,7 +39,6 @@ export function initCryonisScene(){
   stars=[];for(let i=0;i<90;i++)stars.push({x:Math.random()*3600,y:Math.random()*180,r:Math.random()*1.5+.3,t:Math.random()*6});
   skyline=[];for(let i=0;i<30;i++)skyline.push({x:Math.random()*3800-100,w:50+Math.random()*80,h:60+Math.random()*140,c:Math.random()<0.5?'#1c1440':'#20124a'});
   rain=[];for(let i=0;i<70;i++)rain.push({x:Math.random()*3600,y:Math.random()*620,speed:260+Math.random()*180,len:10+Math.random()*10});
-  entryArmed=true;
 }
 
 function carX(now,pl,car){
@@ -185,11 +183,3 @@ export function getBuildingExitSpot(fromRoom){
   return {x:b.x,y:CRYONIS_GROUND_Y+70}; // aussen vor der Tuer, ausserhalb der Eintritts-Trigger-Zone
 }
 
-export function checkCryonisEntrance(me){
-  let onAny=false;
-  for(const b of CRYONIS_BUILDINGS){
-    const near=Math.abs(me.x-b.x)<46&&Math.abs(me.y-CRYONIS_GROUND_Y)<60;
-    if(near){onAny=true;if(entryArmed){entryArmed=false;goToRoom(b.room,'cryonis');}}
-  }
-  if(!onAny)entryArmed=true;
-}
