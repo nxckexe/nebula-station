@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verdiania 3D – Prototyp</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#08201a;font-family:'Fredoka',system-ui,sans-serif}
+  #hud{position:fixed;top:14px;left:14px;z-index:10;color:#eafff2;background:rgba(8,20,16,.55);
+    border:3px solid #0d3b28;border-radius:14px;padding:10px 16px;max-width:280px;line-height:1.4;font-size:13px}
+  #hud b{color:#7be0b0}
+  #back{position:fixed;top:14px;right:14px;z-index:10;background:#1f7a4d;color:#fff;border:3px solid #0d3b28;
+    border-radius:12px;padding:8px 14px;font-weight:700;text-decoration:none;font-size:13px}
+  canvas{display:block}
+</style>
+</head>
+<body>
+<div id="hud">🌿 <b>Verdiania – 3D-Prototyp</b><br>Ziehen zum Drehen, Scrollen zum Zoomen.<br>Reines Stil-Experiment, noch nicht mit dem echten Spiel verbunden.</div>
+<a id="back" href="/index.html">← zurück zum Spiel</a>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// Palette 1:1 aus data/rooms.js PLANETS.verdiania uebernommen, damit der 3D-Look
+// farblich zum bestehenden 2D-Planeten passt.
+const SKY_TOP='#0c3322', SKY_BOTTOM='#08201a', GROUND='#1f7a4d', GROUND2='#166b41', FLORA='#7be0b0';
+
+const scene=new THREE.Scene();
+scene.fog=new THREE.Fog(SKY_BOTTOM, 22, 70);
+
+const vw=()=>innerWidth||document.documentElement.clientWidth||1024;
+const vh=()=>innerHeight||document.documentElement.clientHeight||768;
+const camera=new THREE.PerspectiveCamera(50, vw()/vh(), 0.1, 200);
+camera.position.set(14, 11, 18);
+
+const renderer=new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer:true});
+renderer.setSize(vw(), vh());
+renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+renderer.setClearColor(new THREE.Color(SKY_BOTTOM));
+document.body.appendChild(renderer.domElement);
+
+const controls=new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 2, 0);
+controls.enableDamping=true;
+controls.dampingFactor=0.08;
+controls.minDistance=6; controls.maxDistance=45;
+controls.maxPolarAngle=Math.PI*0.49;
+
+// Farbverlaufs-Himmel als große Innenkugel (statt CSS-Hintergrund, damit er beim Drehen mitgeht)
+{
+  const skyGeo=new THREE.SphereGeometry(120, 24, 16);
+  const skyMat=new THREE.ShaderMaterial({
+    uniforms:{ top:{value:new THREE.Color(SKY_TOP)}, bottom:{value:new THREE.Color(SKY_BOTTOM)} },
+    vertexShader:`varying vec3 vPos; void main(){ vPos=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+    fragmentShader:`varying vec3 vPos; uniform vec3 top; uniform vec3 bottom;
+      void main(){ float h=normalize(vPos).y*0.5+0.5; gl_FragColor=vec4(mix(bottom, top, h), 1.0); }`,
+    side:THREE.BackSide
+  });
+  scene.add(new THREE.Mesh(skyGeo, skyMat));
+}
+
+// Toon-Gradient (3 Stufen) fuer den handgezeichneten Comic-Look statt weichem PBR-Shading
+const toonGrad=(()=>{
+  const c=document.createElement('canvas'); c.width=4; c.height=1;
+  const g=c.getContext('2d');
+  g.fillStyle='#3a3a3a'; g.fillRect(0,0,1,1);
+  g.fillStyle='#8a8a8a'; g.fillRect(1,0,1,1);
+  g.fillStyle='#d0d0d0'; g.fillRect(2,0,1,1);
+  g.fillStyle='#ffffff'; g.fillRect(3,0,1,1);
+  const tex=new THREE.CanvasTexture(c);
+  tex.minFilter=THREE.NearestFilter; tex.magFilter=THREE.NearestFilter;
+  return tex;
+})();
+function toonMat(hex){ return new THREE.MeshToonMaterial({ color:hex, gradientMap:toonGrad }); }
+
+// Dicke schwarze Outline via "Inverted Hull"-Trick: gleiche Geometrie, nach außen skaliert,
+// Rueckseiten in Schwarz gerendert -> wirkt wie eine handgezeichnete Comic-Kontur.
+const outlineMat=new THREE.MeshBasicMaterial({ color:0x14261c, side:THREE.BackSide });
+function withOutline(mesh, scale=1.06){
+  const rim=new THREE.Mesh(mesh.geometry, outlineMat);
+  rim.scale.multiplyScalar(scale);
+  mesh.add(rim);
+  return mesh;
+}
+
+const hemi=new THREE.HemisphereLight(0xdfffe8, 0x0c2a1c, 0.9);
+scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xfff6d8, 1.15);
+sun.position.set(10, 16, 8);
+scene.add(sun);
+
+// Sanft hügeliger Boden (leichtes Sinus-Relief statt flacher Ebene)
+const groundGeo=new THREE.PlaneGeometry(70, 70, 60, 60);
+groundGeo.rotateX(-Math.PI/2);
+{
+  const pos=groundGeo.attributes.position;
+  const col=[];
+  const cA=new THREE.Color(GROUND), cB=new THREE.Color(GROUND2);
+  for(let i=0;i<pos.count;i++){
+    const x=pos.getX(i), z=pos.getZ(i);
+    const h=Math.sin(x*0.18)*0.6+Math.cos(z*0.22)*0.6+Math.sin((x+z)*0.09)*0.8;
+    pos.setY(i, h);
+    const t=(Math.sin(x*0.5+z*0.3)+1)/2;
+    const c=cA.clone().lerp(cB, t*0.6);
+    col.push(c.r,c.g,c.b);
+  }
+  groundGeo.setAttribute('color', new THREE.Float32BufferAttribute(col,3));
+  groundGeo.computeVertexNormals();
+}
+const groundMat=new THREE.MeshToonMaterial({ vertexColors:true, gradientMap:toonGrad });
+const ground=new THREE.Mesh(groundGeo, groundMat);
+ground.receiveShadow=false;
+scene.add(ground);
+
+function groundHeightAt(x,z){ return Math.sin(x*0.18)*0.6+Math.cos(z*0.22)*0.6+Math.sin((x+z)*0.09)*0.8; }
+
+// Niedrig-poly Baeume: Stamm (Zylinder) + 2-3 gestapelte Kegel in Flora-Farbe
+function makeTree(x,z,scale=1){
+  const g=new THREE.Group();
+  const trunkH=1.4*scale;
+  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(0.14*scale,0.2*scale,trunkH,7), toonMat(0x8a5a3a));
+  trunk.position.y=trunkH/2; withOutline(trunk);
+  g.add(trunk);
+  const leafColors=[FLORA,'#5fc48f','#9ef0c2'];
+  let cy=trunkH;
+  for(let i=0;i<3;i++){
+    const r=(1.15-i*0.28)*scale, h=(1.3-i*0.18)*scale;
+    const cone=new THREE.Mesh(new THREE.ConeGeometry(r,h,8), toonMat(leafColors[i]));
+    cone.position.y=cy+h*0.42; withOutline(cone);
+    g.add(cone);
+    cy+=h*0.62;
+  }
+  g.position.set(x, groundHeightAt(x,z), z);
+  return g;
+}
+let seed=42;
+function rand(){ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; }
+for(let i=0;i<26;i++){
+  const a=rand()*Math.PI*2, r=6+rand()*22;
+  const x=Math.cos(a)*r, z=Math.sin(a)*r;
+  if(Math.hypot(x,z)<5)continue;
+  scene.add(makeTree(x,z,0.8+rand()*0.7));
+}
+
+// Schwebende Kristalle wie im 2D-Spiel (Sammelobjekte) - hier nur dekorativ, bobbend
+const crystals=[];
+for(let i=0;i<9;i++){
+  const a=rand()*Math.PI*2, r=3+rand()*10;
+  const x=Math.cos(a)*r, z=Math.sin(a)*r;
+  const geo=new THREE.OctahedronGeometry(0.45,0);
+  const mesh=new THREE.Mesh(geo, toonMat(0xffe15e));
+  withOutline(mesh, 1.08);
+  mesh.position.set(x, groundHeightAt(x,z)+1.3, z);
+  mesh.userData.baseY=mesh.position.y;
+  mesh.userData.phase=rand()*Math.PI*2;
+  scene.add(mesh);
+  crystals.push(mesh);
+}
+
+// Ein rundlicher "Blobbi"-Charakter zum Groessenvergleich (wie die Spieler-Avatare im 2D-Spiel)
+function makeBlob(x,z,color){
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.SphereGeometry(0.85,16,12), toonMat(color));
+  body.scale.set(1,1.05,1); body.position.y=0.85; withOutline(body);
+  g.add(body);
+  const eyeGeo=new THREE.SphereGeometry(0.11,8,8);
+  const eyeMat=new THREE.MeshBasicMaterial({color:0x14261c});
+  const eyeL=new THREE.Mesh(eyeGeo,eyeMat); eyeL.position.set(-0.26,1.05,0.72);
+  const eyeR=new THREE.Mesh(eyeGeo,eyeMat); eyeR.position.set(0.26,1.05,0.72);
+  g.add(eyeL,eyeR);
+  g.position.set(x, groundHeightAt(x,z), z);
+  return g;
+}
+const blob=makeBlob(0,0,'#ff5ea8');
+scene.add(blob);
+
+addEventListener('resize', ()=>{
+  camera.aspect=vw()/vh(); camera.updateProjectionMatrix();
+  renderer.setSize(vw(), vh());
+});
+
+let last=performance.now();
+function loop(now){
+  const dt=Math.min((now-last)/1000, 0.05); last=now;
+  for(const c of crystals){
+    c.rotation.y+=dt*0.8;
+    c.position.y=c.userData.baseY+Math.sin(now/500+c.userData.phase)*0.18;
+  }
+  blob.position.y=groundHeightAt(blob.position.x,blob.position.z)+Math.sin(now/450)*0.05;
+  blob.rotation.y+=dt*0.3;
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+window.__scene={scene,camera,renderer};
+</script>
+</body>
+</html>
