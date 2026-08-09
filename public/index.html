@@ -19,6 +19,7 @@
     <div class="pill" title="Level"><span id="lvl">Lv 1</span></div>
     <div class="pill"><span id="dot"></span><span id="online">0</span></div>
     <button class="btn" id="shopBtn" title="Shop" data-i18n-title="title_shop">🛒</button>
+    <button class="btn" id="backpackBtn" title="Rucksack" data-i18n-title="title_backpack">🎒</button>
     <button class="btn" id="mapBtn" title="Karte" data-i18n-title="title_map">🗺️</button>
     <button class="btn" id="friendsBtn" title="Freunde" data-i18n-title="title_friends" style="position:relative">👥<span id="freqbadge" class="freqbadge" style="display:none">0</span></button>
     <button class="btn" id="meBtn" title="Mein Profil" data-i18n-title="title_profile">🙂</button>
@@ -163,6 +164,15 @@
       <button class="shoptab" id="shoptabbg" data-i18n="tab_bg">Hintergründe</button>
     </div>
     <div class="shoplist" id="shoplist"></div>
+  </div>
+</div>
+
+<!-- Rucksack (Conbini-Snacks) -->
+<div id="backpack" class="pmodal" style="display:none">
+  <div class="pcard shopcard">
+    <button class="pclose" id="backpackclose">✕</button>
+    <h2 data-i18n="backpack_title">🎒 Rucksack</h2>
+    <div class="shoplist" id="backpacklist"></div>
   </div>
 </div>
 
@@ -415,6 +425,8 @@ import { SHIP_OBJ, requestBoard, checkBoardArrival, onSpaceBest, onSpaceLeaderbo
 import { initMapDom } from './js/map-view.js';
 import { initCryonisScene, renderCryonisCity, getBuildingExitSpot, buildingDoorAt } from './js/cryonis-city.js';
 import { renderClubFloor, renderClubRoof, clubDanceTileAt, flashDanceTile, clubSpeakerAt, pulseSpeaker, clubElevatorHoverAt } from './js/cryo-club.js';
+import { renderCombiniInterior, combiniShelfItemAt, combiniMachineAt } from './js/combini-interior.js';
+import { FOOD_ITEMS, ITEM_NAME_JA as FOOD_NAME_JA, ITEM_FLAVOR } from './js/data/store-items.js';
 
 /* ============================================================
    NEBULA STATION — Client mit Login (Supabase) + Multiplayer
@@ -452,6 +464,7 @@ let casinoTop=[],casinoFeed=[],myCasinoBest=0,myCasinoGame=null;
 
 const players={}; let myId=null, me=null, spawned=false;
 let myLevel=1,myXp=0,myRank='Kadett',myCurXp=0,myNextXp=50,myOwned=new Set(),myBg='space';
+let myInventory={},machinePouring=false,machinePourT=0,machineHoldT=0;
 let cam={x:0,y:0},planetScene=null,hover=null;
 function xpLevel(xp){return 1+Math.floor(Math.sqrt((xp||0)/70));}
 function xpForLevel(l){return 70*(l-1)*(l-1);}
@@ -541,6 +554,7 @@ function connectGame(token){
     document.getElementById('orbs').textContent=prof.stardust||0;
     myXp=prof.xp||0;myLevel=prof.level||1;myRank=prof.rank||'Kadett';myBg=prof.bg||'space';
     myOwned=new Set((prof.owned||'').split(',').filter(Boolean));renderEmoteBar&&renderEmoteBar();
+    myInventory=prof.inventory||{};
     myCurXp=xpForLevel(myLevel);myNextXp=xpForLevel(myLevel+1);updateLvlChip();
     addMsg('','','Willkommen an Bord, '+prof.name+'!  (Emotes = Tasten 1-6 · 🛒 Shop · Holo-Tisch = Planeten)','sys');},
   'progress': d=>{myXp=d.xp;myLevel=d.level;myRank=d.rank;myCurXp=d.curXp;myNextXp=d.nextXp;updateLvlChip();
@@ -559,6 +573,20 @@ function connectGame(token){
       showPopup('🛍️',t('popup_bought_title'),dispName,'pink');
     }else addMsg('','',d.code?t(d.code,d.params):d.text,'sys');},
   'stardust': d=>{document.getElementById('orbs').textContent=d.value;if(me)me.stardust=d.value;if($('shop').style.display!=='none')$('shopcoins').textContent=d.value;},
+  'store-result': d=>{
+    if(d.ok){myInventory=d.inventory||myInventory;
+      const it=FOOD_ITEMS.find(f=>f.id===d.id);
+      showPopup(it?it.ico:'🛍️',t('popup_bought_title'),foodItemName(it),'pink');
+      if($('backpack').style.display!=='none')renderBackpack();
+    }else addMsg('','',d.code?t(d.code,d.params):(d.text||'Kauf fehlgeschlagen.'),'sys');},
+  'item-use-result': d=>{
+    if(d.ok){myInventory=d.inventory||myInventory;
+      const it=FOOD_ITEMS.find(f=>f.id===d.id);
+      showPopup(it?it.ico:'🍽️',t('popup_consumed_title'),foodItemName(it),'gold');
+      if($('backpack').style.display!=='none')renderBackpack();
+    }else addMsg('','',d.code?t(d.code,d.params):'','sys');},
+  'item-consumed': d=>{const p=players[d.id];if(!p)return;const it=FOOD_ITEMS.find(f=>f.id===d.itemId);if(!it)return;
+    p.emo=it.ico;p.emoT=2.4;p.expr='love';p.exprT=2.4;},
   'world': all=>{
     for(const id in all)addPlayer(all[id]);
     // Karteileichen entfernen: alles, was der Server nicht mehr kennt
@@ -677,6 +705,9 @@ cv.addEventListener('pointerdown',e=>{if(!me)return;if(document.activeElement===
   if(rid==='cryo_club'){
     const tile=clubDanceTileAt(p);if(tile){flashDanceTile(tile.col,tile.row);return;}
     const sp=clubSpeakerAt(p);if(sp){pulseSpeaker(sp);return;}}
+  if(rid==='cryo_familymart'||rid==='cryo_seven'){
+    const shelfId=combiniShelfItemAt(p,rid);if(shelfId){attemptStoreBuy(shelfId);return;}
+    if(combiniMachineAt(p,rid)){attemptSlushBuy();return;}}
   if(ROOMS[rid]){const dhit=ROOMS[rid].deco.find(dd=>Math.hypot(dd.x-p.x,dd.y-p.y)<36);
     if(dhit){if(dhit.t==='telescope')openTelescope();else if(dhit.t==='holo')openHolo();else if(dhit.t==='vending')openShop();else openDecoDetail(dhit.t);return;}}
   if(PLANETS[rid]&&PLANETS[rid].city){
@@ -703,6 +734,8 @@ cv.addEventListener('pointermove',e=>{
   if(!h&&ROOMS[rid]){const dd=ROOMS[rid].deco.find(d=>Math.hypot(d.x-p.x,d.y-p.y)<36);if(dd)h={kind:'deco',obj:dd};}
   if(!h&&rid==='cryo_club'){const tile=clubDanceTileAt(p);if(tile)h={kind:'clubtile',obj:tile};
     else if(clubSpeakerAt(p))h={kind:'clubspeaker'};}
+  if(!h&&(rid==='cryo_familymart'||rid==='cryo_seven')){const shelfId=combiniShelfItemAt(p,rid);if(shelfId)h={kind:'shelf',obj:shelfId};
+    else if(combiniMachineAt(p,rid))h={kind:'slushmachine'};}
   if(!h&&(rid==='cryo_club'||rid==='cryo_club_roof')&&clubElevatorHoverAt(p,rid==='cryo_club_roof'?'roof':'ground'))h={kind:'clubelevator'};
   if(!h&&PLANETS[rid]&&planetScene){if(Math.hypot(planetScene.portal.x-p.x,planetScene.portal.y-p.y)<42)h={kind:'portal'};
     if(!h&&planetScene.racePad&&Math.abs(p.x-planetScene.racePad.x)<70&&Math.abs(p.y-planetScene.racePad.y)<58)h={kind:'racepad'};
@@ -734,6 +767,10 @@ function goToRoom(room,fromRoom){if(!me||locked||room===me.room)return;
 let last=performance.now(),lastSent=0;
 function update(dt,now){
   for(const id in players)moveEnt(players[id],dt);
+  if(machinePouring){
+    machinePourT=Math.min(1,machinePourT+dt/1.1);
+    if(machinePourT>=1){machineHoldT+=dt;if(machineHoldT>0.9){machinePouring=false;machinePourT=0;machineHoldT=0;}}
+  }
   if(me&&spawned){checkDoor();
     checkArrivedAtTable(me);
     checkBoardArrival(me);
@@ -784,6 +821,10 @@ function render(){const r=cv.parentElement.getBoundingClientRect();ctx.clearRect
       if(hoveredIs('bjtable',VIP_BJ))drawHovered(VIP_BJ.x,VIP_BJ.y,()=>drawBjTable(VIP_BJ.x,VIP_BJ.y));else drawBjTable(VIP_BJ.x,VIP_BJ.y);}
     else if(rid==='cryo_club'){renderClubFloor(ctx,Object.values(players).filter(p=>p.room===rid),hoveredIs('clubelevator'));drawDoor(room.door,room.accent);}
     else if(rid==='cryo_club_roof'){renderClubRoof(ctx,hoveredIs('clubelevator'));}
+    else if(rid==='cryo_familymart'||rid==='cryo_seven'){
+      renderCombiniInterior(ctx,rid,{playersHere:Object.values(players).filter(p=>p.room===rid),pourT:machinePourT});
+      drawDoor(room.door,room.accent);
+    }
     else{drawWall(room);drawFloor(room);roomDoors(room).forEach(d=>drawDoor(d,room.accent));
       if(rid==='deck'){for(const o of orbs)drawOrb(o);drawDeckExtras();
         if(hoveredIs('ship'))drawHovered(SHIP_OBJ.x,SHIP_OBJ.y,()=>drawShipParked(SHIP_OBJ.x,SHIP_OBJ.y));else drawShipParked(SHIP_OBJ.x,SHIP_OBJ.y);}
@@ -1715,6 +1756,25 @@ function renderShop(){$('shopcoins').textContent=(me&&me.stardust)||0;const list
   list.querySelectorAll('[data-eq]').forEach(b=>b.onclick=()=>{const id=b.dataset.eq,typ=b.dataset.t;
     if(typ==='acc'){socket&&socket.emit('acc',{acc:id});if(me)me.acc=id;}else{socket&&socket.emit('equip-bg',{bg:id});myBg=id;}renderShop();});}
 $('shopBtn').onclick=()=>openShop();
+function foodItemName(it){if(!it)return'';return LANG==='ja'?(FOOD_NAME_JA[it.id]||it.name):it.name;}
+function openBackpack(){renderBackpack();$('backpack').style.display='flex';}
+function renderBackpack(){const list=$('backpacklist');list.innerHTML='';
+  const owned=FOOD_ITEMS.filter(it=>(myInventory[it.id]||0)>0);
+  if(!owned.length){list.innerHTML='<div class="lbempty">'+t('backpack_empty')+'</div>';return;}
+  owned.forEach(it=>{const row=document.createElement('div');row.className='shopitem';
+    const count=myInventory[it.id]||0;
+    row.innerHTML='<div class="shopico">'+it.ico+'</div><div class="shopinfo"><div class="shopname">'+foodItemName(it)+'</div><div class="shopprice">x'+count+'</div></div><button class="shopbtn buy" data-use="'+it.id+'">'+t('item_use')+'</button>';
+    list.appendChild(row);});
+  list.querySelectorAll('[data-use]').forEach(b=>b.onclick=()=>socket&&socket.emit('item-use',{id:b.dataset.use}));}
+$('backpackBtn').onclick=()=>openBackpack();
+$('backpackclose').onclick=()=>$('backpack').style.display='none';
+function attemptStoreBuy(itemId){const item=FOOD_ITEMS.find(f=>f.id===itemId);if(!item||!me)return;
+  if(me.stardust<item.price){showPopup('💸',foodItemName(item),t('err_funds'),'pink');return;}
+  socket&&socket.emit('store-buy',{id:itemId});}
+function attemptSlushBuy(){const item=FOOD_ITEMS.find(f=>f.id==='slush');if(!item||!me||machinePouring)return;
+  if(me.stardust<item.price){showPopup('💸',foodItemName(item),t('err_funds'),'pink');return;}
+  machinePouring=true;machinePourT=0.001;machineHoldT=0;
+  socket&&socket.emit('store-buy',{id:'slush'});}
 $('shopclose').onclick=()=>$('shop').style.display='none';
 $('shop').onclick=e=>{if(e.target.id==='shop')$('shop').style.display='none';};
 $('shoptabacc').onclick=()=>openShop('acc');

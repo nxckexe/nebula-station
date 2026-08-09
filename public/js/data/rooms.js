@@ -30,10 +30,10 @@ export const ROOMS={
     deco:[]},
   cryo_familymart:{id:'cryo_familymart',accent:'#00a651',wall1:'#dfeaf5',wall2:'#b9cfe0',floor1:'#eef2f5',floor2:'#d7e0e6',
     door:{x:70,y:360,to:'cryonis',dirRight:false},
-    deco:[{t:'vending',x:200,y:250},{t:'vending',x:330,y:250},{t:'vending',x:460,y:250},{t:'crate',x:650,y:270},{t:'crate',x:700,y:250},{t:'plant',x:905,y:272},{t:'plant',x:150,y:330}]},
+    deco:[]},
   cryo_seven:{id:'cryo_seven',accent:'#e2231a',wall1:'#f5f0e0',wall2:'#e0d5b8',floor1:'#eee7d5',floor2:'#ddd0b0',
     door:{x:70,y:360,to:'cryonis',dirRight:false},
-    deco:[{t:'vending',x:220,y:250},{t:'vending',x:350,y:250},{t:'crate',x:600,y:270},{t:'crate',x:650,y:250},{t:'crate',x:700,y:270},{t:'plant',x:905,y:272}]}
+    deco:[]}
 };
 export const VIP_LEVEL=10;
 export const VIP_SLOTS=[{x:300,y:300},{x:470,y:300},{x:800,y:300}];

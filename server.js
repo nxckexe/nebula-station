@@ -86,6 +86,16 @@ const SHOP = [
   { id:'bg_matrix', type:'bg',  name:'Matrix',           price:30000, minLevel:10 },
   { id:'bg_rainbow',type:'bg',  name:'Regenbogen',       price:45000, minLevel:13 }
 ];
+// ---- Conbini-Snacks (Cryonis: Family Mart / 7-Eleven) - verzehrbar, beliebig oft kaufbar ----
+const FOOD_ITEMS = [
+  { id:'egg_sando',     name:'Ei-Sandwich',    price:20, stores:['familymart','seven'] },
+  { id:'onigiri',       name:'Onigiri',        price:15, stores:['familymart','seven'] },
+  { id:'mitsuya_cider', name:'Mitsuya Cider',  price:18, stores:['familymart','seven'] },
+  { id:'famichiki',     name:'Famichiki',      price:35, stores:['familymart'] },
+  { id:'nikuman',       name:'Nikuman',        price:25, stores:['familymart'] },
+  { id:'oden',          name:'Oden',           price:20, stores:['seven'] },
+  { id:'slush',         name:'Slush',          price:40, stores:['seven'], machineOnly:true }
+];
 // Emotes: 'wave' und 'dance' sind gratis, der Rest kaufbar
 const EMOTE_DEFS = {
   wave:  { free:true },
@@ -370,6 +380,29 @@ io.on('connection', (socket) => {
     await admin.from('profiles').update({ stardust: me.stardust, owned: me.owned }).eq('id', socket.userId);
     socket.emit('stardust', { value: me.stardust });
     socket.emit('shop-result', { ok:true, text:item.name + ' gekauft!', id:item.id, owned: me.owned });
+  });
+
+  socket.on('store-buy', async (d) => {
+    const me = players[socket.id]; if (!me) return;
+    const item = FOOD_ITEMS.find(f => f.id === d.id);
+    if (!item) { socket.emit('store-result', { ok:false, code:'err_unknown_item' }); return; }
+    if (me.stardust < item.price) { socket.emit('store-result', { ok:false, code:'err_funds' }); return; }
+    me.stardust -= item.price;
+    me.inventory = me.inventory || {};
+    me.inventory[item.id] = (me.inventory[item.id] || 0) + 1;
+    await admin.from('profiles').update({ stardust: me.stardust, inventory: me.inventory }).eq('id', socket.userId);
+    socket.emit('stardust', { value: me.stardust });
+    socket.emit('store-result', { ok:true, id:item.id, inventory: me.inventory });
+  });
+
+  socket.on('item-use', async (d) => {
+    const me = players[socket.id]; if (!me) return;
+    const count = (me.inventory || {})[d.id] || 0;
+    if (count <= 0) { socket.emit('item-use-result', { ok:false, code:'err_no_item' }); return; }
+    me.inventory[d.id] = count - 1;
+    await admin.from('profiles').update({ inventory: me.inventory }).eq('id', socket.userId);
+    socket.emit('item-use-result', { ok:true, id:d.id, inventory: me.inventory });
+    io.emit('item-consumed', { id: socket.id, itemId: d.id });
   });
 
   socket.on('slot-spin', async (d) => {
@@ -760,6 +793,7 @@ function finalizeSpawn(socket, profile) {
     stardust: profile.stardust || 0,
     xp: profile.xp || 0, level: lvl, rank: rankName(lvl),
     owned: profile.owned || '',
+    inventory: (profile.inventory && typeof profile.inventory === 'object') ? profile.inventory : {},
     wins: profile.wins || 0,
     game_stardust: profile.game_stardust || 0,
     spaceBest: profile.space_best || 0,
@@ -793,7 +827,7 @@ function finalizeSpawn(socket, profile) {
   online[socket.userId] = socket.id;
   socket.emit('spawn', {
     name: me.name, color: me.color, species: me.species, acc: me.acc, bg: me.bg,
-    stardust: me.stardust, xp: me.xp, level: lvl, rank: me.rank, owned: me.owned
+    stardust: me.stardust, xp: me.xp, level: lvl, rank: me.rank, owned: me.owned, inventory: me.inventory
   });
   socket.emit('world', players);
   socket.broadcast.emit('player-joined', me);
