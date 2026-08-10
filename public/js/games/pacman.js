@@ -12,7 +12,6 @@ const GHOST_COLORS=['#ff5ea8','#31e1ff','#ffb14d'];
 let pmG=null, pmRAF=null, pmLast=0;
 let maze=null, dots=null, power=null, dotsLeft=0;
 let pac=null, ghosts=[], scaredT=0, score=0, lives=3, level=1, phase='play', pmNewRecord=false, pmBest=0;
-const pmKeys={};
 
 function genMaze(){
   const grid=Array.from({length:ROWS},()=>Array(COLS).fill(1));
@@ -56,16 +55,63 @@ function validDirs(col,row,excludeReverse){
   const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
   return dirs.filter(([dc,dr])=>!isWall(col+dc,row+dr)&&!(excludeReverse&&dc===-excludeReverse[0]&&dr===-excludeReverse[1]));
 }
-function atCenter(v){return Math.abs(v-Math.round(v))<0.06;}
+// Bewegt eine Figur um genau `speed*dt`, aber IMMER in Teilschritten, die exakt an
+// Zellgrenzen einrasten - so kann eine Richtungsentscheidung (und damit eine
+// Wandpruefung) bei keiner Geschwindigkeit/Framerate jemals "uebersprungen" werden
+// (der alte Code prüfte Wände nur, wenn die Position zufällig nahe genug an einer
+// ganzen Zahl lag, was Pac/Geister gelegentlich durch Wände aus dem Feld rutschen
+// und dort komplett feststecken liess, weil ausserhalb des Gitters jede Richtung
+// als "Wand" gilt).
+function stepEntity(e,speed,dt,decideDir){
+  // e.fromCol/e.fromRow ist die zuletzt vollstaendig erreichte Gitterzelle - wird NUR
+  // beim Einrasten gesetzt, niemals per Math.round() aus der aktuellen Position
+  // hergeleitet (das kippt genau in der Zellmitte um einen Schritt und liess Figuren
+  // sonst am Feldrand ins Nichts laufen). Geister starten mit bereits gesetzter
+  // Richtung (nicht im Stillstand) - deshalb hier defensiv initialisieren, falls
+  // noch nie gesetzt.
+  if(e.fromCol===undefined){e.fromCol=Math.round(e.col);e.fromRow=Math.round(e.row);}
+  let remaining=speed*dt;
+  for(let iter=0;iter<8&&remaining>1e-6;iter++){
+    if(!(e.dir[0]||e.dir[1])){
+      e.col=Math.round(e.col);e.row=Math.round(e.row);
+      e.fromCol=e.col;e.fromRow=e.row;
+      decideDir(e);
+      if(!(e.dir[0]||e.dir[1]))return;
+    }
+    const targetCol=e.fromCol+e.dir[0], targetRow=e.fromRow+e.dir[1];
+    const distToTarget=e.dir[0]!==0?Math.abs(targetCol-e.col):Math.abs(targetRow-e.row);
+    if(remaining<distToTarget){
+      e.col+=e.dir[0]*remaining;e.row+=e.dir[1]*remaining;
+      remaining=0;
+    }else{
+      e.col=targetCol;e.row=targetRow;
+      e.fromCol=targetCol;e.fromRow=targetRow;
+      remaining-=distToTarget;
+      decideDir(e);
+      if(!(e.dir[0]||e.dir[1]))return;
+    }
+  }
+}
+function pacDecide(e){
+  const want=(e.next[0]||e.next[1])?e.next:e.dir;
+  if(!isWall(e.col+want[0],e.row+want[1]))e.dir=want;
+  else if(isWall(e.col+e.dir[0],e.row+e.dir[1]))e.dir=[0,0];
+}
+function ghostDecide(g){
+  let opts=validDirs(g.col,g.row,g.dir);
+  if(!opts.length)opts=validDirs(g.col,g.row,null);
+  if(!opts.length){g.dir=[0,0];return;}
+  if(Math.random()<0.22){g.dir=opts[Math.floor(Math.random()*opts.length)];return;}
+  let best=opts[0],bestScore=g.scared?-1:1e9;
+  for(const o of opts){
+    const nd=cellDist({col:g.col+o[0],row:g.row+o[1]},pac);
+    if(g.scared?nd>bestScore:nd<bestScore){bestScore=nd;best=o;}
+  }
+  g.dir=best;
+}
 
 function updatePac(dt){
-  const speed=6.2;
-  if(atCenter(pac.col)&&atCenter(pac.row)){
-    pac.col=Math.round(pac.col);pac.row=Math.round(pac.row);
-    if(pac.next[0]||pac.next[1]){if(!isWall(pac.col+pac.next[0],pac.row+pac.next[1]))pac.dir=pac.next;}
-    if(isWall(pac.col+pac.dir[0],pac.row+pac.dir[1]))pac.dir=[0,0];
-  }
-  pac.col+=pac.dir[0]*speed*dt;pac.row+=pac.dir[1]*speed*dt;
+  stepEntity(pac,6.2,dt,pacDecide);
   const cc=Math.round(pac.col),cr=Math.round(pac.row);
   if(cc>=0&&cc<COLS&&cr>=0&&cr<ROWS){
     if(dots[cr][cc]){dots[cr][cc]=false;dotsLeft--;score+=10;}
@@ -80,31 +126,15 @@ function nextLevel(){level++;maze=genMaze();
   const corners=[[0,0],[0,CW-1],[CH-1,0],[CH-1,CW-1]];
   for(const [r,c] of corners){dots[r*2][c*2]=false;power[r*2][c*2]=true;}
   pac.col=startC;pac.row=startR;pac.dir=[0,0];pac.next=[0,0];
-  for(const g of ghosts){g.col=0;g.row=0;g.scared=false;}
+  for(const g of ghosts){g.col=0;g.row=0;g.dir=[0,0];g.scared=false;}
   scaredT=0;
 }
 function updateGhosts(dt){
   const speed=(scaredT>0?4.0:4.7+level*0.25);
   for(const g of ghosts){
-    if(atCenter(g.col)&&atCenter(g.row)){
-      g.col=Math.round(g.col);g.row=Math.round(g.row);
-      let opts=validDirs(g.col,g.row,g.dir);
-      if(!opts.length)opts=validDirs(g.col,g.row,null);
-      if(opts.length){
-        if(Math.random()<0.22){g.dir=opts[Math.floor(Math.random()*opts.length)];}
-        else{
-          let best=opts[0],bestScore=g.scared?-1:1e9;
-          for(const o of opts){
-            const nd=cellDist({col:g.col+o[0],row:g.row+o[1]},pac);
-            if(g.scared?nd>bestScore:nd<bestScore){bestScore=nd;best=o;}
-          }
-          g.dir=best;
-        }
-      }
-    }
-    g.col+=g.dir[0]*speed*dt;g.row+=g.dir[1]*speed*dt;
+    stepEntity(g,speed,dt,ghostDecide);
     if(Math.hypot(g.col-pac.col,g.row-pac.row)<0.5){
-      if(g.scared){g.scared=false;g.col=0;g.row=0;score+=200;}
+      if(g.scared){g.scared=false;g.col=0;g.row=0;g.dir=[0,0];score+=200;}
       else loseLife();
     }
   }
@@ -115,7 +145,7 @@ function loseLife(){
   if(lives<=0){gameOver();return;}
   const startC=(CW>>1)*2,startR=(CH-1)*2;
   pac.col=startC;pac.row=startR;pac.dir=[0,0];pac.next=[0,0];
-  for(const g of ghosts){g.col=0;g.row=0;g.scared=false;}
+  for(const g of ghosts){g.col=0;g.row=0;g.dir=[0,0];g.scared=false;}
   scaredT=0;
 }
 export function openPacman(){
