@@ -493,6 +493,31 @@ io.on('connection', (socket) => {
     socket.emit('pacman-leaderboard-data', { rows: (data || []).filter(r => (r.pacman_best || 0) > 0) });
   });
 
+  socket.on('racer-score', async (d) => {
+    const me = players[socket.id]; if (!me) return;
+    const now = Date.now();
+    if (now - (me.lastRacer || 0) < 3000) return;
+    me.lastRacer = now;
+    const score = Math.max(0, Math.min(999999, Math.round(+d.score || 0)));
+    const gained = Math.min(500, Math.round(score / 10));
+    const xp = Math.min(150, Math.round(score / 15));
+    me.stardust += gained;
+    socket.emit('stardust', { value: me.stardust });
+    if (xp > 0) grantXp(socket, me, xp);
+    const isRecord = score > (me.racerBest || 0);
+    if (isRecord) me.racerBest = score;
+    socket.emit('racer-best', { best: me.racerBest, record: isRecord });
+    admin.from('profiles').update({ stardust: me.stardust, xp: me.xp, racer_best: me.racerBest }).eq('id', me.userId).then(() => {}, () => {});
+  });
+
+  socket.on('racer-leaderboard', async () => {
+    const { data } = await admin.from('profiles')
+      .select('username,racer_best')
+      .order('racer_best', { ascending: false })
+      .limit(10);
+    socket.emit('racer-leaderboard-data', { rows: (data || []).filter(r => (r.racer_best || 0) > 0) });
+  });
+
   socket.on('space-leaderboard', async () => {
     const { data } = await admin.from('profiles')
       .select('username,space_best')
@@ -878,6 +903,7 @@ function finalizeSpawn(socket, profile) {
     spaceBest: profile.space_best || 0,
     tetrisBest: profile.tetris_best || 0,
     pacmanBest: profile.pacman_best || 0,
+    racerBest: profile.racer_best || 0,
     lastWheel: profile.last_wheel || 0,
     casinoBest: profile.casino_best || 0,
     raceWins: profile.race_wins || 0,
