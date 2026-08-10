@@ -518,6 +518,31 @@ io.on('connection', (socket) => {
     socket.emit('racer-leaderboard-data', { rows: (data || []).filter(r => (r.racer_best || 0) > 0) });
   });
 
+  socket.on('voidgunner-score', async (d) => {
+    const me = players[socket.id]; if (!me) return;
+    const now = Date.now();
+    if (now - (me.lastVoidgunner || 0) < 3000) return;
+    me.lastVoidgunner = now;
+    const score = Math.max(0, Math.min(999999, Math.round(+d.score || 0)));
+    const gained = Math.min(500, Math.round(score / 8));
+    const xp = Math.min(150, Math.round(score / 12));
+    me.stardust += gained;
+    socket.emit('stardust', { value: me.stardust });
+    if (xp > 0) grantXp(socket, me, xp);
+    const isRecord = score > (me.voidgunnerBest || 0);
+    if (isRecord) me.voidgunnerBest = score;
+    socket.emit('voidgunner-best', { best: me.voidgunnerBest, record: isRecord });
+    admin.from('profiles').update({ stardust: me.stardust, xp: me.xp, voidgunner_best: me.voidgunnerBest }).eq('id', me.userId).then(() => {}, () => {});
+  });
+
+  socket.on('voidgunner-leaderboard', async () => {
+    const { data } = await admin.from('profiles')
+      .select('username,voidgunner_best')
+      .order('voidgunner_best', { ascending: false })
+      .limit(10);
+    socket.emit('voidgunner-leaderboard-data', { rows: (data || []).filter(r => (r.voidgunner_best || 0) > 0) });
+  });
+
   socket.on('space-leaderboard', async () => {
     const { data } = await admin.from('profiles')
       .select('username,space_best')
@@ -904,6 +929,7 @@ function finalizeSpawn(socket, profile) {
     tetrisBest: profile.tetris_best || 0,
     pacmanBest: profile.pacman_best || 0,
     racerBest: profile.racer_best || 0,
+    voidgunnerBest: profile.voidgunner_best || 0,
     lastWheel: profile.last_wheel || 0,
     casinoBest: profile.casino_best || 0,
     raceWins: profile.race_wins || 0,
