@@ -353,9 +353,9 @@ export function renderArcadeFloor2(ctx,opts){
   ctx.fillStyle='#160a24';ctx.fillRect(0,90,1040,512);
   ctx.strokeStyle='rgba(255,209,102,.15)';ctx.lineWidth=2;
   for(let x=0;x<1040;x+=70){ctx.beginPath();ctx.moveTo(x,90);ctx.lineTo(x,602);ctx.stroke();}
-  drawPrizeWall(ctx,300,140,300,150,now);
-  drawClawMachine(ctx,230,470,now);
-  drawClawMachine(ctx,470,470,now);
+  drawClawMachine(ctx,370,470,now);
+  drawClawMachine(ctx,580,470,now);
+  drawPrizeWall(ctx,720,140,240,120,now);
   drawTicketCounter(ctx,700,330,980,470,now);
   drawAttendant(ctx,840,324);
   doorAnimStep('top',hoveredElevator);

@@ -442,6 +442,21 @@ io.on('connection', (socket) => {
     admin.from('profiles').update({ stardust: me.stardust, xp: me.xp, space_best: me.spaceBest }).eq('id', me.userId).then(() => {}, () => {});
   });
 
+  socket.on('tetris-score', async (d) => {
+    const me = players[socket.id]; if (!me) return;
+    const now = Date.now();
+    if (now - (me.lastTetris || 0) < 3000) return;
+    me.lastTetris = now;
+    const score = Math.max(0, Math.min(999999, Math.round(+d.score || 0)));
+    const lines = Math.max(0, Math.min(999, Math.round(+d.lines || 0)));
+    const gained = Math.min(600, Math.round(score / 8));
+    const xp = Math.min(150, lines * 4);
+    me.stardust += gained;
+    socket.emit('stardust', { value: me.stardust });
+    if (xp > 0) grantXp(socket, me, xp);
+    admin.from('profiles').update({ stardust: me.stardust, xp: me.xp }).eq('id', me.userId).then(() => {}, () => {});
+  });
+
   socket.on('space-leaderboard', async () => {
     const { data } = await admin.from('profiles')
       .select('username,space_best')

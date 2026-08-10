@@ -196,6 +196,15 @@
   </div>
 </div>
 
+<!-- Tetris (Block Drop Cabinet) -->
+<div id="tetris" class="pmodal" style="display:none">
+  <div class="spacewrap">
+    <button class="pclose" id="tetrisclose" style="top:0;right:0">✕</button>
+    <canvas id="tetrisCanvas" width="300" height="520"></canvas>
+    <div class="spacefoot" id="tetrisfoot" data-i18n="tetris_controls">← → bewegen · ↑ drehen · ↓ schneller · Leertaste fallen lassen</div>
+  </div>
+</div>
+
 <!-- Spielautomat -->
 <div id="slot" class="pmodal" style="display:none">
   <div class="slotwrap">
@@ -427,6 +436,7 @@ import { initCryonisScene, renderCryonisCity, getBuildingExitSpot, buildingDoorA
 import { renderClubFloor, renderClubRoof, clubDanceTileAt, flashDanceTile, clubSpeakerAt, pulseSpeaker, clubElevatorHoverAt } from './js/cryo-club.js';
 import { renderCombiniInterior, combiniShelfItemAt, combiniMachineAt } from './js/combini-interior.js';
 import { renderArcadeFloor1, renderArcadeFloor2, arcadeCabinetAt, arcadeCabinetHoverAt, arcadeElevatorHoverAt } from './js/arcade-interior.js';
+import { openTetris, initTetrisDom } from './js/games/tetris.js';
 import { FOOD_ITEMS, ITEM_NAME_JA as FOOD_NAME_JA, ITEM_FLAVOR } from './js/data/store-items.js';
 
 /* ============================================================
@@ -711,6 +721,7 @@ cv.addEventListener('pointerdown',e=>{if(!me)return;if(document.activeElement===
     if(combiniMachineAt(p,rid)){attemptSlushBuy();return;}}
   if(rid==='cryo_arcade'){
     const cab=arcadeCabinetAt(p);
+    if(cab==='tetris'){openTetris();return;}
     if(cab){showPopup('🚧',t('popup_comingsoon_title'),t('popup_comingsoon_sub'),'purple');return;}}
   if(ROOMS[rid]){const dhit=ROOMS[rid].deco.find(dd=>Math.hypot(dd.x-p.x,dd.y-p.y)<36);
     if(dhit){if(dhit.t==='telescope')openTelescope();else if(dhit.t==='holo')openHolo();else if(dhit.t==='vending')openShop();else openDecoDetail(dhit.t);return;}}
@@ -1859,6 +1870,7 @@ initSlotDom();
 initC4Dom();
 initRaceDom();
 initSpaceDom();
+initTetrisDom();
 initMapDom();
 resize();seedOrbs();requestAnimationFrame(loop);
 $('flagde').onclick=()=>setLang('de');
