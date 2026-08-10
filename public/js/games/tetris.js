@@ -1,6 +1,6 @@
 import { $, t, showPopup, setLocked } from '../core.js';
 import { socket } from '../net.js';
-import { roundRect as roundRectImpl } from '../render-utils.js';
+import { roundRect as roundRectImpl, esc } from '../render-utils.js';
 import { INK } from '../data/appearance.js';
 
 const COLS=10, ROWS=20, CELL=18;
@@ -20,6 +20,7 @@ const TYPES=Object.keys(SHAPES);
 let tetG=null, tetRAF=null, tetLast=0;
 let board=null, cur=null, nextType=null, dropTimer=0, dropInterval=0.8;
 let score=0, lines=0, level=1, phase='play', bag=[];
+let tetrisBest=0, tetrisNewRecord=false;
 const tetKeys={};
 
 function rotateMatrix(m){const n=4,res=Array.from({length:n},()=>Array(n).fill(0));
@@ -53,7 +54,7 @@ function hardDrop(){let d=0;while(!collides(cur.m,cur.row+1,cur.col)){cur.row++;
 export function openTetris(){
   const c=$('tetrisCanvas'),dpr=Math.min(devicePixelRatio||1,2);
   c.width=300*dpr;c.height=520*dpr;tetG=c.getContext('2d');tetG.setTransform(dpr,0,0,dpr,0,0);
-  board=freshBoard();score=0;lines=0;level=1;dropInterval=0.8;dropTimer=0;phase='play';bag=[];
+  board=freshBoard();score=0;lines=0;level=1;dropInterval=0.8;dropTimer=0;phase='play';bag=[];tetrisNewRecord=false;
   nextType=drawBag();spawnPiece();
   $('tetrisfoot').textContent=t('tetris_controls');
   $('tetris').style.display='flex';setLocked(true);tetLast=performance.now();if(!tetRAF)tetLoop();
@@ -64,10 +65,11 @@ function gameOver(){
   const gained=Math.min(600,Math.round(score/8));
   socket&&socket.emit('tetris-score',{score,lines});
   showPopup('🧱',t('popup_tetris_over_title'),t('amount_stardust',{amount:gained}),'gold');
-  $('tetrisfoot').innerHTML='<button class="betb" id="tetrisagain">🔁 '+t('btn_again')+'</button><button class="betb" id="tetrisexit">'+t('btn_exit')+'</button>';
-  const a=$('tetrisagain'),x=$('tetrisexit');
+  $('tetrisfoot').innerHTML='<button class="betb" id="tetrisagain">🔁 '+t('btn_again')+'</button><button class="betb" id="tetrisboard">🏆 '+t('btn_leaderboard')+'</button><button class="betb" id="tetrisexit">'+t('btn_exit')+'</button>';
+  const a=$('tetrisagain'),x=$('tetrisexit'),b=$('tetrisboard');
   if(a)a.onclick=()=>openTetris();
   if(x)x.onclick=closeTetris;
+  if(b)b.onclick=openTetrisBoard;
 }
 function tetLoop(){
   const now=performance.now(),dt=Math.min((now-tetLast)/1000,.05);tetLast=now;
@@ -111,8 +113,11 @@ function drawTetris(){
   }
   if(phase==='over'){
     g.fillStyle='rgba(6,4,20,.6)';g.fillRect(OX-2,OY-2,COLS*CELL+4,ROWS*CELL+4);
+    const cx2=OX+COLS*CELL/2,cy2=OY+ROWS*CELL/2;
     g.fillStyle='#ff5ea8';g.strokeStyle=INK;g.lineWidth=4;g.font='800 22px Fredoka';g.textAlign='center';
-    g.strokeText(t('tetris_over'),OX+COLS*CELL/2,OY+ROWS*CELL/2);g.fillText(t('tetris_over'),OX+COLS*CELL/2,OY+ROWS*CELL/2);
+    g.strokeText(t('tetris_over'),cx2,cy2-14);g.fillText(t('tetris_over'),cx2,cy2-14);
+    if(tetrisNewRecord){g.fillStyle='#7be0b0';g.font='800 13px Fredoka';g.fillText('🏆 '+t('new_record'),cx2,cy2+12);}
+    else if(tetrisBest>0){g.fillStyle='#bfeaff';g.font='700 12px Fredoka';g.fillText(t('label_best')+': '+tetrisBest,cx2,cy2+12);}
   }
 }
 function drawCell(g,x,y,color,size){
@@ -121,6 +126,17 @@ function drawCell(g,x,y,color,size){
   g.fillStyle='rgba(255,255,255,.35)';g.fillRect(x+1,y+1,s-2,2);
   g.fillStyle='rgba(0,0,0,.25)';g.fillRect(x+1,y+s-3,s-2,2);
 }
+
+function renderTetrisBoard(rows){const el=$('tlblist');el.innerHTML='';
+  if(!rows.length){el.innerHTML='<div class="lbempty">'+t('tetris_no_scores')+'</div>';return;}
+  rows.forEach((r,i)=>{const row=document.createElement('div');row.className='lbrow';
+    const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1);
+    row.innerHTML='<span class="lbrank">'+medal+'</span><span class="lbname">'+esc(r.username||'Alien')+'</span><span class="lbwins">🧱 '+(r.tetris_best||0)+'</span>';
+    el.appendChild(row);});}
+function openTetrisBoard(){socket&&socket.emit('tetris-leaderboard');$('tlblist').innerHTML='<div class="lbempty">'+t('loading')+'</div>';$('tlb').style.display='flex';}
+
+export function onTetrisBest(d){tetrisBest=d.best||0;if(d.record)tetrisNewRecord=true;}
+export function onTetrisLeaderboardData(d){renderTetrisBoard(d.rows||[]);}
 
 export function initTetrisDom(){
   addEventListener('keydown',e=>{
@@ -140,4 +156,6 @@ export function initTetrisDom(){
   });
   addEventListener('keyup',e=>{if(!e.key)return;tetKeys[e.key.toLowerCase()]=false;});
   $('tetrisclose').onclick=closeTetris;
+  $('tlbclose').onclick=()=>$('tlb').style.display='none';
+  $('tlb').onclick=e=>{if(e.target.id==='tlb')$('tlb').style.display='none';};
 }

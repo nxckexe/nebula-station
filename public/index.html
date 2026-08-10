@@ -205,6 +205,24 @@
   </div>
 </div>
 
+<!-- Pac-Chase (Pac-Man Cabinet) -->
+<div id="pacman" class="pmodal" style="display:none">
+  <div class="spacewrap">
+    <button class="pclose" id="pacmanclose" style="top:0;right:0">✕</button>
+    <canvas id="pacmanCanvas" width="320" height="470"></canvas>
+    <div class="spacefoot" id="pacmanfoot" data-i18n="pacman_controls">Pfeile / WASD zum Steuern</div>
+  </div>
+</div>
+
+<!-- Pac-Chase-Bestenliste -->
+<div id="pmlb" class="pmodal" style="display:none">
+  <div class="pcard lbcard">
+    <button class="pclose" id="pmlbclose">✕</button>
+    <h2 data-i18n="pmlb_title">👻 Jagd-Rekorde</h2>
+    <div id="pmlblist"></div>
+  </div>
+</div>
+
 <!-- Spielautomat -->
 <div id="slot" class="pmodal" style="display:none">
   <div class="slotwrap">
@@ -251,6 +269,15 @@
     <button class="pclose" id="sblbclose">✕</button>
     <h2 data-i18n="sblb_title">🚀 Flug-Rekorde</h2>
     <div id="sblblist"></div>
+  </div>
+</div>
+
+<!-- Tetris-Bestenliste -->
+<div id="tlb" class="pmodal" style="display:none">
+  <div class="pcard lbcard">
+    <button class="pclose" id="tlbclose">✕</button>
+    <h2 data-i18n="tlb_title">🧱 Block-Rekorde</h2>
+    <div id="tlblist"></div>
   </div>
 </div>
 
@@ -436,7 +463,8 @@ import { initCryonisScene, renderCryonisCity, getBuildingExitSpot, buildingDoorA
 import { renderClubFloor, renderClubRoof, clubDanceTileAt, flashDanceTile, clubSpeakerAt, pulseSpeaker, clubElevatorHoverAt } from './js/cryo-club.js';
 import { renderCombiniInterior, combiniShelfItemAt, combiniMachineAt } from './js/combini-interior.js';
 import { renderArcadeFloor1, renderArcadeFloor2, arcadeCabinetAt, arcadeCabinetHoverAt, arcadeElevatorHoverAt } from './js/arcade-interior.js';
-import { openTetris, initTetrisDom } from './js/games/tetris.js';
+import { openTetris, initTetrisDom, onTetrisBest, onTetrisLeaderboardData } from './js/games/tetris.js';
+import { openPacman, initPacmanDom, onPacmanBest, onPacmanLeaderboardData } from './js/games/pacman.js';
 import { FOOD_ITEMS, ITEM_NAME_JA as FOOD_NAME_JA, ITEM_FLAVOR } from './js/data/store-items.js';
 
 /* ============================================================
@@ -628,6 +656,10 @@ function connectGame(token){
   'leaderboard-data': onLeaderboardData,
   'space-leaderboard-data': onSpaceLeaderboardData,
   'space-best': onSpaceBest,
+  'tetris-leaderboard-data': onTetrisLeaderboardData,
+  'tetris-best': onTetrisBest,
+  'pacman-leaderboard-data': onPacmanLeaderboardData,
+  'pacman-best': onPacmanBest,
   'wheel-status': onWheelStatus,
   'wheel-result': onWheelResult,
   'bj-idle': onBjIdle,
@@ -722,6 +754,7 @@ cv.addEventListener('pointerdown',e=>{if(!me)return;if(document.activeElement===
   if(rid==='cryo_arcade'){
     const cab=arcadeCabinetAt(p);
     if(cab==='tetris'){openTetris();return;}
+    if(cab==='pacman'){openPacman();return;}
     if(cab){showPopup('🚧',t('popup_comingsoon_title'),t('popup_comingsoon_sub'),'purple');return;}}
   if(ROOMS[rid]){const dhit=ROOMS[rid].deco.find(dd=>Math.hypot(dd.x-p.x,dd.y-p.y)<36);
     if(dhit){if(dhit.t==='telescope')openTelescope();else if(dhit.t==='holo')openHolo();else if(dhit.t==='vending')openShop();else openDecoDetail(dhit.t);return;}}
@@ -1871,6 +1904,7 @@ initC4Dom();
 initRaceDom();
 initSpaceDom();
 initTetrisDom();
+initPacmanDom();
 initMapDom();
 resize();seedOrbs();requestAnimationFrame(loop);
 $('flagde').onclick=()=>setLang('de');

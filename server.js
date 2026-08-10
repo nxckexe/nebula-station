@@ -454,7 +454,43 @@ io.on('connection', (socket) => {
     me.stardust += gained;
     socket.emit('stardust', { value: me.stardust });
     if (xp > 0) grantXp(socket, me, xp);
-    admin.from('profiles').update({ stardust: me.stardust, xp: me.xp }).eq('id', me.userId).then(() => {}, () => {});
+    const isRecord = score > (me.tetrisBest || 0);
+    if (isRecord) me.tetrisBest = score;
+    socket.emit('tetris-best', { best: me.tetrisBest, record: isRecord });
+    admin.from('profiles').update({ stardust: me.stardust, xp: me.xp, tetris_best: me.tetrisBest }).eq('id', me.userId).then(() => {}, () => {});
+  });
+
+  socket.on('tetris-leaderboard', async () => {
+    const { data } = await admin.from('profiles')
+      .select('username,tetris_best')
+      .order('tetris_best', { ascending: false })
+      .limit(10);
+    socket.emit('tetris-leaderboard-data', { rows: (data || []).filter(r => (r.tetris_best || 0) > 0) });
+  });
+
+  socket.on('pacman-score', async (d) => {
+    const me = players[socket.id]; if (!me) return;
+    const now = Date.now();
+    if (now - (me.lastPacman || 0) < 3000) return;
+    me.lastPacman = now;
+    const score = Math.max(0, Math.min(999999, Math.round(+d.score || 0)));
+    const gained = Math.min(500, Math.round(score / 6));
+    const xp = Math.min(150, Math.round(score / 20));
+    me.stardust += gained;
+    socket.emit('stardust', { value: me.stardust });
+    if (xp > 0) grantXp(socket, me, xp);
+    const isRecord = score > (me.pacmanBest || 0);
+    if (isRecord) me.pacmanBest = score;
+    socket.emit('pacman-best', { best: me.pacmanBest, record: isRecord });
+    admin.from('profiles').update({ stardust: me.stardust, xp: me.xp, pacman_best: me.pacmanBest }).eq('id', me.userId).then(() => {}, () => {});
+  });
+
+  socket.on('pacman-leaderboard', async () => {
+    const { data } = await admin.from('profiles')
+      .select('username,pacman_best')
+      .order('pacman_best', { ascending: false })
+      .limit(10);
+    socket.emit('pacman-leaderboard-data', { rows: (data || []).filter(r => (r.pacman_best || 0) > 0) });
   });
 
   socket.on('space-leaderboard', async () => {
@@ -812,6 +848,8 @@ function finalizeSpawn(socket, profile) {
     wins: profile.wins || 0,
     game_stardust: profile.game_stardust || 0,
     spaceBest: profile.space_best || 0,
+    tetrisBest: profile.tetris_best || 0,
+    pacmanBest: profile.pacman_best || 0,
     lastWheel: profile.last_wheel || 0,
     casinoBest: profile.casino_best || 0,
     raceWins: profile.race_wins || 0,
