@@ -268,6 +268,24 @@
   </div>
 </div>
 
+<!-- Step Beat (Dance-Cabinet) -->
+<div id="stepbeat" class="pmodal" style="display:none">
+  <div class="spacewrap">
+    <button class="pclose" id="stepbeatclose" style="top:0;right:0">✕</button>
+    <canvas id="stepbeatCanvas" width="300" height="480"></canvas>
+    <div class="spacefoot" id="stepbeatfoot" data-i18n="stepbeat_controls">← ↑ ↓ → im Takt drücken, wenn der Pfeil die Linie erreicht</div>
+  </div>
+</div>
+
+<!-- Step-Beat-Bestenliste -->
+<div id="sblb2" class="pmodal" style="display:none">
+  <div class="pcard lbcard">
+    <button class="pclose" id="sblbclose2">✕</button>
+    <h2 data-i18n="sblb2_title">🕺 Beat-Rekorde</h2>
+    <div id="sblist2"></div>
+  </div>
+</div>
+
 <!-- Spielautomat -->
 <div id="slot" class="pmodal" style="display:none">
   <div class="slotwrap">
@@ -513,6 +531,7 @@ import { openPacman, initPacmanDom, onPacmanBest, onPacmanLeaderboardData } from
 import { openIronDuel, initIronDuelDom, onDuelWaiting, onDuelStart, onDuelGo, onDuelState, onDuelOver } from './js/games/iron-duel.js';
 import { openRacer, initRacerDom, onRacerBest, onRacerLeaderboardData } from './js/games/racer.js';
 import { openVoidGunner, initVoidGunnerDom, onVoidGunnerBest, onVoidGunnerLeaderboardData } from './js/games/void-gunner.js';
+import { openStepBeat, initStepBeatDom, onStepBeatBest, onStepBeatLeaderboardData } from './js/games/step-beat.js';
 import { FOOD_ITEMS, ITEM_NAME_JA as FOOD_NAME_JA, ITEM_FLAVOR } from './js/data/store-items.js';
 
 /* ============================================================
@@ -717,6 +736,8 @@ function connectGame(token){
   'racer-best': onRacerBest,
   'voidgunner-leaderboard-data': onVoidGunnerLeaderboardData,
   'voidgunner-best': onVoidGunnerBest,
+  'stepbeat-leaderboard-data': onStepBeatLeaderboardData,
+  'stepbeat-best': onStepBeatBest,
   'wheel-status': onWheelStatus,
   'wheel-result': onWheelResult,
   'bj-idle': onBjIdle,
@@ -815,6 +836,7 @@ cv.addEventListener('pointerdown',e=>{if(!me)return;if(document.activeElement===
     if(cab==='tekken'){openIronDuel();return;}
     if(cab==='racer'){openRacer();return;}
     if(cab==='voidgunner'){openVoidGunner();return;}
+    if(cab==='stepbeat'){openStepBeat();return;}
     if(cab){showPopup('🚧',t('popup_comingsoon_title'),t('popup_comingsoon_sub'),'purple');return;}}
   if(ROOMS[rid]){const dhit=ROOMS[rid].deco.find(dd=>Math.hypot(dd.x-p.x,dd.y-p.y)<36);
     if(dhit){if(dhit.t==='telescope')openTelescope();else if(dhit.t==='holo')openHolo();else if(dhit.t==='vending')openShop();else openDecoDetail(dhit.t);return;}}
@@ -1968,6 +1990,7 @@ initPacmanDom();
 initIronDuelDom();
 initRacerDom();
 initVoidGunnerDom();
+initStepBeatDom();
 initMapDom();
 resize();seedOrbs();requestAnimationFrame(loop);
 $('flagde').onclick=()=>setLang('de');
