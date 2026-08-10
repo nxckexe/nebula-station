@@ -738,6 +738,33 @@ io.on('connection', (socket) => {
 
   socket.on('c4-leave', () => c4LeaveHandler(socket.id));
 
+  socket.on('duel-join', () => {
+    const me = players[socket.id]; if (!me || me.duelId || duelWaiting === socket.id) return;
+    if (!duelWaiting) { duelWaiting = socket.id; socket.emit('duel-waiting'); return; }
+    const aId = duelWaiting; duelWaiting = null;
+    const a = players[aId];
+    if (!a) { duelWaiting = socket.id; socket.emit('duel-waiting'); return; } // Warteperson ist inzwischen weg
+    const id = 'd' + (++duelIdCounter);
+    const g = {
+      id, a: { id: aId, name: a.name, color: a.color, species: a.species }, b: { id: socket.id, name: me.name, color: me.color, species: me.species },
+      xA: 60, xB: DUEL_ARENA_W - 60, hpA: DUEL_HP, hpB: DUEL_HP, actA: 'idle', actB: 'idle', blockA: false, blockB: false,
+      inputA: {}, inputB: {}, cdA: 0, cdB: 0, phase: 'countdown', endsAt: Date.now() + 2200
+    };
+    duelGames[id] = g; a.duelId = id; me.duelId = id;
+    io.to(a.id).emit('duel-start', { seat: 0, opponent: g.b, arenaW: DUEL_ARENA_W, hp: DUEL_HP });
+    io.to(me.id).emit('duel-start', { seat: 1, opponent: g.a, arenaW: DUEL_ARENA_W, hp: DUEL_HP });
+  });
+  socket.on('duel-input', (d) => {
+    const me = players[socket.id]; if (!me || !me.duelId) return;
+    const g = duelGames[me.duelId]; if (!g || g.phase !== 'run') return;
+    const seat = g.a.id === socket.id ? 0 : (g.b.id === socket.id ? 1 : -1); if (seat < 0) return;
+    const inp = seat === 0 ? g.inputA : g.inputB;
+    if (d.move === -1 || d.move === 0 || d.move === 1) inp.move = d.move;
+    if (typeof d.block === 'boolean') inp.block = d.block;
+    if (d.action === 'punch' || d.action === 'kick') duelResolveAttack(g, seat, d.action);
+  });
+  socket.on('duel-leave', () => duelLeaveHandler(socket.id));
+
   socket.on('leaderboard', async () => {
     const { data } = await admin.from('profiles')
       .select('username,wins,game_stardust')
@@ -821,6 +848,7 @@ io.on('connection', (socket) => {
     bjLeave(socket);
     raceLeave(socket.id);
     c4LeaveHandler(socket.id);
+    duelLeaveHandler(socket.id);
     if (online[socket.userId] === socket.id) delete online[socket.userId];
     if (me) {
       io.emit('system', { code:'sys_left', params:{ name: me.name } });
@@ -866,6 +894,7 @@ function finalizeSpawn(socket, profile) {
     if (prevSock) { try { bjLeave(prevSock); } catch (e) {} }
     raceLeave(prevId);
     c4LeaveHandler(prevId);
+    duelLeaveHandler(prevId);
     if (rou.bets[prevId]) delete rou.bets[prevId];
     // erst aus der Welt nehmen, dann trennen -> die alte Sitzung löst keine
     // "hat die Station verlassen"-Meldung mehr aus (Guthaben ist längst gespeichert)
@@ -977,6 +1006,89 @@ function bjLeave(socket) {
 // ---------------- 4 GEWINNT (mehrere Tische) ----------------
 const C4_COLS = 7, C4_ROWS = 6, C4_REWARD = 25, TABLES = 3;
 const games = new Array(TABLES).fill(null); // je Tisch ein Spiel
+
+// ================= IRON DUEL (Tekken-artiger 1v1-Kampfautomat, echtes PvP) =================
+// Architektur: Warteschlange + Match-Objekt wie bei 4 Gewinnt (games-Array-Prinzip),
+// aber mit einem 50ms-Tick wie beim Meteoriten-Rennen, da beide Spieler gleichzeitig
+// agieren (Bewegung ist kontinuierlich, Schlaege sind sofort validierte Einzelereignisse).
+const DUEL_ARENA_W = 300, DUEL_HP = 100, DUEL_REWARD = 40, DUEL_XP = 50;
+const DUEL_PUNCH = { range: 45, dmg: 8, cd: 380 };
+const DUEL_KICK = { range: 55, dmg: 14, cd: 650 };
+const DUEL_MOVE_SPEED = 130, DUEL_MIN_GAP = 30, DUEL_MATCH_MS = 60000;
+let duelWaiting = null;   // socket.id des wartenden Spielers, oder null
+const duelGames = {};     // matchId -> Duell-Objekt
+let duelIdCounter = 0;
+
+function duelBoth(g, ev, payload) { io.to(g.a.id).emit(ev, payload); io.to(g.b.id).emit(ev, payload); }
+function duelPublic(g) { return { xA: g.xA, xB: g.xB, hpA: g.hpA, hpB: g.hpB, actA: g.actA, actB: g.actB, blockA: !!g.blockA, blockB: !!g.blockB }; }
+function duelTick() {
+  const now = Date.now();
+  for (const id in duelGames) {
+    const g = duelGames[id];
+    if (g.phase === 'countdown') {
+      if (now >= g.endsAt) { g.phase = 'run'; g.endsAt = now + DUEL_MATCH_MS; duelBoth(g, 'duel-go', {}); }
+      continue;
+    }
+    if (g.phase !== 'run') continue;
+    const dt = 0.05;
+    let nx = clamp(g.xA + (g.inputA.move || 0) * DUEL_MOVE_SPEED * dt, 20, DUEL_ARENA_W - 20);
+    let nxB = clamp(g.xB + (g.inputB.move || 0) * DUEL_MOVE_SPEED * dt, 20, DUEL_ARENA_W - 20);
+    if (nx > nxB - DUEL_MIN_GAP) { const mid = (nx + nxB) / 2; nx = Math.min(nx, mid - DUEL_MIN_GAP / 2); nxB = Math.max(nxB, mid + DUEL_MIN_GAP / 2); }
+    g.xA = nx; g.xB = nxB;
+    g.blockA = !!g.inputA.block; g.blockB = !!g.inputB.block;
+    if (g.actA !== 'idle' && now >= g.actAUntil) g.actA = 'idle';
+    if (g.actB !== 'idle' && now >= g.actBUntil) g.actB = 'idle';
+    if (now >= g.endsAt) { duelEnd(g, g.hpA === g.hpB ? -1 : (g.hpA > g.hpB ? 0 : 1), 'time'); continue; }
+    duelBoth(g, 'duel-state', duelPublic(g));
+  }
+}
+setInterval(duelTick, 50);
+function duelResolveAttack(g, seat, kind) {
+  const spec = kind === 'kick' ? DUEL_KICK : DUEL_PUNCH;
+  const now = Date.now();
+  const cdKey = seat === 0 ? 'cdA' : 'cdB';
+  if ((g[cdKey] || 0) > now) return;
+  g[cdKey] = now + spec.cd;
+  if (seat === 0) { g.actA = kind; g.actAUntil = now + 260; } else { g.actB = kind; g.actBUntil = now + 260; }
+  if (Math.abs(g.xA - g.xB) > spec.range) return; // daneben
+  const defenderBlocking = seat === 0 ? g.blockB : g.blockA;
+  const dmg = defenderBlocking ? Math.round(spec.dmg * 0.35) : spec.dmg;
+  if (seat === 0) g.hpB = Math.max(0, g.hpB - dmg); else g.hpA = Math.max(0, g.hpA - dmg);
+  if (g.hpA <= 0 || g.hpB <= 0) duelEnd(g, g.hpA <= 0 ? 1 : 0, 'ko');
+}
+function duelEnd(g, seat, reason) {
+  if (g.phase === 'over') return;
+  g.phase = 'over';
+  const payload = { winnerSeat: seat, reason, hpA: g.hpA, hpB: g.hpB };
+  if (seat >= 0) {
+    const win = seat === 0 ? g.a : g.b;
+    const wp = players[win.id];
+    if (wp) {
+      wp.stardust += DUEL_REWARD;
+      wp.wins = (wp.wins || 0) + 1;
+      wp.game_stardust = (wp.game_stardust || 0) + DUEL_REWARD;
+      const before = xpLevel(wp.xp || 0); wp.xp = (wp.xp || 0) + DUEL_XP; const after = xpLevel(wp.xp);
+      wp.level = after; wp.rank = rankName(after);
+      io.to(win.id).emit('stardust', { value: wp.stardust });
+      io.to(win.id).emit('progress', { xp: wp.xp, level: after, rank: wp.rank, leveled: after > before, nextXp: xpForLevel(after + 1), curXp: xpForLevel(after) });
+      if (after > before) io.emit('system', { code:'sys_levelup', params:{ name: wp.name, level: after, rank: wp.rank } });
+      admin.from('profiles').update({ stardust: wp.stardust, wins: wp.wins, game_stardust: wp.game_stardust, xp: wp.xp })
+        .eq('id', wp.userId).then(() => {}, () => {});
+    }
+  }
+  duelBoth(g, 'duel-over', payload);
+  if (players[g.a.id]) delete players[g.a.id].duelId;
+  if (players[g.b.id]) delete players[g.b.id].duelId;
+  delete duelGames[g.id];
+}
+function duelLeaveHandler(id) {
+  if (duelWaiting === id) { duelWaiting = null; return; }
+  const p = players[id]; if (!p || !p.duelId) return;
+  const g = duelGames[p.duelId]; if (!g) return;
+  const seat = g.a.id === id ? 0 : (g.b.id === id ? 1 : -1);
+  if (seat < 0 || g.phase === 'over') return;
+  duelEnd(g, 1 - seat, 'forfeit');
+}
 
 // ================= METEORITEN-RENNEN (3 Spieler, auf Verdiania) =================
 const RACE_PLAYERS = 3;          // so viele starten ein Rennen
