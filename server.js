@@ -593,6 +593,31 @@ io.on('connection', (socket) => {
     socket.emit('bonkabot-leaderboard-data', { rows: (data || []).filter(r => (r.bonkabot_best || 0) > 0) });
   });
 
+  socket.on('slamzone-score', async (d) => {
+    const me = players[socket.id]; if (!me) return;
+    const now = Date.now();
+    if (now - (me.lastSlamzone || 0) < 3000) return;
+    me.lastSlamzone = now;
+    const score = Math.max(0, Math.min(999999, Math.round(+d.score || 0)));
+    const gained = Math.min(500, Math.round(score / 6));
+    const xp = Math.min(150, Math.round(score / 9));
+    me.stardust += gained;
+    socket.emit('stardust', { value: me.stardust });
+    if (xp > 0) grantXp(socket, me, xp);
+    const isRecord = score > (me.slamzoneBest || 0);
+    if (isRecord) me.slamzoneBest = score;
+    socket.emit('slamzone-best', { best: me.slamzoneBest, record: isRecord });
+    admin.from('profiles').update({ stardust: me.stardust, xp: me.xp, slamzone_best: me.slamzoneBest }).eq('id', me.userId).then(() => {}, () => {});
+  });
+
+  socket.on('slamzone-leaderboard', async () => {
+    const { data } = await admin.from('profiles')
+      .select('username,slamzone_best')
+      .order('slamzone_best', { ascending: false })
+      .limit(10);
+    socket.emit('slamzone-leaderboard-data', { rows: (data || []).filter(r => (r.slamzone_best || 0) > 0) });
+  });
+
   socket.on('startilt-score', async (d) => {
     const me = players[socket.id]; if (!me) return;
     const now = Date.now();
@@ -1008,6 +1033,7 @@ function finalizeSpawn(socket, profile) {
     stepbeatBest: profile.stepbeat_best || 0,
     bonkabotBest: profile.bonkabot_best || 0,
     startiltBest: profile.startilt_best || 0,
+    slamzoneBest: profile.slamzone_best || 0,
     lastWheel: profile.last_wheel || 0,
     casinoBest: profile.casino_best || 0,
     raceWins: profile.race_wins || 0,

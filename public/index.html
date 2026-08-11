@@ -322,6 +322,24 @@
   </div>
 </div>
 
+<!-- Slam Zone (Basketball-Cabinet) -->
+<div id="slamzone" class="pmodal" style="display:none">
+  <div class="spacewrap">
+    <button class="pclose" id="slamzoneclose" style="top:0;right:0">✕</button>
+    <canvas id="slamzoneCanvas" width="300" height="480"></canvas>
+    <div class="spacefoot" id="slamzonefoot" data-i18n="slamzone_controls">Leertaste halten zum Laden, ←/→ zum Zielen, loslassen zum Werfen</div>
+  </div>
+</div>
+
+<!-- Slam-Zone-Bestenliste -->
+<div id="szlb" class="pmodal" style="display:none">
+  <div class="pcard lbcard">
+    <button class="pclose" id="szlbclose">✕</button>
+    <h2 data-i18n="szlb_title">🏀 Korb-Rekorde</h2>
+    <div id="szlblist"></div>
+  </div>
+</div>
+
 <!-- Spielautomat -->
 <div id="slot" class="pmodal" style="display:none">
   <div class="slotwrap">
@@ -570,6 +588,7 @@ import { openVoidGunner, initVoidGunnerDom, onVoidGunnerBest, onVoidGunnerLeader
 import { openStepBeat, initStepBeatDom, onStepBeatBest, onStepBeatLeaderboardData } from './js/games/step-beat.js';
 import { openBonkABot, initBonkABotDom, onBonkABotBest, onBonkABotLeaderboardData } from './js/games/bonk-a-bot.js';
 import { openStarTilt, initStarTiltDom, onStarTiltBest, onStarTiltLeaderboardData } from './js/games/star-tilt.js';
+import { openSlamZone, initSlamZoneDom, onSlamZoneBest, onSlamZoneLeaderboardData } from './js/games/slam-zone.js';
 import { FOOD_ITEMS, ITEM_NAME_JA as FOOD_NAME_JA, ITEM_FLAVOR } from './js/data/store-items.js';
 
 /* ============================================================
@@ -780,6 +799,8 @@ function connectGame(token){
   'bonkabot-best': onBonkABotBest,
   'startilt-leaderboard-data': onStarTiltLeaderboardData,
   'startilt-best': onStarTiltBest,
+  'slamzone-leaderboard-data': onSlamZoneLeaderboardData,
+  'slamzone-best': onSlamZoneBest,
   'wheel-status': onWheelStatus,
   'wheel-result': onWheelResult,
   'bj-idle': onBjIdle,
@@ -881,6 +902,7 @@ cv.addEventListener('pointerdown',e=>{if(!me)return;if(document.activeElement===
     if(cab==='stepbeat'){openStepBeat();return;}
     if(cab==='bonkabot'){openBonkABot();return;}
     if(cab==='startilt'){openStarTilt();return;}
+    if(cab==='slamzone'){openSlamZone();return;}
     if(cab){showPopup('🚧',t('popup_comingsoon_title'),t('popup_comingsoon_sub'),'purple');return;}}
   if(ROOMS[rid]){const dhit=ROOMS[rid].deco.find(dd=>Math.hypot(dd.x-p.x,dd.y-p.y)<36);
     if(dhit){if(dhit.t==='telescope')openTelescope();else if(dhit.t==='holo')openHolo();else if(dhit.t==='vending')openShop();else openDecoDetail(dhit.t);return;}}
@@ -2037,6 +2059,7 @@ initVoidGunnerDom();
 initStepBeatDom();
 initBonkABotDom();
 initStarTiltDom();
+initSlamZoneDom();
 initMapDom();
 resize();seedOrbs();requestAnimationFrame(loop);
 $('flagde').onclick=()=>setLang('de');
