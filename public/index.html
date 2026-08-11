@@ -286,6 +286,24 @@
   </div>
 </div>
 
+<!-- Bonk-a-Bot (Whack-a-Mole-Cabinet) -->
+<div id="bonkabot" class="pmodal" style="display:none">
+  <div class="spacewrap">
+    <button class="pclose" id="bonkabotclose" style="top:0;right:0">✕</button>
+    <canvas id="bonkabotCanvas" width="300" height="480"></canvas>
+    <div class="spacefoot" id="bonkabotfoot" data-i18n="bonkabot_controls">Klick/Tipp die Bots, sobald sie auftauchen (oder Tasten 1-6)</div>
+  </div>
+</div>
+
+<!-- Bonk-a-Bot-Bestenliste -->
+<div id="bblb" class="pmodal" style="display:none">
+  <div class="pcard lbcard">
+    <button class="pclose" id="bblbclose">✕</button>
+    <h2 data-i18n="bblb_title">🤖 Bonk-Rekorde</h2>
+    <div id="bblblist"></div>
+  </div>
+</div>
+
 <!-- Spielautomat -->
 <div id="slot" class="pmodal" style="display:none">
   <div class="slotwrap">
@@ -532,6 +550,7 @@ import { openIronDuel, initIronDuelDom, onDuelWaiting, onDuelStart, onDuelGo, on
 import { openRacer, initRacerDom, onRacerBest, onRacerLeaderboardData } from './js/games/racer.js';
 import { openVoidGunner, initVoidGunnerDom, onVoidGunnerBest, onVoidGunnerLeaderboardData } from './js/games/void-gunner.js';
 import { openStepBeat, initStepBeatDom, onStepBeatBest, onStepBeatLeaderboardData } from './js/games/step-beat.js';
+import { openBonkABot, initBonkABotDom, onBonkABotBest, onBonkABotLeaderboardData } from './js/games/bonk-a-bot.js';
 import { FOOD_ITEMS, ITEM_NAME_JA as FOOD_NAME_JA, ITEM_FLAVOR } from './js/data/store-items.js';
 
 /* ============================================================
@@ -738,6 +757,8 @@ function connectGame(token){
   'voidgunner-best': onVoidGunnerBest,
   'stepbeat-leaderboard-data': onStepBeatLeaderboardData,
   'stepbeat-best': onStepBeatBest,
+  'bonkabot-leaderboard-data': onBonkABotLeaderboardData,
+  'bonkabot-best': onBonkABotBest,
   'wheel-status': onWheelStatus,
   'wheel-result': onWheelResult,
   'bj-idle': onBjIdle,
@@ -837,6 +858,7 @@ cv.addEventListener('pointerdown',e=>{if(!me)return;if(document.activeElement===
     if(cab==='racer'){openRacer();return;}
     if(cab==='voidgunner'){openVoidGunner();return;}
     if(cab==='stepbeat'){openStepBeat();return;}
+    if(cab==='bonkabot'){openBonkABot();return;}
     if(cab){showPopup('🚧',t('popup_comingsoon_title'),t('popup_comingsoon_sub'),'purple');return;}}
   if(ROOMS[rid]){const dhit=ROOMS[rid].deco.find(dd=>Math.hypot(dd.x-p.x,dd.y-p.y)<36);
     if(dhit){if(dhit.t==='telescope')openTelescope();else if(dhit.t==='holo')openHolo();else if(dhit.t==='vending')openShop();else openDecoDetail(dhit.t);return;}}
@@ -1991,6 +2013,7 @@ initIronDuelDom();
 initRacerDom();
 initVoidGunnerDom();
 initStepBeatDom();
+initBonkABotDom();
 initMapDom();
 resize();seedOrbs();requestAnimationFrame(loop);
 $('flagde').onclick=()=>setLang('de');

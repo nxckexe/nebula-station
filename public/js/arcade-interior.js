@@ -185,7 +185,7 @@ const CABINETS_1=[
   {x:400,y:330,w:66,h:112,type:'pinball',  label:'STAR TILT',  color:'#ffd166'},
   {x:640,y:330,w:66,h:112,type:'hoop',     label:'SLAM ZONE',  color:'#ff2e88'},
 ];
-const CABINET_HIT={pacman:'pacman',tetris:'tetris',tekken:'tekken',racer:'racer',shooter:'voidgunner',dance:'stepbeat'};
+const CABINET_HIT={pacman:'pacman',tetris:'tetris',tekken:'tekken',racer:'racer',shooter:'voidgunner',dance:'stepbeat',whack:'bonkabot'};
 const SCREEN_FN={pacman:screenPacman,tetris:screenTetris,tekken:screenTekken,racer:screenRacer,
   shooter:screenShooter,dance:screenDance,pinball:screenPinball,whack:screenWhack,hoop:screenHoop};
 
