@@ -21,13 +21,19 @@ const GUIDES=[
 
 let stG=null, stRAF=null, stLast=0, phase='play';
 let ball=null, score=0, balls=3, bumperFlash=[0,0,0], tiltT=0, tiltPresses=[], newBallT=0;
-let stNewRecord=false, stBest=0;
+let stNewRecord=false, stBest=0, entryOpen=true, stuckT=0;
+// Hoehe, ab der die Einschuss-Luecke in der rechten Leitwand wieder schliesst: der Ball
+// startet direkt neben dieser Wand (x:265,y:430) und wuerde sonst sofort beim Start an ihr
+// abprallen. Die Luecke bleibt nur offen, bis der Ball diese Zone nach oben verlassen hat,
+// und geht bei jedem neuen Ball (Start & nach Ballverlust) automatisch wieder auf.
+const ENTRY_CLEAR_Y=400;
 
 function launchBall(){
   // Startwinkel/-tempo bewusst so gewaehlt, dass die Flugbahn zuverlaessig durch den
   // Bumper-Cluster fuehrt (analytisch gegen die Bumper-Positionen geprueft), statt
   // einfach leer am Spielfeld hochzufliegen und wieder abzufallen.
   ball={x:265,y:430,vx:-90,vy:-500,inPlay:true};
+  entryOpen=true;stuckT=0;
 }
 function reset(){
   score=0;balls=3;bumperFlash=[0,0,0];tiltT=0;tiltPresses=[];newBallT=0;stNewRecord=false;
@@ -50,7 +56,7 @@ function gameOver(){
   $('startiltfoot').innerHTML='<button class="betb" id="startiltagain">🔁 '+t('btn_again')+'</button><button class="betb" id="startiltboard">🏆 '+t('btn_leaderboard')+'</button><button class="betb" id="startiltexit">'+t('btn_exit')+'</button>';
   const a=$('startiltagain'),x=$('startiltexit'),b=$('startiltboard');
   if(a)a.onclick=()=>openStarTilt();
-  if(x)x.onclick=closeStarTilt();
+  if(x)x.onclick=closeStarTilt;
   if(b)b.onclick=openStarTiltBoard;
 }
 function stLoop(){
@@ -114,7 +120,13 @@ function updateStarTilt(dt){
   }
   flipperHit(FLIP_L,FLIP_L.held&&tiltT<=0&&FLIP_L.angle<FLIP_L.rest-0.3);
   flipperHit(FLIP_R,FLIP_R.held&&tiltT<=0&&FLIP_R.angle>FLIP_R.rest+0.3);
-  for(const seg of GUIDES)guideHit(seg);
+  if(entryOpen&&ball.y<ENTRY_CLEAR_Y)entryOpen=false;
+  for(const seg of GUIDES){if(seg===GUIDES[1]&&entryOpen)continue;guideHit(seg);}
+  // Notausstieg gegen seltene Ruhekontakt-Faelle (Ball klemmt sich z.B. genau zwischen
+  // Leitwand und Flipper-Drehpunkt fest und bewegt sich effektiv nicht mehr von der
+  // Stelle): nach kurzer Standzeit wird er aktiv von der naeheren Seitenwand weggestossen.
+  if(Math.hypot(ball.vx,ball.vy)<15){stuckT+=dt;if(stuckT>1.2){ball.vx+=ball.x<(WALL_L+WALL_R)/2?90:-90;ball.vy-=220;stuckT=0;}}
+  else stuckT=0;
   if(ball.y>DRAIN_Y){
     ball=null;balls--;
     if(balls<=0){gameOver();}
@@ -141,9 +153,9 @@ function drawStarTilt(now){
     g.fillStyle=hot?'#fff8d0':'#e2c6ff';g.beginPath();g.arc(b.x,b.y,b.r*0.5,0,7);g.fill();
   }
   g.strokeStyle='#8891a3';g.lineWidth=6;g.lineCap='round';
-  for(const seg of GUIDES){g.beginPath();g.moveTo(seg.a.x,seg.a.y);g.lineTo(seg.b.x,seg.b.y);g.stroke();}
+  for(const seg of GUIDES){if(seg===GUIDES[1]&&entryOpen)continue;g.beginPath();g.moveTo(seg.a.x,seg.a.y);g.lineTo(seg.b.x,seg.b.y);g.stroke();}
   g.strokeStyle=INK;g.lineWidth=2;
-  for(const seg of GUIDES){g.beginPath();g.moveTo(seg.a.x,seg.a.y);g.lineTo(seg.b.x,seg.b.y);g.stroke();}
+  for(const seg of GUIDES){if(seg===GUIDES[1]&&entryOpen)continue;g.beginPath();g.moveTo(seg.a.x,seg.a.y);g.lineTo(seg.b.x,seg.b.y);g.stroke();}
   for(const fl of [FLIP_L,FLIP_R]){
     const tipX=fl.pivot.x+Math.cos(fl.angle)*fl.len,tipY=fl.pivot.y+Math.sin(fl.angle)*fl.len;
     g.strokeStyle=tiltT>0?'#5a4a6a':'#7be0b0';g.lineWidth=13;g.lineCap='round';

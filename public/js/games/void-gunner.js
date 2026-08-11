@@ -33,7 +33,7 @@ function gameOver(){
   $('voidgunnerfoot').innerHTML='<button class="betb" id="voidgunneragain">🔁 '+t('btn_again')+'</button><button class="betb" id="voidgunnerboard">🏆 '+t('btn_leaderboard')+'</button><button class="betb" id="voidgunnerexit">'+t('btn_exit')+'</button>';
   const a=$('voidgunneragain'),x=$('voidgunnerexit'),b=$('voidgunnerboard');
   if(a)a.onclick=()=>openVoidGunner();
-  if(x)x.onclick=closeVoidGunner();
+  if(x)x.onclick=closeVoidGunner;
   if(b)b.onclick=openVoidGunnerBoard;
 }
 function fire(){

@@ -32,7 +32,7 @@ function sessionEnd(){
   $('stepbeatfoot').innerHTML='<button class="betb" id="stepbeatagain">🔁 '+t('btn_again')+'</button><button class="betb" id="stepbeatboard">🏆 '+t('btn_leaderboard')+'</button><button class="betb" id="stepbeatexit">'+t('btn_exit')+'</button>';
   const a=$('stepbeatagain'),x=$('stepbeatexit'),b=$('stepbeatboard');
   if(a)a.onclick=()=>openStepBeat();
-  if(x)x.onclick=closeStepBeat();
+  if(x)x.onclick=closeStepBeat;
   if(b)b.onclick=openStepBeatBoard;
 }
 function sbLoop(){
