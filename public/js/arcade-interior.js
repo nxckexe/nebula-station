@@ -342,9 +342,17 @@ function drawAttendant(ctx,cx,cy){
   ctx.strokeStyle=INK;ctx.lineWidth=2;ctx.lineCap='round';ctx.beginPath();ctx.arc(cx,cy-6+bob,7,.15*Math.PI,.85*Math.PI);ctx.stroke();
 }
 
+const CLAW_MACHINES=[{x:370,y:470,w:180,h:220},{x:580,y:470,w:180,h:220}];
+export function arcadeClawMachineAt(p){
+  return CLAW_MACHINES.some(c=>Math.abs(p.x-c.x)<c.w/2+6&&p.y>c.y-c.h-6&&p.y<c.y+10);
+}
+export function arcadeClawMachineHoverAt(p){
+  return CLAW_MACHINES.find(c=>Math.abs(p.x-c.x)<c.w/2+6&&p.y>c.y-c.h-6&&p.y<c.y+10)||null;
+}
 export function renderArcadeFloor2(ctx,opts){
   const now=performance.now();
   const hoveredElevator=(opts&&opts.hoveredElevator)||false;
+  const hoveredClaw=(opts&&opts.hoveredClaw)||null;
   const wg=ctx.createLinearGradient(0,0,0,90);wg.addColorStop(0,'#1f0a30');wg.addColorStop(1,'#12061c');
   ctx.fillStyle=wg;ctx.fillRect(0,0,1040,90);
   ctx.fillStyle='#050308';roundRect(ctx,300,14,440,52,14);ctx.fill();ctx.strokeStyle='#ffd166';ctx.lineWidth=3;roundRect(ctx,300,14,440,52,14);ctx.stroke();
@@ -353,8 +361,12 @@ export function renderArcadeFloor2(ctx,opts){
   ctx.fillStyle='#160a24';ctx.fillRect(0,90,1040,512);
   ctx.strokeStyle='rgba(255,209,102,.15)';ctx.lineWidth=2;
   for(let x=0;x<1040;x+=70){ctx.beginPath();ctx.moveTo(x,90);ctx.lineTo(x,602);ctx.stroke();}
-  drawClawMachine(ctx,370,470,now);
-  drawClawMachine(ctx,580,470,now);
+  for(const c of CLAW_MACHINES){
+    const isHover=hoveredClaw===c;
+    if(isHover){ctx.save();const s=1.03;ctx.translate(c.x,c.y);ctx.scale(s,s);ctx.translate(-c.x,-c.y);ctx.shadowColor='#fff';ctx.shadowBlur=14;}
+    drawClawMachine(ctx,c.x,c.y,now);
+    if(isHover){ctx.shadowBlur=0;ctx.restore();}
+  }
   drawPrizeWall(ctx,720,140,240,120,now);
   drawTicketCounter(ctx,700,330,980,470,now);
   drawAttendant(ctx,840,324);

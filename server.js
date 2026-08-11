@@ -147,6 +147,12 @@ function ownedSet(str) { return new Set(String(str || '').split(',').filter(Bool
 // ---- Slot Machine (Nickusch Industries) ----
 const SLOT_SYMS = [ {i:0,w:26,three:8}, {i:1,w:22,three:10}, {i:2,w:18,three:12}, {i:3,w:14,three:15}, {i:4,w:10,three:25}, {i:5,w:6,three:50}, {i:6,w:4,three:100} ];
 const SLOT_BETS = [100, 500, 1000];
+const CLAW_COST = 50;
+const CLAW_TIERS = {
+  common: { maxProb: 0.78, reward: 120 },
+  rare: { maxProb: 0.46, reward: 280 },
+  jackpot: { maxProb: 0.18, reward: 650 },
+};
 // ---- VIP ----
 const VIP_LEVEL = 10;
 const SLOT_BETS_VIP = [5000, 10000, 25000];
@@ -618,6 +624,36 @@ io.on('connection', (socket) => {
     socket.emit('slamzone-leaderboard-data', { rows: (data || []).filter(r => (r.slamzone_best || 0) > 0) });
   });
 
+  socket.on('clawmachine-play', async (d) => {
+    const me = players[socket.id]; if (!me) return;
+    const now = Date.now();
+    if (now - (me.lastClaw || 0) < 900) return;
+    me.lastClaw = now;
+    const tierDef = CLAW_TIERS[d.tier];
+    if (!tierDef) return;
+    if (me.stardust < CLAW_COST) { socket.emit('clawmachine-result', { ok: false, code: 'err_funds' }); return; }
+    const quality = Math.max(0, Math.min(1, +d.quality || 0));
+    me.stardust -= CLAW_COST;
+    const success = Math.random() < quality * tierDef.maxProb;
+    let reward = 0;
+    if (success) {
+      reward = tierDef.reward;
+      me.stardust += reward;
+      me.clawmachineWins = (me.clawmachineWins || 0) + 1;
+    }
+    socket.emit('stardust', { value: me.stardust });
+    socket.emit('clawmachine-result', { ok: true, success, tier: d.tier, reward, stardust: me.stardust, wins: me.clawmachineWins || 0 });
+    admin.from('profiles').update({ stardust: me.stardust, clawmachine_wins: me.clawmachineWins || 0 }).eq('id', me.userId).then(() => {}, () => {});
+  });
+
+  socket.on('clawmachine-leaderboard', async () => {
+    const { data } = await admin.from('profiles')
+      .select('username,clawmachine_wins')
+      .order('clawmachine_wins', { ascending: false })
+      .limit(10);
+    socket.emit('clawmachine-leaderboard-data', { rows: (data || []).filter(r => (r.clawmachine_wins || 0) > 0) });
+  });
+
   socket.on('startilt-score', async (d) => {
     const me = players[socket.id]; if (!me) return;
     const now = Date.now();
@@ -1034,6 +1070,7 @@ function finalizeSpawn(socket, profile) {
     bonkabotBest: profile.bonkabot_best || 0,
     startiltBest: profile.startilt_best || 0,
     slamzoneBest: profile.slamzone_best || 0,
+    clawmachineWins: profile.clawmachine_wins || 0,
     lastWheel: profile.last_wheel || 0,
     casinoBest: profile.casino_best || 0,
     raceWins: profile.race_wins || 0,
