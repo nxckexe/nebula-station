@@ -60,7 +60,12 @@ function tryDrop(){
   socket&&socket.emit('clawmachine-play',{tier:slot.tier,quality});
 }
 export function onClawMachineResult(d){
-  if(!d||!d.ok){if(d&&d.code==='err_funds')setMsg(t('claw_no_funds'));pendingResult=false;return;}
+  if(!d||!d.ok){
+    if(d&&d.code==='err_funds')setMsg(t('claw_no_funds'));
+    else if(d&&d.code==='err_cooldown')setMsg(t('claw_cooldown',{sec:Math.ceil((d.remainingMs||0)/1000)}));
+    pendingResult=false;phase='idle';animT=0;heldTier=null;deliverFlyT=0;dropSlot=null;
+    return;
+  }
   lastResult=d;pendingResult=false;
   const me=getMe();if(me){me.stardust=d.stardust;if(typeof d.wins==='number')me.clawmachineWins=d.wins;}
   const bal=document.getElementById('orbs');if(bal)bal.textContent=d.stardust;

@@ -769,7 +769,8 @@ function connectGame(token){
       if($('backpack').style.display!=='none')renderBackpack();
     }else addMsg('','',d.code?t(d.code,d.params):'','sys');},
   'item-consumed': d=>{const p=players[d.id];if(!p)return;const it=FOOD_ITEMS.find(f=>f.id===d.itemId);if(!it)return;
-    p.emo=it.ico;p.emoT=2.4;p.expr='love';p.exprT=2.4;},
+    p.emo=it.ico;p.emoT=2.4;p.expr='love';p.exprT=2.4;
+    if(d.drunk){p.drunk=true;p.drunkT=d.drunkTime||30;if(d.id===myId)showPopup('🥴',t('popup_drunk_title'),t('popup_drunk_sub'),'purple');}},
   'world': all=>{
     for(const id in all)addPlayer(all[id]);
     // Karteileichen entfernen: alles, was der Server nicht mehr kennt
@@ -1011,10 +1012,11 @@ function update(dt,now){
     if(e.bubbleT>0){e.bubbleT-=dt;if(e.bubbleT<=0)e.bubble=null;}
     if(e.emoT>0){e.emoT-=dt;if(e.emoT<=0)e.emo=null;}if(e.exprT>0){e.exprT-=dt;if(e.exprT<=0)e.expr='happy';}
     if(e.emoteT>0){e.emoteT-=dt;if(e.emoteT<=0)e.emote=null;}
-    if(e.sitAnim>0){e.sitAnim-=dt*2;if(e.sitAnim<0)e.sitAnim=0;}}
+    if(e.sitAnim>0){e.sitAnim-=dt*2;if(e.sitAnim<0)e.sitAnim=0;}
+    if(e.drunkT>0){e.drunkT-=dt;if(e.drunkT<=0){e.drunkT=0;e.drunk=false;}}}
 }
 function moveEnt(e,dt){const dx=e.tx-e.x,dy=e.ty-e.y,d=Math.hypot(dx,dy);
-  if(d>2){const m=Math.min(205*dt,d);e.x+=dx/d*m;e.y+=dy/d*m;if(Math.abs(dx)>.5)e.face=dx<0?-1:1;e.step+=dt*11;e.moving=true;}else{e.step*=.85;e.moving=false;}}
+  if(d>2){const m=Math.min((e.drunk?140:205)*dt,d);e.x+=dx/d*m;e.y+=dy/d*m;if(Math.abs(dx)>.5)e.face=dx<0?-1:1;e.step+=dt*(e.drunk?7:11);e.moving=true;}else{e.step*=.85;e.moving=false;}}
 
 /* ---------------- RENDER ---------------- */
 function render(){const r=cv.parentElement.getBoundingClientRect();ctx.clearRect(0,0,r.width,r.height);
@@ -1652,6 +1654,7 @@ function drawAvatar(e){const isFloat=e.species==='nebli',moving=e.moving&&!e.sit
   ctx.save();
   if(pose){ctx.translate(x+pose.dx,y+pose.dy);ctx.rotate(pose.rot);ctx.scale(pose.sx,pose.sy);ctx.translate(-x,-y);
     if(pose.glow){const gg=ctx.createRadialGradient(x,y-6,4,x,y-6,44);gg.addColorStop(0,hexA(pose.glow,.5));gg.addColorStop(1,'transparent');ctx.fillStyle=gg;ctx.beginPath();ctx.arc(x,y-6,44,0,7);ctx.fill();}}
+  else if(e.drunk){const sway=Math.sin(performance.now()/230+e.x)*0.16;ctx.translate(x,y+18);ctx.rotate(sway);ctx.translate(-x,-(y+18));}
   const m=drawBody(e,x,y,squash,moving);
   ctx.fillStyle='rgba(255,94,168,.5)';ctx.beginPath();ctx.arc(x-m.spread-4,m.eyeY+7,4,0,7);ctx.fill();ctx.beginPath();ctx.arc(x+m.spread+4,m.eyeY+7,4,0,7);ctx.fill();
   drawFace(e,x,m);drawAcc(e.acc,x,m,e.face);
@@ -1663,7 +1666,10 @@ function drawAvatar(e){const isFloat=e.species==='nebli',moving=e.moving&&!e.sit
   ctx.font='600 13px Fredoka';ctx.textAlign='center';const nw=ctx.measureText(e.name).width;
   ctx.fillStyle='#fff';ctx.strokeStyle=INK;ctx.lineWidth=3;roundRect(x-nw/2-8,m.top-30,nw+16,20,10);ctx.fill();ctx.stroke();ctx.fillStyle=INK;ctx.fillText(e.name,x,m.top-16);
   if(e.bubble)drawBubble(x,m.top-34,e.bubble);
-  if(e.emo){const t=1-e.emoT/2.4;ctx.globalAlpha=Math.min(1,1.6-t*1.6);ctx.font='26px serif';ctx.fillText(e.emo,x,m.top-38-t*26);ctx.globalAlpha=1;}}
+  if(e.emo){const t=1-e.emoT/2.4;ctx.globalAlpha=Math.min(1,1.6-t*1.6);ctx.font='26px serif';ctx.fillText(e.emo,x,m.top-38-t*26);ctx.globalAlpha=1;}
+  if(e.drunk){const dt2=performance.now()/300;
+    ctx.fillStyle='rgba(255,110,140,.5)';ctx.beginPath();ctx.arc(x-m.spread-3,m.eyeY+6,4,0,7);ctx.fill();ctx.beginPath();ctx.arc(x+m.spread+3,m.eyeY+6,4,0,7);ctx.fill();
+    ctx.font='13px serif';ctx.textAlign='center';ctx.globalAlpha=.9;ctx.fillText('💫',x+Math.cos(dt2)*15,m.top-8+Math.sin(dt2)*4);ctx.globalAlpha=1;}}
 function body(x,y,bw,bh,col){ctx.fillStyle=col;ctx.strokeStyle=INK;ctx.lineWidth=4;ctx.beginPath();ctx.ellipse(x,y,bw,bh,0,0,7);ctx.fill();ctx.stroke();}
 function hi(x,y,bw,bh){ctx.fillStyle='rgba(255,255,255,.35)';ctx.beginPath();ctx.ellipse(x-bw*.3,y-bh*.4,bw*.3,bh*.4,-.3,0,7);ctx.fill();}
 function feet(e,x,fy,fw,sz){ctx.fillStyle=shade(e.color,-45);ctx.strokeStyle=INK;ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(x-8,fy+Math.max(0,fw),sz,4,0,0,7);ctx.fill();ctx.stroke();ctx.beginPath();ctx.ellipse(x+8,fy+Math.max(0,-fw),sz,4,0,0,7);ctx.fill();ctx.stroke();}

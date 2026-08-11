@@ -94,7 +94,9 @@ const FOOD_ITEMS = [
   { id:'famichiki',     name:'Famichiki',      price:35, stores:['familymart'] },
   { id:'nikuman',       name:'Nikuman',        price:25, stores:['familymart'] },
   { id:'oden',          name:'Oden',           price:20, stores:['seven'] },
-  { id:'slush',         name:'Slush',          price:40, stores:['seven'], machineOnly:true }
+  { id:'slush',         name:'Slush',          price:40, stores:['seven'], machineOnly:true },
+  { id:'strongzero_lemon',      name:'-196 Strong Zero Double Lemon',      price:60, stores:['familymart'], alcohol:true },
+  { id:'strongzero_grapefruit', name:'-196 Strong Zero Double Grapefruit', price:60, stores:['seven'],      alcohol:true }
 ];
 // Emotes: 'wave' und 'dance' sind gratis, der Rest kaufbar
 const EMOTE_DEFS = {
@@ -148,6 +150,8 @@ function ownedSet(str) { return new Set(String(str || '').split(',').filter(Bool
 const SLOT_SYMS = [ {i:0,w:26,three:8}, {i:1,w:22,three:10}, {i:2,w:18,three:12}, {i:3,w:14,three:15}, {i:4,w:10,three:25}, {i:5,w:6,three:50}, {i:6,w:4,three:100} ];
 const SLOT_BETS = [100, 500, 1000];
 const CLAW_COST = 50;
+const CLAW_MAX_ATTEMPTS = 3;
+const CLAW_COOLDOWN_MS = 90000;
 const CLAW_TIERS = {
   common: { maxProb: 0.78, reward: 120 },
   rare: { maxProb: 0.46, reward: 280 },
@@ -408,7 +412,13 @@ io.on('connection', (socket) => {
     me.inventory[d.id] = count - 1;
     await admin.from('profiles').update({ inventory: me.inventory }).eq('id', socket.userId);
     socket.emit('item-use-result', { ok:true, id:d.id, inventory: me.inventory });
-    io.emit('item-consumed', { id: socket.id, itemId: d.id });
+    const usedItem = FOOD_ITEMS.find(f => f.id === d.id);
+    let drunk = false;
+    if (usedItem && usedItem.alcohol) {
+      me.alcCount = (me.alcCount || 0) + 1;
+      if (me.alcCount % 2 === 0) drunk = true;
+    }
+    io.emit('item-consumed', { id: socket.id, itemId: d.id, drunk, drunkTime: 30 });
   });
 
   socket.on('slot-spin', async (d) => {
@@ -631,7 +641,14 @@ io.on('connection', (socket) => {
     me.lastClaw = now;
     const tierDef = CLAW_TIERS[d.tier];
     if (!tierDef) return;
+    if (now - (me.clawWindowStart || 0) > CLAW_COOLDOWN_MS) { me.clawWindowStart = now; me.clawAttempts = 0; }
+    if ((me.clawAttempts || 0) >= CLAW_MAX_ATTEMPTS) {
+      const remaining = Math.max(0, CLAW_COOLDOWN_MS - (now - me.clawWindowStart));
+      socket.emit('clawmachine-result', { ok: false, code: 'err_cooldown', remainingMs: remaining });
+      return;
+    }
     if (me.stardust < CLAW_COST) { socket.emit('clawmachine-result', { ok: false, code: 'err_funds' }); return; }
+    me.clawAttempts = (me.clawAttempts || 0) + 1;
     const quality = Math.max(0, Math.min(1, +d.quality || 0));
     me.stardust -= CLAW_COST;
     const success = Math.random() < quality * tierDef.maxProb;
@@ -642,7 +659,7 @@ io.on('connection', (socket) => {
       me.clawmachineWins = (me.clawmachineWins || 0) + 1;
     }
     socket.emit('stardust', { value: me.stardust });
-    socket.emit('clawmachine-result', { ok: true, success, tier: d.tier, reward, stardust: me.stardust, wins: me.clawmachineWins || 0 });
+    socket.emit('clawmachine-result', { ok: true, success, tier: d.tier, reward, stardust: me.stardust, wins: me.clawmachineWins || 0, attemptsLeft: Math.max(0, CLAW_MAX_ATTEMPTS - me.clawAttempts) });
     admin.from('profiles').update({ stardust: me.stardust, clawmachine_wins: me.clawmachineWins || 0 }).eq('id', me.userId).then(() => {}, () => {});
   });
 

@@ -64,6 +64,32 @@ function drawTileFloor(ctx){
   ctx.strokeStyle='rgba(0,0,0,.08)';ctx.lineWidth=1;
   for(let x=0;x<1040;x+=52)for(let y=230;y<602;y+=52){ctx.strokeRect(x,y,52,52);}
 }
+// -196 Strong Zero-Dose: silbrig gebuersteter Korpus, große "-196"-Wortmarke, farbige
+// Sorten-Banderole (gelb=Lemon, hellblau=Grapefruit) und ein Zitrusfrucht-Farbtupfer oben,
+// dem echten Dosendesign nachempfunden, aber als Vektorgrafik statt Fotoausschnitt.
+function drawStrongZeroCan(ctx,cx,cy,flavor){
+  const w=30,h=58,x0=cx-w/2,y0=cy-h/2;
+  const isLemon=flavor==='lemon';
+  const stripe=isLemon?'#ffd93d':'#8fd9ea';
+  const fruit=isLemon?'#ffd93d':'#8fce4a';
+  ctx.save();
+  const body=ctx.createLinearGradient(x0,0,x0+w,0);
+  body.addColorStop(0,'#c9ced4');body.addColorStop(.15,'#f4f6f8');body.addColorStop(.5,'#dfe3e6');body.addColorStop(.85,'#f4f6f8');body.addColorStop(1,'#b9bfc4');
+  ctx.fillStyle=body;ctx.strokeStyle=INK;ctx.lineWidth=1.6;
+  roundRect(ctx,x0,y0,w,h,6);ctx.fill();ctx.stroke();
+  ctx.save();roundRect(ctx,x0,y0,w,h,6);ctx.clip();
+  ctx.beginPath();ctx.ellipse(cx,y0+7,w*0.7,5,0,0,7);ctx.fillStyle='#aeb4b9';ctx.fill();
+  ctx.fillStyle=fruit;ctx.beginPath();ctx.arc(cx-6,y0+13,6.5,0,7);ctx.fill();ctx.strokeStyle=INK;ctx.lineWidth=1;ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,255,.8)';ctx.lineWidth=.6;
+  for(let i=0;i<6;i++){const a=i/6*6.28;ctx.beginPath();ctx.moveTo(cx-6,y0+13);ctx.lineTo(cx-6+Math.cos(a)*6,y0+13+Math.sin(a)*6);ctx.stroke();}
+  ctx.fillStyle=INK;ctx.font='800 8px Fredoka';ctx.textAlign='center';ctx.fillText('-196',cx,y0+30);
+  ctx.fillStyle=stripe;ctx.fillRect(x0,y0+h*0.62,w,h*0.24);
+  ctx.strokeStyle=INK;ctx.lineWidth=1;ctx.strokeRect(x0,y0+h*0.62,w,h*0.24);
+  ctx.fillStyle=isLemon?'#2a2a2a':'#1a3a44';ctx.font='700 5.5px Fredoka';ctx.fillText('STRONG ZERO',cx,y0+h*0.62+9);
+  ctx.fillStyle='#e2231a';ctx.font='800 8px Fredoka';ctx.fillText('9%',cx,y0+h*0.62+19);
+  ctx.restore();
+  ctx.restore();
+}
 function drawShelf(ctx,x,y,item){
   ctx.fillStyle='rgba(0,0,0,.15)';ctx.beginPath();ctx.ellipse(x,y+46,68,10,0,0,7);ctx.fill();
   ctx.fillStyle='#c9a06a';ctx.strokeStyle=INK;ctx.lineWidth=3;
@@ -73,7 +99,8 @@ function drawShelf(ctx,x,y,item){
   if(!item)return;
   ctx.fillStyle=item.ico?'#fff8e8':'#fff';ctx.strokeStyle=INK;ctx.lineWidth=3;
   roundRect(ctx,x-46,y-30,92,54,10);ctx.fill();ctx.stroke();
-  ctx.font='30px Fredoka';ctx.textAlign='center';ctx.fillText(item.ico,x,y-1);
+  if(item.canArt)drawStrongZeroCan(ctx,x,y-2,item.canArt);
+  else{ctx.font='30px Fredoka';ctx.textAlign='center';ctx.fillText(item.ico,x,y-1);}
   ctx.fillStyle='#ffd166';ctx.strokeStyle=INK;ctx.lineWidth=2;
   const label=item.price+' ✦',tw=ctx.measureText(label).width;
   ctx.font='700 12px Fredoka';const pw=Math.max(tw+14,0);
