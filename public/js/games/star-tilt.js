@@ -10,6 +10,14 @@ const DEG=Math.PI/180;
 const FLIP_L={pivot:{x:95,y:430},len:48,rest:70*DEG,active:-35*DEG,angle:70*DEG,held:false};
 const FLIP_R={pivot:{x:205,y:430},len:48,rest:110*DEG,active:215*DEG,angle:110*DEG,held:false};
 const FLIP_SPEED=16;
+// Seiten-Leitwaende: fuehren den Ball von den Aussenwaenden zur Mitte, damit er NUR noch
+// in der Luecke zwischen den beiden Flippern durchfallen kann, nicht mehr an den Seiten vorbei.
+// Bewusst kurz und tief gehalten (nur knapp oberhalb der Flipper), damit sie nicht in die
+// Startbahn des Balls hineinragen und ihn dort schon abfangen, bevor er die Bumper erreicht.
+const GUIDES=[
+  {a:{x:WALL_L,y:415},b:{x:86,y:432}},
+  {a:{x:WALL_R,y:415},b:{x:214,y:432}}
+];
 
 let stG=null, stRAF=null, stLast=0, phase='play';
 let ball=null, score=0, balls=3, bumperFlash=[0,0,0], tiltT=0, tiltPresses=[], newBallT=0;
@@ -64,6 +72,14 @@ function stepFlipper(fl,dt){
   const maxStep=FLIP_SPEED*dt;
   if(Math.abs(diff)<=maxStep)fl.angle=target;else fl.angle+=Math.sign(diff)*maxStep;
 }
+function guideHit(seg){
+  const {dist,cx,cy}=segDist(ball.x,ball.y,seg.a.x,seg.a.y,seg.b.x,seg.b.y);
+  if(dist>=BALL_R+4)return;
+  const nx=(ball.x-cx)/(dist||1),ny=(ball.y-cy)/(dist||1);
+  ball.x=cx+nx*(BALL_R+4);ball.y=cy+ny*(BALL_R+4);
+  const dot=ball.vx*nx+ball.vy*ny;
+  ball.vx-=2*dot*nx*0.65;ball.vy-=2*dot*ny*0.65;
+}
 function flipperHit(fl,active){
   const tipX=fl.pivot.x+Math.cos(fl.angle)*fl.len, tipY=fl.pivot.y+Math.sin(fl.angle)*fl.len;
   const {dist,cx,cy}=segDist(ball.x,ball.y,fl.pivot.x,fl.pivot.y,tipX,tipY);
@@ -98,6 +114,7 @@ function updateStarTilt(dt){
   }
   flipperHit(FLIP_L,FLIP_L.held&&tiltT<=0&&FLIP_L.angle<FLIP_L.rest-0.3);
   flipperHit(FLIP_R,FLIP_R.held&&tiltT<=0&&FLIP_R.angle>FLIP_R.rest+0.3);
+  for(const seg of GUIDES)guideHit(seg);
   if(ball.y>DRAIN_Y){
     ball=null;balls--;
     if(balls<=0){gameOver();}
@@ -123,6 +140,10 @@ function drawStarTilt(now){
     g.beginPath();g.arc(b.x,b.y,b.r,0,7);g.fill();g.stroke();
     g.fillStyle=hot?'#fff8d0':'#e2c6ff';g.beginPath();g.arc(b.x,b.y,b.r*0.5,0,7);g.fill();
   }
+  g.strokeStyle='#8891a3';g.lineWidth=6;g.lineCap='round';
+  for(const seg of GUIDES){g.beginPath();g.moveTo(seg.a.x,seg.a.y);g.lineTo(seg.b.x,seg.b.y);g.stroke();}
+  g.strokeStyle=INK;g.lineWidth=2;
+  for(const seg of GUIDES){g.beginPath();g.moveTo(seg.a.x,seg.a.y);g.lineTo(seg.b.x,seg.b.y);g.stroke();}
   for(const fl of [FLIP_L,FLIP_R]){
     const tipX=fl.pivot.x+Math.cos(fl.angle)*fl.len,tipY=fl.pivot.y+Math.sin(fl.angle)*fl.len;
     g.strokeStyle=tiltT>0?'#5a4a6a':'#7be0b0';g.lineWidth=13;g.lineCap='round';
