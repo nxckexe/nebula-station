@@ -593,6 +593,31 @@ io.on('connection', (socket) => {
     socket.emit('bonkabot-leaderboard-data', { rows: (data || []).filter(r => (r.bonkabot_best || 0) > 0) });
   });
 
+  socket.on('startilt-score', async (d) => {
+    const me = players[socket.id]; if (!me) return;
+    const now = Date.now();
+    if (now - (me.lastStartilt || 0) < 3000) return;
+    me.lastStartilt = now;
+    const score = Math.max(0, Math.min(999999, Math.round(+d.score || 0)));
+    const gained = Math.min(500, Math.round(score / 12));
+    const xp = Math.min(150, Math.round(score / 18));
+    me.stardust += gained;
+    socket.emit('stardust', { value: me.stardust });
+    if (xp > 0) grantXp(socket, me, xp);
+    const isRecord = score > (me.startiltBest || 0);
+    if (isRecord) me.startiltBest = score;
+    socket.emit('startilt-best', { best: me.startiltBest, record: isRecord });
+    admin.from('profiles').update({ stardust: me.stardust, xp: me.xp, startilt_best: me.startiltBest }).eq('id', me.userId).then(() => {}, () => {});
+  });
+
+  socket.on('startilt-leaderboard', async () => {
+    const { data } = await admin.from('profiles')
+      .select('username,startilt_best')
+      .order('startilt_best', { ascending: false })
+      .limit(10);
+    socket.emit('startilt-leaderboard-data', { rows: (data || []).filter(r => (r.startilt_best || 0) > 0) });
+  });
+
   socket.on('space-leaderboard', async () => {
     const { data } = await admin.from('profiles')
       .select('username,space_best')
@@ -982,6 +1007,7 @@ function finalizeSpawn(socket, profile) {
     voidgunnerBest: profile.voidgunner_best || 0,
     stepbeatBest: profile.stepbeat_best || 0,
     bonkabotBest: profile.bonkabot_best || 0,
+    startiltBest: profile.startilt_best || 0,
     lastWheel: profile.last_wheel || 0,
     casinoBest: profile.casino_best || 0,
     raceWins: profile.race_wins || 0,
