@@ -42,6 +42,9 @@ app.get('/config', (req, res) => {
 const COLORS  = ['#4dd0ff','#ff5ea8','#ffb14d','#7be0b0','#b18cff','#ffe15e'];
 const SPECIES = ['blobbi','knuffo','slink','zacki','nebli'];
 const ACCS    = ['none','cap','glasses','shades','bow','flower','beanie','phones','party','monocle','cowboy','horns','star','propeller','tophat','wizard','halo','crown'];
+const PET_SPECIES = ['mochi','sprout','spark','fin','wing'];
+const PET_PRICE = 800;
+const PET_MIN_LEVEL = 2;
 
 // ---- Fortschritt: XP -> Level -> Rang (steilere Kurve) ----
 function xpLevel(xp) { return 1 + Math.floor(Math.sqrt((xp || 0) / 70)); }
@@ -368,6 +371,21 @@ io.on('connection', (socket) => {
     me.acc = a.acc;
     io.emit('player-acc', { id: socket.id, acc: me.acc });
     await admin.from('profiles').update({ acc: me.acc }).eq('id', socket.userId);
+  });
+
+  socket.on('pet-adopt', async (d) => {
+    const me = players[socket.id]; if (!me) return;
+    if (!PET_SPECIES.includes(d.species)) return;
+    if (!COLORS.includes(d.color)) return;
+    if (xpLevel(me.xp) < PET_MIN_LEVEL) { socket.emit('pet-adopt-result', { ok:false, code:'err_min_level', params:{ level:PET_MIN_LEVEL } }); return; }
+    if (me.stardust < PET_PRICE) { socket.emit('pet-adopt-result', { ok:false, code:'err_funds' }); return; }
+    const name = String(d.name || '').trim().slice(0, 14) || 'Pet';
+    me.stardust -= PET_PRICE;
+    me.pet = { species: d.species, color: d.color, name };
+    io.emit('player-pet', { id: socket.id, pet: me.pet });
+    socket.emit('stardust', { value: me.stardust });
+    socket.emit('pet-adopt-result', { ok:true, pet: me.pet, stardust: me.stardust });
+    await admin.from('profiles').update({ stardust: me.stardust, pet: me.pet }).eq('id', socket.userId);
   });
 
   socket.on('equip-bg', async (d) => {
@@ -1072,6 +1090,7 @@ function finalizeSpawn(socket, profile) {
     species: SPECIES.includes(profile.species) ? profile.species : SPECIES[0],
     acc: ACCS.includes(profile.acc) ? profile.acc : 'none',
     bg: profile.bg || 'space',
+    pet: (profile.pet && typeof profile.pet === 'object') ? profile.pet : null,
     stardust: profile.stardust || 0,
     xp: profile.xp || 0, level: lvl, rank: rankName(lvl),
     owned: profile.owned || '',
@@ -1118,7 +1137,7 @@ function finalizeSpawn(socket, profile) {
   players[socket.id] = me;
   online[socket.userId] = socket.id;
   socket.emit('spawn', {
-    name: me.name, color: me.color, species: me.species, acc: me.acc, bg: me.bg,
+    name: me.name, color: me.color, species: me.species, acc: me.acc, bg: me.bg, pet: me.pet,
     stardust: me.stardust, xp: me.xp, level: lvl, rank: me.rank, owned: me.owned, inventory: me.inventory
   });
   socket.emit('world', players);

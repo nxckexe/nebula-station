@@ -18,6 +18,7 @@ const elevAnim={};
 function elevOpen(roomId,hovered){const cur=elevAnim[roomId]||0;return elevAnim[roomId]=cur+((hovered?1:0)-cur)*0.18;}
 
 export function plazaElevatorHoverAt(p){return Math.abs(p.x-ELEV_X)<46&&p.y>ELEV_Y-104&&p.y<ELEV_Y+16;}
+export function petCounterHoverAt(p){return p.x>340&&p.x<700&&p.y>380&&p.y<520;}
 
 function drawShell(ctx,theme){
   const wg=ctx.createLinearGradient(0,0,0,90);wg.addColorStop(0,theme.bg1);wg.addColorStop(1,theme.bg2);
@@ -108,6 +109,7 @@ export function renderPlazaDonki(ctx,opts){
 export function renderPlazaPets(ctx,opts){
   const theme=THEMES.cryo_plaza_pets,now=performance.now();
   const hoveredElevator=(opts&&opts.hoveredElevator)||false;
+  const hoveredCounter=(opts&&opts.hoveredCounter)||false;
   drawShell(ctx,theme);
   ctx.fillStyle='#fff';ctx.font='800 22px Fredoka';ctx.textAlign='center';
   ctx.fillStyle='#ffe6f5';ctx.strokeStyle=INK;ctx.lineWidth=3;
@@ -126,11 +128,13 @@ export function renderPlazaPets(ctx,opts){
   }
   // Adoptionstresen
   const cx0=340,cy0=420,cx1=700,cy1=520;
+  if(hoveredCounter){ctx.save();ctx.shadowColor='#fff';ctx.shadowBlur=16;}
   ctx.fillStyle='rgba(0,0,0,.15)';ctx.beginPath();ctx.ellipse((cx0+cx1)/2,cy1+14,(cx1-cx0)*0.52,10,0,0,7);ctx.fill();
   ctx.fillStyle='#fff0f8';ctx.strokeStyle=INK;ctx.lineWidth=4;roundRect(ctx,cx0,cy0,cx1-cx0,cy1-cy0,14);ctx.fill();ctx.stroke();
   ctx.fillStyle=theme.accent;ctx.fillRect(cx0+6,cy1-22,cx1-cx0-12,14);ctx.strokeStyle=INK;ctx.lineWidth=2;ctx.strokeRect(cx0+6,cy1-22,cx1-cx0-12,14);
   ctx.fillStyle=INK;ctx.font='800 14px Fredoka';ctx.fillText('Adoption-Tresen',(cx0+cx1)/2,cy0+30);
-  ctx.font='700 11px Fredoka';ctx.fillText('bald spielbar',(cx0+cx1)/2,cy0+50);
+  ctx.font='700 11px Fredoka';ctx.fillText('anklicken zum Adoptieren',(cx0+cx1)/2,cy0+50);
+  if(hoveredCounter)ctx.restore();
   drawElevatorProp(ctx,'cryo_plaza_pets',hoveredElevator,theme.accent);
 }
 

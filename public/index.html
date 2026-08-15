@@ -368,6 +368,20 @@
   </div>
 </div>
 
+<!-- Pet Shop (Haustier-Adoption) -->
+<div id="petshop" class="pmodal" style="display:none">
+  <div class="pcard">
+    <button class="pclose" id="petshopclose">✕</button>
+    <h2 data-i18n="petshop_title">🐾 Pet Shop</h2>
+    <canvas id="petPreviewCanvas" width="160" height="160" style="display:block;margin:0 auto;background:#fff0f8;border:3px solid var(--ink);border-radius:16px"></canvas>
+    <div id="petSpeciesList" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:10px"></div>
+    <div id="petColorList" style="display:flex;gap:8px;justify-content:center;margin-top:10px"></div>
+    <input id="petNameInput" type="text" maxlength="14" data-i18n-ph="ph_pet_name" placeholder="Name" style="width:100%;box-sizing:border-box;margin-top:10px;padding:8px;border-radius:10px;border:3px solid var(--ink);font-family:inherit;font-weight:600;text-align:center"/>
+    <div id="petShopInfo" style="text-align:center;margin-top:8px;font-size:12px;color:#8a76c4;font-weight:600"></div>
+    <button class="betb" id="petAdoptBtn" style="width:100%;margin-top:10px"></button>
+  </div>
+</div>
+
 <!-- Spielautomat -->
 <div id="slot" class="pmodal" style="display:none">
   <div class="slotwrap">
@@ -588,7 +602,9 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { COLORS, INK, SPECIES, SP_LABEL, ACCS, ITEM_ICON } from './js/data/appearance.js';
 import { EMOTES, EMOTE_LIST, EMOTE_DUR, EMOTE_META } from './js/data/emotes.js';
 import { CW, CRUG, ROOMS, VIP_LEVEL, VIP_SLOTS, VIP_BJ, FOUNTAINS, CASINO_SLOTS, WHEEL_OBJ, BJ_TABLES, PLINKO_OBJ, ROU_OBJ, HALL_OBJ, PLANETS, PLANET_ORDER, CRYONIS_GROUND_Y, CRYONIS_WALK_Y0, CRYONIS_WALK_Y1, CRYONIS_PORTAL_X, PLAZA_FLOORS } from './js/data/rooms.js';
-import { renderPlazaLobby, renderPlazaDonki, renderPlazaPets, renderPlazaFood, renderPlazaFashion, renderPlazaRoof, plazaElevatorHoverAt } from './js/plaza-interior.js';
+import { renderPlazaLobby, renderPlazaDonki, renderPlazaPets, renderPlazaFood, renderPlazaFashion, renderPlazaRoof, plazaElevatorHoverAt, petCounterHoverAt } from './js/plaza-interior.js';
+import { openPetShop, initPetShopDom, onPetAdoptResult } from './js/games/pet-shop.js';
+import { drawPetShape } from './js/pet-render.js';
 import { SHOP, ITEM_NAME_JA } from './js/data/shop.js';
 import { GAME_NAMES, GAME_ICONS, ROU_RED, ROU_ORDER, PLINKO_ROWS, PLINKO_MULT, PLINKO_COLS, WHEEL_VALUES, WHEEL_COLS } from './js/data/casino-games.js';
 import { HELP } from './js/data/help.js';
@@ -834,6 +850,8 @@ function connectGame(token){
   'slamzone-best': onSlamZoneBest,
   'clawmachine-result': onClawMachineResult,
   'clawmachine-leaderboard-data': onClawMachineLeaderboardData,
+  'pet-adopt-result': onPetAdoptResult,
+  'player-pet': d=>{const p=players[d.id];if(p)p.pet=d.pet;},
   'wheel-status': onWheelStatus,
   'wheel-result': onWheelResult,
   'bj-idle': onBjIdle,
@@ -938,6 +956,7 @@ cv.addEventListener('pointerdown',e=>{if(!me)return;if(document.activeElement===
     if(cab==='slamzone'){openSlamZone();return;}
     if(cab){showPopup('🚧',t('popup_comingsoon_title'),t('popup_comingsoon_sub'),'purple');return;}}
   if(rid==='cryo_arcade_top'&&arcadeClawMachineAt(p)){openClawMachine();return;}
+  if(rid==='cryo_plaza_pets'&&petCounterHoverAt(p)){openPetShop();return;}
   if(ROOMS[rid]){const dhit=ROOMS[rid].deco.find(dd=>Math.hypot(dd.x-p.x,dd.y-p.y)<36);
     if(dhit){if(dhit.t==='telescope')openTelescope();else if(dhit.t==='holo')openHolo();else if(dhit.t==='vending')openShop();else openDecoDetail(dhit.t);return;}}
   if(PLANETS[rid]&&PLANETS[rid].city){
@@ -971,6 +990,7 @@ cv.addEventListener('pointermove',e=>{
   if(!h&&rid==='cryo_arcade_top'){const cm=arcadeClawMachineHoverAt(p);if(cm)h={kind:'clawcab',obj:cm};}
   if(!h&&(rid==='cryo_arcade'||rid==='cryo_arcade_top')&&arcadeElevatorHoverAt(p,rid==='cryo_arcade_top'?'top':'ground'))h={kind:'arcadeelevator'};
   if(!h&&rid.startsWith('cryo_plaza')&&plazaElevatorHoverAt(p))h={kind:'plazaelevator'};
+  if(!h&&rid==='cryo_plaza_pets'&&petCounterHoverAt(p))h={kind:'petcounter'};
   if(!h&&PLANETS[rid]&&planetScene){if(Math.hypot(planetScene.portal.x-p.x,planetScene.portal.y-p.y)<42)h={kind:'portal'};
     if(!h&&planetScene.racePad&&Math.abs(p.x-planetScene.racePad.x)<70&&Math.abs(p.y-planetScene.racePad.y)<58)h={kind:'racepad'};
     else{const c=planetScene.crystals.find(c=>!c.got&&Math.hypot(c.x-p.x,c.y-p.y)<28);if(c)h={kind:'crystal',obj:c};}
@@ -1018,8 +1038,21 @@ function goToRoom(room,fromRoom){if(!me||locked||room===me.room)return;
   addMsg('','',(LANG==='ja'?'今いる場所：':'Du bist bei ')+((PLANETS[room]&&PLANETS[room].name)||t('room_'+room))+(LANG==='ja'?'':'.'),'sys');updateOnline();}
 
 let last=performance.now(),lastSent=0;
+const PET_FOLLOW_DELAY=280;
+function updateTrail(e,now){
+  if(!e.trail)e.trail=[];
+  e.trail.push({x:e.x,y:e.y,t:now});
+  while(e.trail.length>2&&e.trail[1].t<now-1500)e.trail.shift();
+}
+function petFollowPos(e,now){
+  if(!e.trail||!e.trail.length)return{x:e.x,y:e.y};
+  const target=now-PET_FOLLOW_DELAY;
+  let chosen=e.trail[0];
+  for(const p of e.trail){if(p.t<=target)chosen=p;else break;}
+  return chosen;
+}
 function update(dt,now){
-  for(const id in players)moveEnt(players[id],dt);
+  for(const id in players){moveEnt(players[id],dt);updateTrail(players[id],now);}
   if(machinePouring){
     machinePourT=Math.min(1,machinePourT+dt/1.1);
     if(machinePourT>=1){machineHoldT+=dt;if(machineHoldT>0.9){machinePouring=false;machinePourT=0;machineHoldT=0;}}
@@ -1086,7 +1119,7 @@ function render(){const r=cv.parentElement.getBoundingClientRect();ctx.clearRect
     else if(rid==='cryo_arcade_top'){renderArcadeFloor2(ctx,{hoveredElevator:hoveredIs('arcadeelevator'),hoveredClaw:hoveredIs('clawcab')?hover.obj:null});}
     else if(rid==='cryo_plaza'){renderPlazaLobby(ctx,{hoveredElevator:hoveredIs('plazaelevator')});drawDoor(room.door2,room.accent);}
     else if(rid==='cryo_plaza_donki'){renderPlazaDonki(ctx,{hoveredElevator:hoveredIs('plazaelevator')});}
-    else if(rid==='cryo_plaza_pets'){renderPlazaPets(ctx,{hoveredElevator:hoveredIs('plazaelevator')});}
+    else if(rid==='cryo_plaza_pets'){renderPlazaPets(ctx,{hoveredElevator:hoveredIs('plazaelevator'),hoveredCounter:hoveredIs('petcounter')});}
     else if(rid==='cryo_plaza_food'){renderPlazaFood(ctx,{hoveredElevator:hoveredIs('plazaelevator')});}
     else if(rid==='cryo_plaza_fashion'){renderPlazaFashion(ctx,{hoveredElevator:hoveredIs('plazaelevator')});}
     else if(rid==='cryo_plaza_roof'){renderPlazaRoof(ctx,{hoveredElevator:hoveredIs('plazaelevator')});}
@@ -1095,7 +1128,10 @@ function render(){const r=cv.parentElement.getBoundingClientRect();ctx.clearRect
         if(hoveredIs('ship'))drawHovered(SHIP_OBJ.x,SHIP_OBJ.y,()=>drawShipParked(SHIP_OBJ.x,SHIP_OBJ.y));else drawShipParked(SHIP_OBJ.x,SHIP_OBJ.y);}
       if(rid==='obs')C4_TABLES.forEach((t,i)=>{if(hoveredIs('table',i))drawHovered(t.x,t.y,()=>drawC4Table(t.x,t.y,i));else drawC4Table(t.x,t.y,i);});}}
   const here=Object.values(players).filter(p=>p.room===rid).sort((a,b)=>a.y-b.y);
-  for(const e of here){if(e.id!==myId&&hoveredIs('player',e))drawHovered(e.x,e.y,()=>drawAvatar(e));else drawAvatar(e);}
+  for(const e of here){
+    if(e.pet){const pp=petFollowPos(e,performance.now());drawPetShape(ctx,pp.x,pp.y+22,e.pet.species,e.pet.color,performance.now(),e.face);}
+    if(e.id!==myId&&hoveredIs('player',e))drawHovered(e.x,e.y,()=>drawAvatar(e));else drawAvatar(e);
+  }
   if(rid==='deck')drawDrone();
   if(rid==='casino'){BJ_TABLES.forEach((b,i)=>drawBjLive(ctx,i,b.x,b.y));drawRouLive(ctx,ROU_OBJ.x,ROU_OBJ.y);}
   if(rid==='vip')drawBjLive(ctx,2,VIP_BJ.x,VIP_BJ.y);
@@ -2127,6 +2163,7 @@ initBonkABotDom();
 initStarTiltDom();
 initSlamZoneDom();
 initClawMachineDom();
+initPetShopDom();
 $('plazaElevatorClose').onclick=closeFloorPanel;
 $('plazaElevator').onclick=e=>{if(e.target.id==='plazaElevator')closeFloorPanel();};
 initMapDom();
