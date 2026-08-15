@@ -23,8 +23,24 @@ export const ROOMS={
     door:{x:130,y:400,to:'cryo_arcade',dirRight:false,icon:'🕹️'},
     deco:[]},
   cryo_plaza:{id:'cryo_plaza',accent:'#31e1ff',wall1:'#0d2b45',wall2:'#071a2c',floor1:'#12283a',floor2:'#0d1f2d',
-    door:{x:70,y:360,to:'cryonis',dirRight:false},
-    deco:[{t:'holo',x:300,y:246},{t:'holo',x:610,y:246},{t:'bench',x:470,y:300},{t:'bench',x:730,y:300},{t:'plant',x:905,y:272},{t:'plant',x:160,y:272}]},
+    door:{x:550,y:380,panel:'plaza',dirRight:true,icon:'🛗'},
+    door2:{x:70,y:360,to:'cryonis',dirRight:false},
+    deco:[]},
+  cryo_plaza_donki:{id:'cryo_plaza_donki',accent:'#ffe15e',wall1:'#241a00',wall2:'#120d00',floor1:'#2e2200',floor2:'#241a00',
+    door:{x:550,y:380,panel:'plaza',dirRight:true,icon:'🛗'},
+    deco:[]},
+  cryo_plaza_pets:{id:'cryo_plaza_pets',accent:'#ff9ed6',wall1:'#3a1030',wall2:'#210a1c',floor1:'#4a1a3e',floor2:'#3a1230',
+    door:{x:550,y:380,panel:'plaza',dirRight:true,icon:'🛗'},
+    deco:[]},
+  cryo_plaza_food:{id:'cryo_plaza_food',accent:'#ffb14d',wall1:'#3a2410',wall2:'#22150a',floor1:'#4a3018',floor2:'#3a2410',
+    door:{x:550,y:380,panel:'plaza',dirRight:true,icon:'🛗'},
+    deco:[]},
+  cryo_plaza_fashion:{id:'cryo_plaza_fashion',accent:'#d857e0',wall1:'#2a1040',wall2:'#160726',floor1:'#341450',floor2:'#2a1040',
+    door:{x:550,y:380,panel:'plaza',dirRight:true,icon:'🛗'},
+    deco:[]},
+  cryo_plaza_roof:{id:'cryo_plaza_roof',accent:'#ffd166',wall1:'#0a0a20',wall2:'#050510',floor1:'#141430',floor2:'#0e0e26',
+    door:{x:550,y:380,panel:'plaza',dirRight:true,icon:'🛗'},
+    deco:[]},
   cryo_club:{id:'cryo_club',accent:'#b467ff',wall1:'#2a0f45',wall2:'#160726',floor1:'#1c0e30',floor2:'#150a24',
     door:{x:70,y:360,to:'cryonis',dirRight:false},
     door2:{x:930,y:400,to:'cryo_club_roof',dirRight:true,icon:'🛗'},
@@ -39,6 +55,14 @@ export const ROOMS={
     door:{x:70,y:360,to:'cryonis',dirRight:false},
     deco:[]}
 };
+export const PLAZA_FLOORS=[
+  {id:'cryo_plaza',        icon:'🏢', label:'Lobby',          floor:'EG'},
+  {id:'cryo_plaza_donki',  icon:'🎪', label:'Don Don Donki',  floor:'1'},
+  {id:'cryo_plaza_pets',   icon:'🐾', label:'Pet Shop',       floor:'2'},
+  {id:'cryo_plaza_food',   icon:'🍜', label:'Food Court',     floor:'3'},
+  {id:'cryo_plaza_fashion',icon:'👗', label:'Boutique',       floor:'4'},
+  {id:'cryo_plaza_roof',   icon:'🌃', label:'Rooftop Bar',    floor:'5'}
+];
 export const VIP_LEVEL=10;
 export const VIP_SLOTS=[{x:300,y:300},{x:470,y:300},{x:800,y:300}];
 export const VIP_BJ={x:520,y:470};
