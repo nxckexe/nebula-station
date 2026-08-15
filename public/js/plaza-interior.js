@@ -19,6 +19,7 @@ function elevOpen(roomId,hovered){const cur=elevAnim[roomId]||0;return elevAnim[
 
 export function plazaElevatorHoverAt(p){return Math.abs(p.x-ELEV_X)<46&&p.y>ELEV_Y-104&&p.y<ELEV_Y+16;}
 export function petCounterHoverAt(p){return p.x>340&&p.x<700&&p.y>380&&p.y<520;}
+export function donkiMachineHoverAt(p){return p.x>580&&p.x<680&&p.y>380&&p.y<540;}
 
 function drawShell(ctx,theme){
   const wg=ctx.createLinearGradient(0,0,0,90);wg.addColorStop(0,theme.bg1);wg.addColorStop(1,theme.bg2);
@@ -76,6 +77,7 @@ export function renderPlazaLobby(ctx,opts){
 export function renderPlazaDonki(ctx,opts){
   const theme=THEMES.cryo_plaza_donki,now=performance.now();
   const hoveredElevator=(opts&&opts.hoveredElevator)||false;
+  const hoveredMachine=(opts&&opts.hoveredMachine)||false;
   drawShell(ctx,theme);
   ctx.save();ctx.beginPath();ctx.rect(0,0,W,90);ctx.clip();
   for(let i=-2;i<20;i++){ctx.fillStyle=i%2?'#0a0a0a':'#ffe15e';ctx.save();ctx.translate(i*56,0);ctx.rotate(-0.35);ctx.fillRect(-20,-20,40,140);ctx.restore();}
@@ -96,13 +98,15 @@ export function renderPlazaDonki(ctx,opts){
   ctx.fillStyle='#fff';ctx.beginPath();ctx.ellipse(mx,my+6,15,28,0,0,7);ctx.fill();
   ctx.fillStyle='#ff8200';ctx.beginPath();ctx.moveTo(mx-6,my-30);ctx.lineTo(mx+6,my-30);ctx.lineTo(mx,my-20);ctx.closePath();ctx.fill();ctx.stroke();
   ctx.fillStyle=INK;ctx.beginPath();ctx.arc(mx-6,my-16,2.4,0,7);ctx.fill();ctx.beginPath();ctx.arc(mx+6,my-16,2.4,0,7);ctx.fill();
-  // Wundertueten-Automat (Interaktion folgt in Phase 3)
+  // Wundertueten-Automat
   const bx=630,by=480;
+  if(hoveredMachine){ctx.save();ctx.shadowColor='#fff';ctx.shadowBlur=16;}
   ctx.fillStyle='rgba(0,0,0,.15)';ctx.beginPath();ctx.ellipse(bx,by+56,42,9,0,0,7);ctx.fill();
   ctx.fillStyle='#e2231a';ctx.strokeStyle=INK;ctx.lineWidth=4;roundRect(ctx,bx-40,by-90,80,146,12);ctx.fill();ctx.stroke();
   ctx.fillStyle='#ffe15e';ctx.font='800 12px Fredoka';ctx.textAlign='center';ctx.fillText('🎁',bx,by-30);
   ctx.font='700 11px Fredoka';ctx.fillText('MYSTERY',bx,by-4);ctx.fillText('BAG',bx,by+10);
-  ctx.fillStyle='#fff';ctx.font='700 10px Fredoka';ctx.fillText('bald spielbar',bx,by+34);
+  ctx.fillStyle='#fff';ctx.font='700 10px Fredoka';ctx.fillText('anklicken',bx,by+34);
+  if(hoveredMachine)ctx.restore();
   drawElevatorProp(ctx,'cryo_plaza_donki',hoveredElevator,theme.accent);
 }
 

@@ -160,6 +160,24 @@ const CLAW_TIERS = {
   rare: { maxProb: 0.46, reward: 280 },
   jackpot: { maxProb: 0.18, reward: 650 },
 };
+// ---- Don Don Donki: Mystery-Wundertuete ----
+const DONKI_COST = 80;
+const DONKI_PRIZES = [
+  { type:'stardust', amount:30,   weight:26 },
+  { type:'stardust', amount:60,   weight:22 },
+  { type:'food', id:'onigiri',        weight:14 },
+  { type:'food', id:'egg_sando',      weight:12 },
+  { type:'food', id:'mitsuya_cider',  weight:10 },
+  { type:'stardust', amount:150,  weight:11 },
+  { type:'stardust', amount:400,  weight:4 },
+  { type:'stardust', amount:1000, weight:1 },
+];
+const DONKI_TOTAL_WEIGHT = DONKI_PRIZES.reduce((s,p)=>s+p.weight,0);
+function donkiRoll(){
+  let r = Math.random()*DONKI_TOTAL_WEIGHT;
+  for (const p of DONKI_PRIZES){ if((r-=p.weight)<0) return p; }
+  return DONKI_PRIZES[DONKI_PRIZES.length-1];
+}
 // ---- VIP ----
 const VIP_LEVEL = 10;
 const SLOT_BETS_VIP = [5000, 10000, 25000];
@@ -687,6 +705,30 @@ io.on('connection', (socket) => {
       .order('clawmachine_wins', { ascending: false })
       .limit(10);
     socket.emit('clawmachine-leaderboard-data', { rows: (data || []).filter(r => (r.clawmachine_wins || 0) > 0) });
+  });
+
+  socket.on('donki-grabbag', async (d) => {
+    const me = players[socket.id]; if (!me) return;
+    const now = Date.now();
+    if (now - (me.lastDonki || 0) < 900) return;
+    me.lastDonki = now;
+    if (me.stardust < DONKI_COST) { socket.emit('donki-result', { ok: false, code: 'err_funds' }); return; }
+    me.stardust -= DONKI_COST;
+    const prize = donkiRoll();
+    const result = { ok: true, type: prize.type };
+    if (prize.type === 'stardust') {
+      me.stardust += prize.amount;
+      result.amount = prize.amount;
+    } else if (prize.type === 'food') {
+      me.inventory = me.inventory || {};
+      me.inventory[prize.id] = (me.inventory[prize.id] || 0) + 1;
+      result.id = prize.id;
+    }
+    socket.emit('stardust', { value: me.stardust });
+    result.stardust = me.stardust;
+    result.inventory = me.inventory;
+    socket.emit('donki-result', result);
+    admin.from('profiles').update({ stardust: me.stardust, inventory: me.inventory }).eq('id', me.userId).then(() => {}, () => {});
   });
 
   socket.on('startilt-score', async (d) => {
