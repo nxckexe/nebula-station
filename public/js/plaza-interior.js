@@ -20,6 +20,7 @@ function elevOpen(roomId,hovered){const cur=elevAnim[roomId]||0;return elevAnim[
 export function plazaElevatorHoverAt(p){return Math.abs(p.x-ELEV_X)<46&&p.y>ELEV_Y-104&&p.y<ELEV_Y+16;}
 export function petCounterHoverAt(p){return p.x>340&&p.x<700&&p.y>380&&p.y<520;}
 export function donkiMachineHoverAt(p){return p.x>580&&p.x<680&&p.y>380&&p.y<540;}
+export function boutiqueRackHoverAt(p){return p.x>210&&p.x<730&&p.y>250&&p.y<390;}
 
 function drawShell(ctx,theme){
   const wg=ctx.createLinearGradient(0,0,0,90);wg.addColorStop(0,theme.bg1);wg.addColorStop(1,theme.bg2);
@@ -169,8 +170,10 @@ export function renderPlazaFood(ctx,opts){
 export function renderPlazaFashion(ctx,opts){
   const theme=THEMES.cryo_plaza_fashion;
   const hoveredElevator=(opts&&opts.hoveredElevator)||false;
+  const hoveredRacks=(opts&&opts.hoveredRacks)||false;
   drawShell(ctx,theme);
   ctx.fillStyle='#fff';ctx.font='800 22px Fredoka';ctx.textAlign='center';ctx.fillText('👗 BOUTIQUE',520,52);
+  if(hoveredRacks){ctx.save();ctx.shadowColor='#fff';ctx.shadowBlur=16;}
   const racks=[260,470,680];
   for(const rx of racks){
     ctx.strokeStyle='#c7cfd6';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(rx-50,330);ctx.lineTo(rx+50,330);ctx.stroke();
@@ -182,6 +185,8 @@ export function renderPlazaFashion(ctx,opts){
       ctx.fillStyle=cols[i];ctx.strokeStyle=INK;ctx.lineWidth=2;roundRect(ctx,hx-9,340,18,34,4);ctx.fill();ctx.stroke();
     }
   }
+  if(hoveredRacks)ctx.restore();
+  ctx.fillStyle='#fff';ctx.font='700 11px Fredoka';ctx.textAlign='center';ctx.fillText('anklicken zum Stöbern',470,240);
   // Schaufensterpuppe
   const mx=870,my=380;
   ctx.fillStyle='#e8d8c0';ctx.strokeStyle=INK;ctx.lineWidth=3;

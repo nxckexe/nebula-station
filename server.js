@@ -41,7 +41,7 @@ app.get('/config', (req, res) => {
 
 const COLORS  = ['#4dd0ff','#ff5ea8','#ffb14d','#7be0b0','#b18cff','#ffe15e'];
 const SPECIES = ['blobbi','knuffo','slink','zacki','nebli'];
-const ACCS    = ['none','cap','glasses','shades','bow','flower','beanie','phones','party','monocle','cowboy','horns','star','propeller','tophat','wizard','halo','crown'];
+const ACCS    = ['none','cap','glasses','shades','bow','flower','beanie','phones','party','monocle','cowboy','horns','star','propeller','tophat','wizard','halo','crown','scarf','beret','pearls'];
 const PET_SPECIES = ['mochi','sprout','spark','fin','wing'];
 const PET_PRICE = 800;
 const PET_MIN_LEVEL = 2;
@@ -77,6 +77,9 @@ const SHOP = [
   { id:'wizard',    type:'acc', name:'Zaubererhut',      price:40000, minLevel:11 },
   { id:'halo',      type:'acc', name:'Heiligenschein',   price:60000, minLevel:14 },
   { id:'crown',     type:'acc', name:'Krone',            price:90000, minLevel:16 },
+  { id:'scarf',     type:'acc', name:'Schal',            price:3200,  minLevel:2 },
+  { id:'beret',     type:'acc', name:'Barett',           price:6000,  minLevel:3 },
+  { id:'pearls',    type:'acc', name:'Perlenkette',      price:11000, minLevel:5 },
   { id:'bg_grid',   type:'bg',  name:'Neon-Grid',        price:2500,  minLevel:1 },
   { id:'bg_mint',   type:'bg',  name:'Minze',            price:3000,  minLevel:2 },
   { id:'bg_candy',  type:'bg',  name:'Bonbon',           price:3000,  minLevel:2 },

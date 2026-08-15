@@ -16,6 +16,9 @@ export const SHOP=[
   {id:'wizard',type:'acc',name:'Zaubererhut',price:40000,minLevel:11,ico:'🧙'},
   {id:'halo',type:'acc',name:'Heiligenschein',price:60000,minLevel:14,ico:'😇'},
   {id:'crown',type:'acc',name:'Krone',price:90000,minLevel:16,ico:'👑'},
+  {id:'scarf',type:'acc',name:'Schal',price:3200,minLevel:2,ico:'🧣'},
+  {id:'beret',type:'acc',name:'Barett',price:6000,minLevel:3,ico:'🎨'},
+  {id:'pearls',type:'acc',name:'Perlenkette',price:11000,minLevel:5,ico:'📿'},
   {id:'bg_grid',type:'bg',name:'Neon-Grid',price:2500,minLevel:1,ico:'🟦'},
   {id:'bg_mint',type:'bg',name:'Minze',price:3000,minLevel:2,ico:'🟩'},
   {id:'bg_candy',type:'bg',name:'Bonbon',price:3000,minLevel:2,ico:'🍬'},
@@ -31,5 +34,6 @@ export const SHOP=[
 export const ITEM_NAME_JA={cap:'キャップ',glasses:'メガネ',shades:'サングラス',bow:'リボン',flower:'お花',beanie:'ニット帽',
   phones:'ヘッドホン',party:'パーティーハット',monocle:'モノクル',cowboy:'カウボーイハット',horns:'ツノ',star:'スター',
   propeller:'プロペラ帽',tophat:'シルクハット',wizard:'魔法使いの帽子',halo:'天使の輪',crown:'王冠',
+  scarf:'マフラー',beret:'ベレー帽',pearls:'パールネックレス',
   bg_grid:'ネオングリッド',bg_mint:'ミント',bg_candy:'キャンディ',bg_deep:'深海',bg_aurora:'オーロラ',
   bg_sunset:'夕焼け',bg_stars:'星空',bg_nebula:'星雲',bg_gold:'ゴールド',bg_matrix:'マトリックス',bg_rainbow:'虹'};

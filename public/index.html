@@ -612,7 +612,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { COLORS, INK, SPECIES, SP_LABEL, ACCS, ITEM_ICON } from './js/data/appearance.js';
 import { EMOTES, EMOTE_LIST, EMOTE_DUR, EMOTE_META } from './js/data/emotes.js';
 import { CW, CRUG, ROOMS, VIP_LEVEL, VIP_SLOTS, VIP_BJ, FOUNTAINS, CASINO_SLOTS, WHEEL_OBJ, BJ_TABLES, PLINKO_OBJ, ROU_OBJ, HALL_OBJ, PLANETS, PLANET_ORDER, CRYONIS_GROUND_Y, CRYONIS_WALK_Y0, CRYONIS_WALK_Y1, CRYONIS_PORTAL_X, PLAZA_FLOORS } from './js/data/rooms.js';
-import { renderPlazaLobby, renderPlazaDonki, renderPlazaPets, renderPlazaFood, renderPlazaFashion, renderPlazaRoof, plazaElevatorHoverAt, petCounterHoverAt, donkiMachineHoverAt } from './js/plaza-interior.js';
+import { renderPlazaLobby, renderPlazaDonki, renderPlazaPets, renderPlazaFood, renderPlazaFashion, renderPlazaRoof, plazaElevatorHoverAt, petCounterHoverAt, donkiMachineHoverAt, boutiqueRackHoverAt } from './js/plaza-interior.js';
 import { openPetShop, initPetShopDom, onPetAdoptResult } from './js/games/pet-shop.js';
 import { drawPetShape } from './js/pet-render.js';
 import { openDonkiGrabbag, initDonkiGrabbagDom, onDonkiResult } from './js/games/donki-grabbag.js';
@@ -970,6 +970,7 @@ cv.addEventListener('pointerdown',e=>{if(!me)return;if(document.activeElement===
   if(rid==='cryo_arcade_top'&&arcadeClawMachineAt(p)){openClawMachine();return;}
   if(rid==='cryo_plaza_pets'&&petCounterHoverAt(p)){openPetShop();return;}
   if(rid==='cryo_plaza_donki'&&donkiMachineHoverAt(p)){openDonkiGrabbag();return;}
+  if(rid==='cryo_plaza_fashion'&&boutiqueRackHoverAt(p)){openShop('acc');return;}
   if(ROOMS[rid]){const dhit=ROOMS[rid].deco.find(dd=>Math.hypot(dd.x-p.x,dd.y-p.y)<36);
     if(dhit){if(dhit.t==='telescope')openTelescope();else if(dhit.t==='holo')openHolo();else if(dhit.t==='vending')openShop();else openDecoDetail(dhit.t);return;}}
   if(PLANETS[rid]&&PLANETS[rid].city){
@@ -1005,6 +1006,7 @@ cv.addEventListener('pointermove',e=>{
   if(!h&&rid.startsWith('cryo_plaza')&&plazaElevatorHoverAt(p))h={kind:'plazaelevator'};
   if(!h&&rid==='cryo_plaza_pets'&&petCounterHoverAt(p))h={kind:'petcounter'};
   if(!h&&rid==='cryo_plaza_donki'&&donkiMachineHoverAt(p))h={kind:'donkimachine'};
+  if(!h&&rid==='cryo_plaza_fashion'&&boutiqueRackHoverAt(p))h={kind:'boutiquerack'};
   if(!h&&PLANETS[rid]&&planetScene){if(Math.hypot(planetScene.portal.x-p.x,planetScene.portal.y-p.y)<42)h={kind:'portal'};
     if(!h&&planetScene.racePad&&Math.abs(p.x-planetScene.racePad.x)<70&&Math.abs(p.y-planetScene.racePad.y)<58)h={kind:'racepad'};
     else{const c=planetScene.crystals.find(c=>!c.got&&Math.hypot(c.x-p.x,c.y-p.y)<28);if(c)h={kind:'crystal',obj:c};}
@@ -1135,7 +1137,7 @@ function render(){const r=cv.parentElement.getBoundingClientRect();ctx.clearRect
     else if(rid==='cryo_plaza_donki'){renderPlazaDonki(ctx,{hoveredElevator:hoveredIs('plazaelevator'),hoveredMachine:hoveredIs('donkimachine')});}
     else if(rid==='cryo_plaza_pets'){renderPlazaPets(ctx,{hoveredElevator:hoveredIs('plazaelevator'),hoveredCounter:hoveredIs('petcounter')});}
     else if(rid==='cryo_plaza_food'){renderPlazaFood(ctx,{hoveredElevator:hoveredIs('plazaelevator')});}
-    else if(rid==='cryo_plaza_fashion'){renderPlazaFashion(ctx,{hoveredElevator:hoveredIs('plazaelevator')});}
+    else if(rid==='cryo_plaza_fashion'){renderPlazaFashion(ctx,{hoveredElevator:hoveredIs('plazaelevator'),hoveredRacks:hoveredIs('boutiquerack')});}
     else if(rid==='cryo_plaza_roof'){renderPlazaRoof(ctx,{hoveredElevator:hoveredIs('plazaelevator')});}
     else{drawWall(room);drawFloor(room);roomDoors(room).forEach(d=>drawDoor(d,room.accent));
       if(rid==='deck'){for(const o of orbs)drawOrb(o);drawDeckExtras();
@@ -1828,7 +1830,15 @@ function drawAcc(type,x,m,face){if(type==='none'||!type)return;const top=m.top;c
     ctx.beginPath();ctx.arc(x-s+ex,ey,6,0,7);ctx.fill();ctx.stroke();ctx.beginPath();ctx.arc(x+s+ex,ey,6,0,7);ctx.fill();ctx.stroke();
     ctx.beginPath();ctx.moveTo(x-s+ex+6,ey);ctx.lineTo(x+s+ex-6,ey);ctx.stroke();}
   else if(type==='monocle'){const ex=x+m.spread+face*3,ey=m.eyeY;ctx.strokeStyle=INK;ctx.lineWidth=2.5;ctx.fillStyle='rgba(255,255,255,.25)';
-    ctx.beginPath();ctx.arc(ex,ey,7,0,7);ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(ex,ey+7);ctx.quadraticCurveTo(ex-3,ey+16,ex-8,ey+18);ctx.stroke();}}
+    ctx.beginPath();ctx.arc(ex,ey,7,0,7);ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(ex,ey+7);ctx.quadraticCurveTo(ex-3,ey+16,ex-8,ey+18);ctx.stroke();}
+  else if(type==='scarf'){ctx.fillStyle='#ff5ea8';ctx.strokeStyle=INK;ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.ellipse(x,m.mouthY+10,14,6,0,0,7);ctx.fill();ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x+10,m.mouthY+12);ctx.lineTo(x+16,m.mouthY+30);ctx.lineTo(x+8,m.mouthY+28);ctx.closePath();ctx.fill();ctx.stroke();}
+  else if(type==='beret'){ctx.fillStyle='#6a3bd6';ctx.strokeStyle=INK;ctx.lineWidth=3;
+    ctx.beginPath();ctx.ellipse(x-3,top,15,9,0.15,0,7);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#4a2a96';ctx.beginPath();ctx.arc(x+8,top-6,3,0,7);ctx.fill();ctx.stroke();}
+  else if(type==='pearls'){ctx.fillStyle='#fff';ctx.strokeStyle=INK;ctx.lineWidth=1.5;
+    for(let i=-2;i<=2;i++){ctx.beginPath();ctx.arc(x+i*5,m.mouthY+8+Math.abs(i)*1.5,2.6,0,7);ctx.fill();ctx.stroke();}}}
 function drawBubble(x,y,text){ctx.font='500 12px Fredoka';const maxw=170,words=text.split(' ');let lines=[],cur='';
   for(const w of words){if(ctx.measureText(cur+w).width>maxw){lines.push(cur);cur=w+' ';}else cur+=w+' ';}lines.push(cur);
   const wpx=Math.min(maxw,Math.max(...lines.map(l=>ctx.measureText(l.trim()).width)))+20,hpx=lines.length*15+14,bx=x-wpx/2,by=y-hpx;
