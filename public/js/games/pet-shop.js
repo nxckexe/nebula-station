@@ -51,7 +51,11 @@ function tryAdopt(){
   socket&&socket.emit('pet-adopt',{species:selSpecies,color:selColor,name});
 }
 export function onPetAdoptResult(d){
-  if(!d||!d.ok){if(d&&d.code==='err_funds')showPopup('🐾',t('popup_pet_title'),t('claw_no_funds'),'purple');return;}
+  if(!d||!d.ok){
+    const msg=(d&&d.code==='err_funds')?t('claw_no_funds'):t(d&&d.code||'err_unknown_item');
+    showPopup('🐾',t('popup_pet_title'),msg,'purple');
+    return;
+  }
   const me=getMe();if(me){me.pet=d.pet;me.stardust=d.stardust;}
   const bal=document.getElementById('orbs');if(bal)bal.textContent=d.stardust;
   showPopup('🐾',t('popup_pet_title'),t('pet_adopted',{name:d.pet.name}),'gold');

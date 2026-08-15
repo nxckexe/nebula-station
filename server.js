@@ -44,7 +44,6 @@ const SPECIES = ['blobbi','knuffo','slink','zacki','nebli'];
 const ACCS    = ['none','cap','glasses','shades','bow','flower','beanie','phones','party','monocle','cowboy','horns','star','propeller','tophat','wizard','halo','crown','scarf','beret','pearls'];
 const PET_SPECIES = ['mochi','sprout','spark','fin','wing'];
 const PET_PRICE = 800;
-const PET_MIN_LEVEL = 2;
 
 // ---- Fortschritt: XP -> Level -> Rang (steilere Kurve) ----
 function xpLevel(xp) { return 1 + Math.floor(Math.sqrt((xp || 0) / 70)); }
@@ -398,9 +397,8 @@ io.on('connection', (socket) => {
 
   socket.on('pet-adopt', async (d) => {
     const me = players[socket.id]; if (!me) return;
-    if (!PET_SPECIES.includes(d.species)) return;
-    if (!COLORS.includes(d.color)) return;
-    if (xpLevel(me.xp) < PET_MIN_LEVEL) { socket.emit('pet-adopt-result', { ok:false, code:'err_min_level', params:{ level:PET_MIN_LEVEL } }); return; }
+    if (!PET_SPECIES.includes(d.species)) { socket.emit('pet-adopt-result', { ok:false, code:'err_unknown_item' }); return; }
+    if (!COLORS.includes(d.color)) { socket.emit('pet-adopt-result', { ok:false, code:'err_unknown_item' }); return; }
     if (me.stardust < PET_PRICE) { socket.emit('pet-adopt-result', { ok:false, code:'err_funds' }); return; }
     const name = String(d.name || '').trim().slice(0, 14) || 'Pet';
     me.stardust -= PET_PRICE;
