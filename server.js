@@ -102,7 +102,9 @@ const FOOD_ITEMS = [
   { id:'oden',          name:'Oden',           price:20, stores:['seven'] },
   { id:'slush',         name:'Slush',          price:40, stores:['seven'], machineOnly:true },
   { id:'strongzero_lemon',      name:'-196 Strong Zero Double Lemon',      price:60, stores:['familymart'], alcohol:true },
-  { id:'strongzero_grapefruit', name:'-196 Strong Zero Double Grapefruit', price:60, stores:['seven'],      alcohol:true }
+  { id:'strongzero_grapefruit', name:'-196 Strong Zero Double Grapefruit', price:60, stores:['seven'],      alcohol:true },
+  { id:'nebula_fizz',           name:'Nebula Fizz',                        price:55, stores:['plaza_roof'] },
+  { id:'starlight_martini',     name:'Starlight Martini',                  price:95, stores:['plaza_roof'], alcohol:true },
 ];
 // Emotes: 'wave' und 'dance' sind gratis, der Rest kaufbar
 const EMOTE_DEFS = {

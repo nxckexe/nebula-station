@@ -201,9 +201,15 @@ export function renderPlazaFashion(ctx,opts){
   drawElevatorProp(ctx,'cryo_plaza_fashion',hoveredElevator,theme.accent);
 }
 
+const ROOF_BAR={x0:690,y0:420,x1:980,y1:520};
+export function roofDrinkAt(p){
+  if(p.x<ROOF_BAR.x0||p.x>ROOF_BAR.x1||p.y<ROOF_BAR.y0||p.y>ROOF_BAR.y1)return null;
+  return p.x<(ROOF_BAR.x0+ROOF_BAR.x1)/2?'fizz':'martini';
+}
 export function renderPlazaRoof(ctx,opts){
   const theme=THEMES.cryo_plaza_roof,now=performance.now();
   const hoveredElevator=(opts&&opts.hoveredElevator)||false;
+  const hoveredDrink=(opts&&opts.hoveredDrink)||null;
   const sky=ctx.createLinearGradient(0,0,0,340);sky.addColorStop(0,'#050318');sky.addColorStop(1,'#1a0f3d');
   ctx.fillStyle=sky;ctx.fillRect(0,0,W,340);
   for(let i=0;i<70;i++){const sx=(i*137)%W,sy=(i*79)%300,a=.3+.6*Math.abs(Math.sin(now/900+i));ctx.fillStyle=`rgba(232,236,255,${a})`;ctx.beginPath();ctx.arc(sx,sy,1.4,0,7);ctx.fill();}
@@ -222,12 +228,22 @@ export function renderPlazaRoof(ctx,opts){
   ctx.fillStyle='#fff';ctx.font='800 22px Fredoka';ctx.textAlign='center';ctx.strokeStyle=INK;ctx.lineWidth=3;
   ctx.strokeText('🌃 ROOFTOP BAR',520,60);ctx.fillText('🌃 ROOFTOP BAR',520,60);
   // Bartresen
-  const bx0=690,by0=420,bx1=980,by1=520;
-  ctx.fillStyle='rgba(0,0,0,.2)';ctx.beginPath();ctx.ellipse((bx0+bx1)/2,by1+14,(bx1-bx0)*0.52,10,0,0,7);ctx.fill();
+  const {x0:bx0,y0:by0,x1:bx1,y1:by1}=ROOF_BAR,bmid=(bx0+bx1)/2;
+  ctx.fillStyle='rgba(0,0,0,.2)';ctx.beginPath();ctx.ellipse(bmid,by1+14,(bx1-bx0)*0.52,10,0,0,7);ctx.fill();
   ctx.fillStyle='#241a3a';ctx.strokeStyle=theme.accent;ctx.lineWidth=4;roundRect(ctx,bx0,by0,bx1-bx0,by1-by0,14);ctx.fill();ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(bmid,by0+6);ctx.lineTo(bmid,by1-6);ctx.stroke();
   ctx.fillStyle=theme.accent;ctx.fillRect(bx0+6,by1-22,bx1-bx0-12,14);ctx.strokeStyle=INK;ctx.lineWidth=2;ctx.strokeRect(bx0+6,by1-22,bx1-bx0-12,14);
-  ctx.fillStyle='#fff';ctx.font='700 12px Fredoka';ctx.fillText('🍸 Bar',(bx0+bx1)/2,by0+26);
-  ctx.font='700 10px Fredoka';ctx.fillText('bald spielbar',(bx0+bx1)/2,by0+44);
+  const drinks=[{key:'fizz',cx:(bx0+bmid)/2,icon:'🍹',label:'Nebula Fizz',price:55},{key:'martini',cx:(bmid+bx1)/2,icon:'🍸',label:'Starlight Martini',price:95}];
+  for(const d of drinks){
+    const hov=hoveredDrink===d.key;
+    if(hov){ctx.save();ctx.shadowColor='#fff';ctx.shadowBlur=14;}
+    ctx.font='26px serif';ctx.textAlign='center';ctx.fillText(d.icon,d.cx,by0+34+Math.sin(now/500+d.cx)*2);
+    ctx.font='700 10px Fredoka';ctx.fillStyle='#fff';ctx.fillText(d.label,d.cx,by0+50);
+    ctx.fillStyle='#ffd166';ctx.font='700 10px Fredoka';ctx.fillText(d.price+' ✦',d.cx,by0+64);
+    if(hov)ctx.restore();
+  }
+  for(let i=0;i<8;i++){const px=bx0+((now/900+i*70)%(bx1-bx0)),py=by0-6-((now/40+i*30)%40);const a=Math.max(0,1-((now/40+i*30)%40)/40);
+    ctx.fillStyle=`rgba(255,255,255,${a*.6})`;ctx.beginPath();ctx.arc(px,py,1.6,0,7);ctx.fill();}
   // Lounge-Sitzecke
   for(const [lx,ly] of [[180,470],[320,470],[180,540],[320,540]]){
     ctx.fillStyle='rgba(0,0,0,.15)';ctx.beginPath();ctx.ellipse(lx,ly+16,30,7,0,0,7);ctx.fill();

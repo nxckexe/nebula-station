@@ -7,11 +7,14 @@ export const FOOD_ITEMS=[
   {id:'oden',name:'Oden',ico:'🍢',price:20,stores:['seven']},
   {id:'slush',name:'Slush',ico:'🧊',price:40,stores:['seven'],machineOnly:true},
   {id:'strongzero_lemon',name:'-196 Strong Zero Double Lemon',ico:'🍺',price:60,stores:['familymart'],alcohol:true,canArt:'lemon'},
-  {id:'strongzero_grapefruit',name:'-196 Strong Zero Double Grapefruit',ico:'🍺',price:60,stores:['seven'],alcohol:true,canArt:'grapefruit'}
+  {id:'strongzero_grapefruit',name:'-196 Strong Zero Double Grapefruit',ico:'🍺',price:60,stores:['seven'],alcohol:true,canArt:'grapefruit'},
+  {id:'nebula_fizz',name:'Nebula Fizz',ico:'🍹',price:55,stores:['plaza_roof']},
+  {id:'starlight_martini',name:'Starlight Martini',ico:'🍸',price:95,stores:['plaza_roof'],alcohol:true}
 ];
 export const ITEM_NAME_JA={egg_sando:'たまごサンド',onigiri:'おにぎり',mitsuya_cider:'三ツ矢サイダー',
   famichiki:'ファミチキ',nikuman:'肉まん',oden:'おでん',slush:'スラッシュ',
-  strongzero_lemon:'-196 ストロングゼロ ダブルレモン',strongzero_grapefruit:'-196 ストロングゼロ ダブルグレープフルーツ'};
+  strongzero_lemon:'-196 ストロングゼロ ダブルレモン',strongzero_grapefruit:'-196 ストロングゼロ ダブルグレープフルーツ',
+  nebula_fizz:'ネビュラフィズ',starlight_martini:'スターライトマティーニ'};
 export const ITEM_FLAVOR={
   egg_sando:'Fluffiges Ei zwischen weichem Toastbrot. Ein echter Klassiker.',
   onigiri:'Ein handlicher Reisball, frisch aus dem Kühlregal.',
@@ -21,6 +24,8 @@ export const ITEM_FLAVOR={
   oden:'Verschiedene Zutaten, lange in würziger Brühe geschmort.',
   slush:'Eiskalt, fruchtig und frisch aus dem Automaten gezapft.',
   strongzero_lemon:'Eiskalt gebraut mit doppeltem Zitronenaroma. 9% Vol. – mit Vorsicht genießen!',
-  strongzero_grapefruit:'Erfrischend herb mit doppeltem Grapefruit-Aroma. 9% Vol. – mit Vorsicht genießen!'
+  strongzero_grapefruit:'Erfrischend herb mit doppeltem Grapefruit-Aroma. 9% Vol. – mit Vorsicht genießen!',
+  nebula_fizz:'Prickelnd-fruchtiger Mocktail mit einem Hauch Sternenstaub. Alkoholfrei.',
+  starlight_martini:'Elegant, funkelnd, mit einem Schuss Cryonis-Nachtluft. Mit Vorsicht genießen!'
 };
 export function foodItemsFor(store){return FOOD_ITEMS.filter(i=>i.stores.includes(store)&&!i.machineOnly);}
